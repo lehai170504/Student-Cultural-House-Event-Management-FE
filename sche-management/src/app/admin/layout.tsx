@@ -1,6 +1,6 @@
-import Navbar from "./components/layouts/Navbar";
-import Sidebar from "./components/layouts/Sidebar";
-import Footer from "./components/layouts/Footer";
+import Navbar from "../admin/components/layouts/Navbar";
+import Sidebar from "../admin/components/layouts/Sidebar";
+import Footer from "../admin/components/layouts/Footer";
 
 export default function AdminLayout({
   children,
