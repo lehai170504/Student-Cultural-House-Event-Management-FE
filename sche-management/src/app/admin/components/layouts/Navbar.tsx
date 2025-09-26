@@ -48,7 +48,7 @@ export default function Navbar() {
         {/* Dịch menu vô trong xíu bằng align & sideOffset */}
         <DropdownMenuContent className="w-44" align="end" sideOffset={8}>
           <DropdownMenuItem asChild>
-            <a href="/profile" className="w-full">
+            <a href="/admin/profile" className="w-full">
               Xem Profile
             </a>
           </DropdownMenuItem>

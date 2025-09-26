@@ -53,7 +53,7 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-gray-800">📊 Event Dashboard</h1>
+      <h1 className="text-3xl font-bold text-gray-800">Event Dashboard</h1>
       <p className="text-gray-500">
         Theo dõi hoạt động và check-in sự kiện theo thời gian thực
       </p>
@@ -139,6 +139,6 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </ChartContainer>
       </div>
-    </div>  
+    </div>
   );
 }
