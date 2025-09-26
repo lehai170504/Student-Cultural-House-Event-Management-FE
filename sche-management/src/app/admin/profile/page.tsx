@@ -50,7 +50,9 @@ export default function Profile() {
           </div>
 
           <div className="ml-auto">
-            <Button onClick={() => setOpenEdit(true)}>Edit Profile</Button>
+            <Button onClick={() => setOpenEdit(true)}>
+              Chỉnh sửa thông tin
+            </Button>
           </div>
         </CardHeader>
       </Card>

@@ -21,19 +21,19 @@ export function TransactionReport() {
       case "Completed":
         return (
           <Badge className="bg-green-500 text-white hover:bg-green-600">
-            Completed
+            Thành công
           </Badge>
         );
       case "Pending":
         return (
           <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
-            Pending
+            Đang xử lí
           </Badge>
         );
       case "Failed":
         return (
           <Badge className="bg-red-500 text-white hover:bg-red-600">
-            Failed
+            Thất bại
           </Badge>
         );
       default:
@@ -45,7 +45,7 @@ export function TransactionReport() {
     <Card className="shadow-md border rounded-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-orange-600">
-          Transaction Log
+          Thống kê giao dịch
         </CardTitle>
         <p className="text-sm text-gray-500">
           Lịch sử giao dịch gần đây của người dùng
@@ -55,10 +55,10 @@ export function TransactionReport() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead className="font-semibold">Transaction ID</TableHead>
-              <TableHead className="font-semibold">User</TableHead>
-              <TableHead className="font-semibold">Amount</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-semibold">ID</TableHead>
+              <TableHead className="font-semibold">Người dùng</TableHead>
+              <TableHead className="font-semibold">Thành tiền</TableHead>
+              <TableHead className="font-semibold">Tình trạng</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

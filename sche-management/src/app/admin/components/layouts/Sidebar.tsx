@@ -28,19 +28,19 @@ const menuSections = [
   {
     title: "Quản lý",
     items: [
-      { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-      { label: "Events", href: "/admin/events", icon: Calendar },
-      { label: "Users", href: "/admin/users", icon: Users },
-      { label: "Vouchers", href: "/admin/vouchers", icon: Ticket },
+      { label: "Doanh thu", href: "/admin/dashboard", icon: LayoutDashboard },
+      { label: "Sự kiện", href: "/admin/events", icon: Calendar },
+      { label: "Người dùng", href: "/admin/users", icon: Users },
+      { label: "Khuyến mãi", href: "/admin/vouchers", icon: Ticket },
     ],
   },
   {
     title: "Hệ thống",
     items: [
-      { label: "Audit Log", href: "/admin/audit", icon: FileSearch },
-      { label: "Notifications", href: "/admin/notifications", icon: Bell },
-      { label: "Reports", href: "/admin/reports", icon: BarChart3 },
-      { label: "Settings", href: "/admin/settings", icon: Settings },
+      { label: "Theo dõi", href: "/admin/audit", icon: FileSearch },
+      { label: "Thông báo", href: "/admin/notifications", icon: Bell },
+      { label: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
+      { label: "Cài đặt", href: "/admin/settings", icon: Settings },
     ],
   },
 ];

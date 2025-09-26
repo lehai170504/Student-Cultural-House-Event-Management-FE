@@ -55,15 +55,15 @@ export default function VoucherPage() {
       {/* Tiêu đề */}
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold text-purple-600">
-          Voucher Management
+          Danh sách khuyến mãi
         </h1>
         <Button
           onClick={() => setOpen(true)}
           variant="default"
           className="bg-purple-500"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          New Voucher
+          <Plus className="w-4 h-4" />
+          Thêm khuyến mãi
         </Button>
       </div>
       <p className="text-gray-600">
@@ -75,7 +75,7 @@ export default function VoucherPage() {
       <Card className="border-purple-200 shadow-md">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-gray-800">
-            Danh sách voucher
+            Danh sách khuyến mãi
           </CardTitle>
         </CardHeader>
         <CardContent>

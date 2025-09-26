@@ -44,7 +44,7 @@ export function AttendanceReport() {
     <Card className="shadow-md border rounded-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-orange-600">
-          Attendance Report
+          Báo cáo tham dự
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -61,9 +61,9 @@ export function AttendanceReport() {
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="All">All</SelectItem>
-              <SelectItem value="Present">Present</SelectItem>
-              <SelectItem value="Absent">Absent</SelectItem>
+              <SelectItem value="All">Tất cả</SelectItem>
+              <SelectItem value="Present">Tham dự</SelectItem>
+              <SelectItem value="Absent">Vắng mặt</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -72,9 +72,9 @@ export function AttendanceReport() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead className="font-semibold">User</TableHead>
-              <TableHead className="font-semibold">Event</TableHead>
-              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="font-semibold">Người dùng</TableHead>
+              <TableHead className="font-semibold">Sự kiện</TableHead>
+              <TableHead className="font-semibold">Tình trạng</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -89,11 +89,11 @@ export function AttendanceReport() {
                   <TableCell>
                     {row.status === "Present" ? (
                       <Badge className="bg-green-500 hover:bg-green-600 text-white">
-                        Present
+                        Tham dự
                       </Badge>
                     ) : (
                       <Badge className="bg-red-500 hover:bg-red-600 text-white">
-                        Absent
+                        Vắng mặt
                       </Badge>
                     )}
                   </TableCell>

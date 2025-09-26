@@ -49,14 +49,14 @@ export default function NotificationsPage() {
     <div className="p-6 space-y-6">
       {/* Tiêu đề */}
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-blue-600">Notifications</h1>
+        <h1 className="text-3xl font-bold text-blue-600">Thông báo</h1>
         <Button
           onClick={() => setOpen(true)}
           variant="default"
           className="bg-blue-500"
         >
           <Plus className="w-4 h-4" />
-          New Notification
+          Thêm thông báo
         </Button>
       </div>
       <p className="text-gray-600">

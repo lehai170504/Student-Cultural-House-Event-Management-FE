@@ -80,7 +80,9 @@ export default function AuditLog() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-orange-600">Audit Log</h1>
+      <h1 className="text-3xl font-bold text-orange-600">
+        Theo dõi và giám sát
+      </h1>
       <p className="text-gray-600">
         Theo dõi lịch sử thay đổi{" "}
         <span className="font-semibold">chính sách</span> /{" "}
