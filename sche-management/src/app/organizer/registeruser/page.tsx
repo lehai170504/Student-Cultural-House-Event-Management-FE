@@ -162,7 +162,6 @@ export default function RegisterUser() {
                         onClick={() => setViewRegistration(reg)}
                       >
                         <Eye className="h-4 w-4" />
-                        Xem
                       </Button>
                     </TableCell>
                   </TableRow>
