@@ -19,6 +19,7 @@ import {
   TableHead,
   TableRow,
 } from "@/components/ui/table";
+import ViewDetailEvent from "./components/ViewDetailEvent";
 
 interface EventItem {
   id: number;
@@ -80,6 +81,7 @@ function getEventPhase(dateStr: string) {
 export default function EventsManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [phaseFilter, setPhaseFilter] = useState("all");
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
   const statusColors = {
     pending: {
@@ -227,7 +229,11 @@ export default function EventsManagement() {
                         )}
                       </TableCell>
                       <TableCell className="px-6 py-4 flex gap-2">
-                        <Button variant="secondary" size="sm">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setSelectedEvent(event)}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
                         {event.status === "pending" && (
@@ -251,6 +257,12 @@ export default function EventsManagement() {
           </div>
         </div>
       </section>
+
+      {/* Component chi tiết */}
+      <ViewDetailEvent
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </main>
   );
 }

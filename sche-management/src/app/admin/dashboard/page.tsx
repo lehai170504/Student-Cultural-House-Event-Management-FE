@@ -139,6 +139,6 @@ export default function Dashboard() {
           </ResponsiveContainer>
         </ChartContainer>
       </div>
-    </div>
+    </div>  
   );
 }

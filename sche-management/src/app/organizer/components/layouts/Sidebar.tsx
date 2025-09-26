@@ -9,27 +9,14 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import {
-  LayoutDashboard,
-  Calendar,
-  Users,
-  Settings,
-  Bell,
-  FileSearch,
-  BarChart3,
-  Ticket,
-} from "lucide-react";
+import { Calendar, Users, Settings, Bell } from "lucide-react";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
 const menuItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Events", href: "/admin/events", icon: Calendar },
-  { label: "Users", href: "/admin/users", icon: Users },
-  { label: "Audit Log", href: "/admin/audit", icon: FileSearch },
-  { label: "Vouchers", href: "/admin/vouchers", icon: Ticket },
+  { label: "Events", href: "/organizer/events", icon: Calendar },
+  { label: "Users Registration", href: "/organizer/registeruser", icon: Users },
   { label: "Notifications", href: "/admin/notifications", icon: Bell },
-  { label: "Reports", href: "/admin/reports", icon: BarChart3 },
 ];
 
 export default function AdminSidebar() {
@@ -41,7 +28,7 @@ export default function AdminSidebar() {
         {/* Header */}
         <SidebarHeader className="border-b px-4 py-3">
           <h2 className="text-lg font-bold text-orange-600 tracking-wide">
-            Event Management
+            Organizer Management
           </h2>
         </SidebarHeader>
 
