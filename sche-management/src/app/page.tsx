@@ -1,11 +1,13 @@
 "use client";
 
+import PublicNavbar from "@/components/PublicNavbar";
 import Image from "next/image";
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
       {/* --- Hero Banner --- */}
+      <PublicNavbar />
       <section className="relative bg-orange-500 text-white py-20">
         <div className="container mx-auto text-center px-6">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">

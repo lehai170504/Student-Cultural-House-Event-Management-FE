@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   return (
-    <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100 transform transition-all hover:scale-[1.04] hover:shadow-2xl">
+    <div className="w-full max-w-md mt-50 bg-white shadow-xl rounded-2xl p-8 border border-gray-100 transform transition-all hover:scale-[1.04] hover:shadow-2xl">
       {/* --- Title --- */}
       <h1 className="text-4xl font-extrabold text-center text-orange-500 mb-3 drop-shadow-sm">
         Xin chào 👋
