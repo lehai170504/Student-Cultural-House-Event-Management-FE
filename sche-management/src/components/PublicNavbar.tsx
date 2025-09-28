@@ -20,9 +20,10 @@ export default function PublicNavbar() {
   }, []);
 
   const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Event", href: "/organizer/events" },
-    { label: "Gift", href: "/admin/vouchers" },
+    { label: "Trang chủ", href: "/" },
+    { label: "Sự kiện", href: "/events" },
+    { label: "Đổi quà", href: "/gifts" },
+    { label: "Liên hệ", href: "/contact" },
   ];
 
   return (
@@ -75,7 +76,7 @@ export default function PublicNavbar() {
             isScrolled ? "h-9 px-3 text-sm" : "h-10 px-4 text-base"
           )}
         >
-          <Link href="/login">Login</Link>
+          <Link href="/login">Đăng nhập</Link>
         </Button>
         <Button
           asChild
@@ -84,7 +85,7 @@ export default function PublicNavbar() {
             isScrolled ? "h-9 px-4 text-sm" : "h-10 px-5 text-base"
           )}
         >
-          <Link href="/register">Register</Link>
+          <Link href="/register">Đăng kí</Link>
         </Button>
       </div>
     </header>
