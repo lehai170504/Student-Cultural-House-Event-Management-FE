@@ -238,20 +238,20 @@ export default function EventCategoriesSection() {
   };
 
   return (
-    <section className="py-16 bg-white">
-      <div className="container mx-auto px-6">
+    <section className="py-12 md:py-16 bg-white">
+      <div className="container mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3 md:mb-4">
             Sự kiện nổi bật
           </h2>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-2">
             Khám phá các loại sự kiện đa dạng và tham gia những hoạt động thú vị
           </p>
         </div>
 
         {/* Categories Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {eventCategories.map((category) => {
             const IconComponent = category.icon;
             return (
@@ -260,48 +260,48 @@ export default function EventCategoriesSection() {
                 onClick={() => handleCategoryClick(category)}
                 className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 border-transparent hover:border-orange-200"
               >
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Icon & Title */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className={`p-3 rounded-xl ${category.bgColor}`}>
-                      <IconComponent className={`h-6 w-6 ${category.color}`} />
+                  <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div className={`p-2.5 sm:p-3 rounded-xl ${category.bgColor}`}>
+                      <IconComponent className={`h-5 w-5 sm:h-6 sm:w-6 ${category.color}`} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
+                      <h3 className="text-base sm:text-lg font-bold text-gray-800 group-hover:text-orange-600 transition-colors">
                         {category.name}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         {category.events.length} sự kiện
                       </p>
                     </div>
                   </div>
 
                   {/* Description */}
-                  <p className="text-gray-600 mb-4 line-clamp-2">
+                  <p className="text-gray-600 mb-3 sm:mb-4 line-clamp-2">
                     {category.description}
                   </p>
 
                   {/* Events Preview */}
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     {category.events.slice(0, 2).map((event) => (
-                      <div key={event.id} className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-gray-400" />
+                      <div key={event.id} className="flex items-center gap-2 text-xs sm:text-sm">
+                        <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-400" />
                         <span className="text-gray-600 truncate">{event.title}</span>
-                        <Badge className={`text-xs ${getStatusColor(event.status)}`}>
+                        <Badge className={`text-[10px] sm:text-xs ${getStatusColor(event.status)}`}>
                           {getStatusText(event.status)}
                         </Badge>
                       </div>
                     ))}
                     {category.events.length > 2 && (
-                      <p className="text-sm text-orange-500 font-medium">
+                      <p className="text-xs sm:text-sm text-orange-500 font-medium">
                         +{category.events.length - 2} sự kiện khác
                       </p>
                     )}
                   </div>
 
                   {/* Click hint */}
-                  <div className="mt-4 text-center">
-                    <span className="text-sm text-orange-500 font-medium group-hover:text-orange-600">
+                  <div className="mt-3 sm:mt-4 text-center">
+                    <span className="text-xs sm:text-sm text-orange-500 font-medium group-hover:text-orange-600">
                       Click để xem chi tiết →
                     </span>
                   </div>
@@ -313,13 +313,13 @@ export default function EventCategoriesSection() {
 
         {/* Dialog for Category Details */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[85vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+              <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-800 flex items-center gap-2 sm:gap-3">
                 {selectedCategory && (
                   <>
-                    <div className={`p-2 rounded-lg ${selectedCategory.bgColor}`}>
-                      <selectedCategory.icon className={`h-6 w-6 ${selectedCategory.color}`} />
+                    <div className={`p-1.5 sm:p-2 rounded-lg ${selectedCategory.bgColor}`}>
+                      <selectedCategory.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${selectedCategory.color}`} />
                     </div>
                     {selectedCategory.name}
                   </>
@@ -328,34 +328,41 @@ export default function EventCategoriesSection() {
             </DialogHeader>
 
             {selectedCategory && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 <p className="text-gray-600">{selectedCategory.description}</p>
                 
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                   {selectedCategory.events.map((event) => (
-                    <div key={event.id} className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
-                      <div className="flex gap-4">
-                        <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                    <div key={event.id} className="bg-gray-50 rounded-lg p-3 sm:p-4 hover:bg-gray-100 transition-colors">
+                      <div className="flex gap-3 sm:gap-4 flex-col sm:flex-row">
+                        <div className="w-full sm:w-24 h-36 sm:h-24 rounded-lg overflow-hidden flex-shrink-0">
                           <Image
                             src={event.image}
                             alt={event.title}
-                            width={96}
-                            height={96}
+                            width={384}
+                            height={160}
                             className="w-full h-full object-cover"
                           />
                         </div>
                         
                         <div className="flex-1">
-                          <div className="flex items-start justify-between mb-2">
-                            <h4 className="text-lg font-semibold text-gray-800">{event.title}</h4>
-                            <Badge className={`${getStatusColor(event.status)}`}>
-                              {getStatusText(event.status)}
-                            </Badge>
+                          <div className="flex items-start justify-between mb-1.5 sm:mb-2 gap-2">
+                            <h4 className="text-base sm:text-lg font-semibold text-gray-800 leading-snug break-words">
+                              {event.title}
+                            </h4>
+                            <div className="hidden sm:block">
+                              <Badge className={`${getStatusColor(event.status)}`}>
+                                {getStatusText(event.status)}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="sm:hidden mb-2">
+                            <Badge className={`${getStatusColor(event.status)} text-[10px]`}>{getStatusText(event.status)}</Badge>
                           </div>
                           
-                          <p className="text-gray-600 mb-3">{event.description}</p>
+                          <p className="text-sm sm:text-base text-gray-600 mb-2.5 sm:mb-3 leading-relaxed">{event.description}</p>
                           
-                          <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-4 text-xs sm:text-sm">
                             <div className="flex items-center gap-2">
                               <Calendar className="h-4 w-4 text-gray-400" />
                               <span>{event.date} - {event.time}</span>
@@ -374,10 +381,10 @@ export default function EventCategoriesSection() {
                             </div>
                           </div>
                           
-                          <div className="mt-3">
+                          <div className="mt-2.5 sm:mt-3">
                             <Button 
                               size="sm" 
-                              className="bg-orange-500 hover:bg-orange-600 text-white"
+                              className="bg-orange-500 hover:bg-orange-600 text-white w-full sm:w-auto"
                             >
                               Tham gia ngay
                             </Button>

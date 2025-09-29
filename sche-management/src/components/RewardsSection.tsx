@@ -83,56 +83,56 @@ const popularRewards: Reward[] = [
 
 export default function RewardsSection() {
   return (
-    <section className="py-16 bg-gradient-to-br from-orange-50 to-white">
-      <div className="container mx-auto px-6">
+    <section className="py-12 md:py-16 bg-gradient-to-br from-orange-50 to-white">
+      <div className="container mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Gift className="h-8 w-8 text-orange-500" />
-            <h2 className="text-4xl font-bold text-gray-800">
+        <div className="text-center mb-8 md:mb-12">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <Gift className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
               Khu vực đổi quà
             </h2>
           </div>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto px-2">
             Tích điểm từ các hoạt động và đổi lấy những phần quà hấp dẫn. 
             Càng tham gia nhiều, càng có nhiều cơ hội nhận quà!
           </p>
         </div>
 
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-12">
-          <div className="bg-white rounded-xl p-6 shadow-md text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8 md:mb-12">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Star className="h-6 w-6 text-yellow-500" />
-              <span className="text-2xl font-bold text-gray-800">150+</span>
+              <Star className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-500" />
+              <span className="text-xl sm:text-2xl font-bold text-gray-800">150+</span>
             </div>
             <p className="text-gray-600">Phần quà đa dạng</p>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-md text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Users className="h-6 w-6 text-blue-500" />
-              <span className="text-2xl font-bold text-gray-800">2,500+</span>
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-blue-500" />
+              <span className="text-xl sm:text-2xl font-bold text-gray-800">2,500+</span>
             </div>
             <p className="text-gray-600">Thành viên tích cực</p>
           </div>
-          <div className="bg-white rounded-xl p-6 shadow-md text-center">
+          <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md text-center">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <Clock className="h-6 w-6 text-green-500" />
-              <span className="text-2xl font-bold text-gray-800">24/7</span>
+              <Clock className="h-5 w-5 sm:h-6 sm:w-6 text-green-500" />
+              <span className="text-xl sm:text-2xl font-bold text-gray-800">24/7</span>
             </div>
             <p className="text-gray-600">Đổi quà mọi lúc</p>
           </div>
         </div>
 
         {/* Rewards Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           {popularRewards.map((reward) => (
             <div
               key={reward.id}
               className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 group"
             >
               {/* Image */}
-              <div className="relative h-48 overflow-hidden">
+              <div className="relative h-40 sm:h-48 overflow-hidden">
                 <Image
                   src={reward.image}
                   alt={reward.name}
@@ -145,16 +145,16 @@ export default function RewardsSection() {
                   </Badge>
                 )}
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
-                  <span className="text-sm font-semibold text-gray-800">
+                  <span className="text-xs sm:text-sm font-semibold text-gray-800">
                     {reward.points} điểm
                   </span>
                 </div>
               </div>
 
               {/* Content */}
-              <div className="p-5">
+              <div className="p-4 sm:p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-lg font-bold text-gray-800 line-clamp-1">
+                  <h3 className="text-base sm:text-lg font-bold text-gray-800 line-clamp-1">
                     {reward.name}
                   </h3>
                   <Badge variant="outline" className="text-xs">
@@ -162,13 +162,13 @@ export default function RewardsSection() {
                   </Badge>
                 </div>
                 
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                <p className="text-xs sm:text-sm text-gray-600 mb-3 line-clamp-2">
                   {reward.description}
                 </p>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-sm text-gray-500">
-                    <Clock className="h-4 w-4" />
+                  <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500">
+                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     <span>Còn {reward.stock} sản phẩm</span>
                   </div>
                   
@@ -189,11 +189,11 @@ export default function RewardsSection() {
         <div className="text-center">
           <Button
             asChild
-            size="lg"
-            className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Link href="/gifts">
-              <Gift className="h-5 w-5 mr-2" />
+              <Gift className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
               Xem tất cả quà
             </Link>
           </Button>

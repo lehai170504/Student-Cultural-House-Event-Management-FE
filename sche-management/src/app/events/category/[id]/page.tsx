@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, use } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -201,12 +201,13 @@ const mockEvents: Event[] = [
   }
 ];
 
-export default function CategoryEventsPage({ params }: { params: { id: string } }) {
+export default function CategoryEventsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [eventsPerPage] = useState(6);
   
-  const categoryId = parseInt(params.id);
+  const categoryId = parseInt(id);
   const category = categoryData[categoryId as keyof typeof categoryData];
   
   // Filter events by category
