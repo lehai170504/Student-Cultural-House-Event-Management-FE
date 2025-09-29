@@ -31,7 +31,6 @@ const popularRewards: Reward[] = [
   {
     id: 2,
     name: "Áo thun trường",
-    name: "Áo thun trường",
     description: "Áo thun cotton 100% với logo trường, size S-XL",
     points: 800,
     image: "https://source.unsplash.com/300x300/?tshirt,university",
