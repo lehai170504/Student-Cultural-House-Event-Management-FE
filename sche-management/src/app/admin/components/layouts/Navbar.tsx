@@ -1,66 +1,83 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button"; // file bạn vừa định nghĩa lại
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Bell, Search } from "lucide-react";
 
 export default function Navbar() {
-  const [open, setOpen] = useState(false);
-
   return (
     <header className="w-full h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
       {/* Logo / Tiêu đề */}
       <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
 
-      {/* Dropdown người dùng */}
-      <div className="relative">
+      {/* Thanh search */}
+      <div className="hidden md:flex items-center w-1/3 relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          type="text"
+          placeholder="Tìm kiếm..."
+          className="pl-9 pr-3 py-2 w-full rounded-lg bg-gray-50 border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+        />
+      </div>
+
+      {/* Notify + User dropdown */}
+      <div className="flex items-center gap-4">
+        {/* Nút chuông thông báo */}
         <Button
           variant="ghost"
-          size="sm"
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-2 px-3 py-2"
+          size="icon"
+          className="relative rounded-full hover:bg-orange-50"
         >
-          <img
-            src="https://i.pravatar.cc/40"
-            alt="avatar"
-            className="w-8 h-8 rounded-full"
-          />
-          <span className="text-gray-700 font-medium">Admin</span>
-          <svg
-            className={`w-4 h-4 text-gray-600 transition-transform ${
-              open ? "rotate-180" : ""
-            }`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
+          <Bell className="h-5 w-5 text-gray-600" />
+          {/* Badge số thông báo */}
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">
+            3
+          </span>
         </Button>
 
-        {open && (
-          <div className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-lg py-2 z-50">
+        {/* Dropdown người dùng */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button
-              asChild
               variant="ghost"
-              className="w-full justify-start px-4 py-2 text-gray-700 hover:bg-gray-100"
+              size="sm"
+              className="flex items-center gap-2 px-3 py-2"
             >
-              <a href="/profile">Xem Profile</a>
+              <img
+                src="https://i.pravatar.cc/40"
+                alt="avatar"
+                className="w-8 h-8 rounded-full"
+              />
+              <span className="hidden sm:inline text-gray-700 font-medium">
+                Admin
+              </span>
             </Button>
+          </DropdownMenuTrigger>
 
-            <Button
-              variant="ghost"
-              className="w-full justify-start px-4 py-2 text-gray-700 hover:bg-gray-100"
+          <DropdownMenuContent className="w-44" align="end" sideOffset={8}>
+            <DropdownMenuItem asChild>
+              <a href="/admin/profile" className="w-full">
+                Xem Profile
+              </a>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuItem
+              className="text-red-600 focus:bg-red-50"
               onClick={() => alert("Đăng xuất")}
             >
               Đăng xuất
-            </Button>
-          </div>
-        )}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

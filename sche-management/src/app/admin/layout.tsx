@@ -13,10 +13,12 @@ export default function AdminLayout({
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar cố định bên trái */}
-        <Sidebar />
+        {/* Sidebar chiếm width cố định */}
+        <div className="w-64 border-r bg-white">
+          <Sidebar />
+        </div>
 
-        {/* Main có thể cuộn */}
+        {/* Main chiếm phần còn lại */}
         <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
           {children}
         </main>
@@ -27,3 +29,4 @@ export default function AdminLayout({
     </div>
   );
 }
+

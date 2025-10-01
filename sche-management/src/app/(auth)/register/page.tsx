@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   return (
-    <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
+    <div className="w-full max-w-md mt-50 bg-white shadow-lg rounded-2xl p-8 border border-gray-100">
       <h1 className="text-3xl font-bold text-center text-orange-500 mb-6">
         Đăng nhập
       </h1>
