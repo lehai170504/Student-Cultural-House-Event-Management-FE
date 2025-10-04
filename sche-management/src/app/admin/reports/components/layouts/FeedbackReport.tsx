@@ -21,10 +21,10 @@ export function FeedbackReport() {
     <Card className="shadow-md border rounded-xl">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-orange-600">
-          Feedback Ratings
+          Đánh giá
         </CardTitle>
         <p className="text-sm text-gray-500">
-          Average ratings collected from recent events
+          Trung bình đánh giá của các sự kiện gần đây
         </p>
       </CardHeader>
       <CardContent>

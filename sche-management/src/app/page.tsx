@@ -1,5 +1,9 @@
 "use client";
 
+import PublicNavbar from "@/components/PublicNavbar";
+import HeroSection from "@/components/HeroSection";
+import RewardsSection from "@/components/RewardsSection";
+import EventCategoriesSection from "@/components/EventCategoriesSection";
 import Image from "next/image";
 import { useAuth } from "react-oidc-context";
 import { UserProfile } from "@/components/UserProfile";
@@ -56,82 +60,11 @@ export default function Home() {
         </div>
       </section>
 
-      {/* --- Featured Events --- */}
-      <section className="py-16 container mx-auto px-6">
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-10">
-          Sự kiện nổi bật
-        </h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Event Card */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
-            <Image
-              src="https://source.unsplash.com/600x400/?concert,students"
-              alt="Event 1"
-              width={600}
-              height={400}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-5">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Đêm nhạc Sinh Viên 2025
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Thời gian: 20/10/2025 <br />
-                Địa điểm: Hội trường lớn
-              </p>
-              <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
-                Tham gia ngay
-              </button>
-            </div>
-          </div>
+      {/* --- Rewards Section --- */}
+      <RewardsSection />
 
-          {/* Event Card */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
-            <Image
-              src="https://source.unsplash.com/600x400/?festival,students"
-              alt="Event 2"
-              width={600}
-              height={400}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-5">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Lễ hội Văn Hóa Quốc Tế
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Thời gian: 05/11/2025 <br />
-                Địa điểm: Sân ngoài trời
-              </p>
-              <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
-                Xem chi tiết
-              </button>
-            </div>
-          </div>
-
-          {/* Event Card */}
-          <div className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition">
-            <Image
-              src="https://source.unsplash.com/600x400/?workshop,students"
-              alt="Event 3"
-              width={600}
-              height={400}
-              className="w-full h-48 object-cover"
-            />
-            <div className="p-5">
-              <h3 className="text-lg font-bold text-gray-800 mb-2">
-                Workshop Khởi Nghiệp
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Thời gian: 15/12/2025 <br />
-                Địa điểm: Phòng 204
-              </p>
-              <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition">
-                Đăng ký
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* --- Event Categories --- */}
+      <EventCategoriesSection />
 
       {/* --- Membership Section --- */}
       <section className="py-16 bg-gray-100">

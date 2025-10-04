@@ -12,19 +12,19 @@ export default function ReportsPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-orange-600">Reports</h1>
-      <p className="text-muted-foreground">Detailed statistics and logs.</p>
+      <h1 className="text-3xl font-bold text-orange-600">Báo cáo</h1>
+      <p className="text-muted-foreground">Thống kê chi tiết và theo dõi</p>
 
       <Card>
         <CardHeader>
-          <CardTitle>Report Categories</CardTitle>
+          <CardTitle>Danh mục báo cáo</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
-              <TabsTrigger value="attendance">Attendance</TabsTrigger>
-              <TabsTrigger value="feedback">Feedback Rating</TabsTrigger>
-              <TabsTrigger value="transactions">Transaction Log</TabsTrigger>
+              <TabsTrigger value="attendance">Tham dự</TabsTrigger>
+              <TabsTrigger value="feedback">Đánh giá</TabsTrigger>
+              <TabsTrigger value="transactions">Giao dịch</TabsTrigger>
             </TabsList>
 
             <TabsContent value="attendance">
