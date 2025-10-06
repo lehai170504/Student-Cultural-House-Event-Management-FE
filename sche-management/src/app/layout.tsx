@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Student Cultural House Event Management",
   description: "Manage your events efficiently and effectively.",
+  icons: {
+    icon: "/LogoRMBG.png",
+  },
 };
 
 export default function RootLayout({
