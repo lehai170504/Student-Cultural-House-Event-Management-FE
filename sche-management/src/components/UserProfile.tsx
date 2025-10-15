@@ -11,13 +11,30 @@ export function UserProfile() {
     return null;
   }
 
-  const handleLocalLogout = () => {
-    // Local logout (remove user from storage)
-    auth.removeUser();
-  };
-
-  const handleCognitoLogout = () => {
-    // Cognito logout (redirect to Cognito logout page)
+  const handleLogout = () => {
+    console.log('Logout button clicked!');
+    
+    // BƯỚC 1: Xóa dữ liệu phiên đăng nhập được lưu cục bộ
+    console.log('Clearing local session data...');
+    
+    // Xóa OIDC user data từ localStorage
+    const oidcUserKey = 'oidc.user:https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_9RLjNQhOk:6rer5strq9ga876qntv37ngv6d';
+    localStorage.removeItem(oidcUserKey);
+    
+    // Xóa sessionStorage nếu có
+    sessionStorage.clear();
+    
+    // Xóa các token khác nếu có
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userInfo');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('id_token');
+    localStorage.removeItem('refresh_token');
+    
+    console.log('Local session data cleared!');
+    
+    // BƯỚC 2: Chuyển hướng đến trang đăng xuất của Cognito
+    console.log('Redirecting to Cognito logout...');
     signOutRedirect();
   };
 
@@ -39,23 +56,15 @@ export function UserProfile() {
           </div>
         </div>
 
-        {/* Logout Buttons */}
-        <div className="flex space-x-2">
+        {/* Logout Button */}
+        <div className="flex justify-center">
           <Button
-            onClick={handleLocalLogout}
+            onClick={handleLogout}
             variant="outline"
             size="sm"
-            className="text-gray-600 hover:text-gray-700"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
           >
-            Đăng xuất (Local)
-          </Button>
-          <Button
-            onClick={handleCognitoLogout}
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            Đăng xuất (Cognito)
+            Đăng xuất
           </Button>
         </div>
       </div>
