@@ -5,4 +5,8 @@ export interface User {
   phoneNumber: string;
   avatarUrl: string;
   address: string;
+  faculty: string;
+  interests: string[];
+  qrCodeIdentifier: string;
+  pointBalance: number;
 }
