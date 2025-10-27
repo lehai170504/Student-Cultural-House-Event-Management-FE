@@ -40,10 +40,10 @@ export default function LoginPage() {
       
       {/* --- Title --- */}
       <h1 className="text-4xl font-extrabold text-center text-orange-500 mb-3 drop-shadow-sm">
-        Xin chào 👋
+        Chào fen 👋
       </h1>
       <p className="text-center text-gray-600 mb-6">
-        Đăng nhập để bắt đầu hành trình của bạn!
+        Đăng nhập để bú hết các khuyến mãi nào!
       </p>
 
       {/* --- Error Message --- */}
@@ -60,38 +60,15 @@ export default function LoginPage() {
         className="w-full bg-orange-500 hover:bg-orange-600 text-white"
         disabled={auth.isLoading}
       >
-        {auth.isLoading ? "Đang đăng nhập..." : "Đăng nhập với AWS Cognito"}
+        {auth.isLoading ? "Đang đăng nhập..." : "Đăng nhập nào ní ơi"}
       </Button>
 
       {/* --- Info Text --- */}
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-500">
-          Bạn sẽ được chuyển hướng đến trang đăng nhập của AWS Cognito
+          Bạn sẽ được chuyển hướng đến trang đăng nhập của AE tui
         </p>
       </div>
-
-      {/* --- Divider --- */}
-      <div className="flex items-center my-6">
-        <hr className="flex-grow border-gray-300" />
-        <span className="px-3 text-sm text-gray-400">hoặc</span>
-        <hr className="flex-grow border-gray-300" />
-      </div>
-
-      {/* --- Suggestion text --- */}
-      <p className="text-center text-sm text-gray-500">
-        Chưa có tài khoản?{" "}
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            // Redirect to Cognito hosted UI for registration
-            window.location.href = `${process.env.NEXT_PUBLIC_COGNITO_AUTHORITY}/signup?client_id=${process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID}&response_type=code&scope=email+openid+phone+profile&redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")}`;
-          }}
-          className="text-orange-500 font-semibold hover:underline hover:text-orange-600 transition"
-        >
-          Đăng ký ngay
-        </a>
-      </p>
     </div>
   );
 }

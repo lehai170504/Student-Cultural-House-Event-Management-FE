@@ -2,7 +2,6 @@
 
 import { useAuth } from "react-oidc-context";
 import { Button } from "@/components/ui/button";
-import { signOutRedirect } from "@/config/oidc-config";
 
 export function UserProfile() {
   const auth = useAuth();
@@ -11,14 +10,19 @@ export function UserProfile() {
     return null;
   }
 
-  const handleLocalLogout = () => {
-    // Local logout (remove user from storage)
+  const handleLogout = () => {
+    console.log('Logout button clicked!');
+    // Redirect to Cognito logout
+    const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 'https://ap-southeast-29rljnqhok.auth.ap-southeast-2.amazoncognito.com';
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '6rer5strq9ga876qntv37ngv6d';
+    const baseUri = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const logoutUri = baseUri + '/';
+    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
+    console.log('Logout URL:', logoutUrl);
+    // Clear local auth state first
     auth.removeUser();
-  };
-
-  const handleCognitoLogout = () => {
-    // Cognito logout (redirect to Cognito logout page)
-    signOutRedirect();
+    // Redirect
+    window.location.href = logoutUrl;
   };
 
   return (
@@ -39,23 +43,15 @@ export function UserProfile() {
           </div>
         </div>
 
-        {/* Logout Buttons */}
-        <div className="flex space-x-2">
+        {/* Logout Button */}
+        <div className="flex justify-center">
           <Button
-            onClick={handleLocalLogout}
+            onClick={handleLogout}
             variant="outline"
             size="sm"
-            className="text-gray-600 hover:text-gray-700"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
           >
-            Đăng xuất (Local)
-          </Button>
-          <Button
-            onClick={handleCognitoLogout}
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            Đăng xuất (Cognito)
+            Đăng xuất
           </Button>
         </div>
       </div>
