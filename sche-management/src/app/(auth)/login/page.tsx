@@ -85,7 +85,7 @@ export default function LoginPage() {
           onClick={(e) => {
             e.preventDefault();
             // Redirect to Cognito hosted UI for registration
-            window.location.href = `${process.env.NEXT_PUBLIC_COGNITO_AUTHORITY}/signup?client_id=${process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID}&response_type=code&scope=email+openid+phone+profile&redirect_uri=${encodeURIComponent(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000")}`;
+            window.location.href = `${process.env.NEXT_PUBLIC_COGNITO_AUTHORITY}/signup?client_id=${process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID}&response_type=code&scope=email+openid+phone+profile&redirect_uri=${encodeURIComponent((process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000") + "/auth/callback")}`;
           }}
           className="text-orange-500 font-semibold hover:underline hover:text-orange-600 transition"
         >

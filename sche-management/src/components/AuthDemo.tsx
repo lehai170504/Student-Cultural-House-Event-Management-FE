@@ -2,7 +2,6 @@
 
 import { useAuth } from "react-oidc-context";
 import { Button } from "@/components/ui/button";
-import { signOutRedirect } from "@/config/oidc-config";
 
 export function AuthDemo() {
   const auth = useAuth();
@@ -13,29 +12,17 @@ export function AuthDemo() {
 
   const handleLogout = () => {
     console.log('Logout button clicked!');
-    
-    // BƯỚC 1: Xóa dữ liệu phiên đăng nhập được lưu cục bộ
-    console.log('Clearing local session data...');
-    
-    // Xóa OIDC user data từ localStorage
-    const oidcUserKey = 'oidc.user:https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_9RLjNQhOk:6rer5strq9ga876qntv37ngv6d';
-    localStorage.removeItem(oidcUserKey);
-    
-    // Xóa sessionStorage nếu có
-    sessionStorage.clear();
-    
-    // Xóa các token khác nếu có
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userInfo');
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('id_token');
-    localStorage.removeItem('refresh_token');
-    
-    console.log('Local session data cleared!');
-    
-    // BƯỚC 2: Chuyển hướng đến trang đăng xuất của Cognito
-    console.log('Redirecting to Cognito logout...');
-    signOutRedirect();
+    // Redirect to Cognito logout
+    const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 'https://ap-southeast-29rljnqhok.auth.ap-southeast-2.amazoncognito.com';
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '6rer5strq9ga876qntv37ngv6d';
+    const baseUri = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const logoutUri = baseUri + '/';
+    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
+    console.log('Logout URL:', logoutUrl);
+    // Clear local auth state first
+    auth.removeUser();
+    // Redirect
+    window.location.href = logoutUrl;
   };
 
   if (auth.isLoading) {
