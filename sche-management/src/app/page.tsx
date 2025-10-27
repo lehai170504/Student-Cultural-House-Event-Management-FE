@@ -22,7 +22,7 @@ export default function Home() {
               Nhà Văn Hóa Sinh Viên
             </h1>
             <div className="flex items-center space-x-4">
-              {auth.isAuthenticated ? (
+              {auth?.isAuthenticated ? (
                 <UserProfile />
               ) : (
                 <Link

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 interface ViewUserDetailProps {
   open: boolean;
   onClose: () => void;
+  onEdit?: (user: User) => void;
   user?: {
     id?: number;
     name: string;
