@@ -115,6 +115,14 @@ export default function PublicNavbar() {
           >
             <Link href="/login">Đăng nhập</Link>
           </Button>
+          <Button
+            asChild
+            className={clsx(
+              "bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200 h-10 px-5 text-sm"
+            )}
+          >
+            <Link href="/register">Đăng kí</Link>
+          </Button>
         </div>
 
         {/* Mobile menu */}
@@ -148,7 +156,7 @@ export default function PublicNavbar() {
                     </SheetClose>
                   );
                 })}
-                <div className="pt-2">
+                <div className="pt-2 grid grid-cols-2 gap-2">
                   <SheetClose asChild>
                     <Link href="/login">
                       <Button variant="outline" className="w-full">
@@ -161,6 +169,11 @@ export default function PublicNavbar() {
                       <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
                         Đăng kí
                       </Button>
+                    </Link>
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <Link href="/register">
+                      <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">Đăng kí</Button>
                     </Link>
                   </SheetClose>
                 </div>
