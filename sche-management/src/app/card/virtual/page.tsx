@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useMemo } from "react";
+import Image from "next/image";
 
 export default function VirtualCardPage() {
   const mock = useMemo(() => {
@@ -47,12 +48,9 @@ export default function VirtualCardPage() {
               <div className="pointer-events-none absolute inset-0 overflow-hidden">
                 <div className="absolute -inset-y-10 -left-1/3 w-1/3 rotate-12 bg-gradient-to-r from-transparent via-white/12 to-transparent animate-[cardShimmer_10s_linear_infinite]" />
               </div>
-              {/* watermark logo */}
-              <div className="pointer-events-none absolute right-4 top-4 opacity-10">
-                <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="48" cy="48" r="46" stroke="white" strokeWidth="2" />
-                  <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="28" fontWeight="700" fill="white">SCH</text>
-                </svg>
+              {/* watermark logo from public */}
+              <div className="pointer-events-none absolute right-3 top-3 select-none">
+                <Image src="/LogoRMBG.png" alt="SVH Events" width={120} height={120} priority className="object-contain" />
               </div>
               <CardContent className="p-6 md:p-8">
                 <div className="flex items-start justify-between">
