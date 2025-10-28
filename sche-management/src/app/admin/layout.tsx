@@ -24,7 +24,7 @@ export default function AdminLayout({
         </main>
       </div>
 
-      {/* Footer cố định dưới */}
+      {/* Footer cố định dưới */}z
       <Footer />
     </div>
   );

@@ -1,63 +1,74 @@
 "use client";
 
-import { FcGoogle } from "react-icons/fc";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "react-oidc-context";
 import { Button } from "@/components/ui/button";
- 
+import { AuthStatus } from "@/components/AuthStatus";
 
 export default function LoginPage() {
-  return (
-    <main className="flex mt-30 items-center bg-gradient-to-br from-orange-50 via-white to-amber-50">
-      <div className="container mx-auto w-full px-4 sm:px-6 py-8 md:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
-          {/* Visual / marketing panel */}
-          <div className="hidden md:flex flex-col gap-6">
-            <div className="inline-flex items-center gap-2 text-orange-600 font-semibold">
-              <span className="text-2xl">🎉</span>
-              <span>Nhà Văn Hóa Sinh Viên</span>
-            </div>
-            <h2 className="text-4xl font-extrabold leading-tight text-gray-900">
-              Chào mừng trở lại
-            </h2>
-            <p className="text-gray-600 text-lg max-w-md">
-              Đăng nhập để quản lý sự kiện, tích điểm và đổi quà nhanh chóng.
-            </p>
-            <div className="rounded-3xl border border-orange-100 bg-white/70 backdrop-blur p-6 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-orange-100 flex items-center justify-center text-2xl">🏆</div>
-                <div>
-                  <p className="font-semibold text-gray-800">Tích lũy điểm thưởng</p>
-                  <p className="text-sm text-gray-500">Tham gia sự kiện để nhận quà hấp dẫn</p>
-                </div>
-              </div>
-            </div>
-          </div>
+  const auth = useAuth();
+  const router = useRouter();
 
-          {/* Form panel */}
-          <div className="w-full max-w-md mx-auto">
-            <div className="bg-white shadow-xl rounded-2xl p-6 sm:p-8 border border-gray-100">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
-                Đăng nhập
-              </h1>
-              <p className="text-sm text-gray-600 mb-6">
-                Rất vui được gặp lại bạn 👋
-              </p>
+  useEffect(() => {
+    // Redirect to home if already authenticated
+    if (auth.isAuthenticated) {
+      router.push("/");
+    }
+  }, [auth.isAuthenticated, router]);
 
-              {/* Google login button */}
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full flex items-center justify-center gap-3"
-              >
-                <FcGoogle className="text-2xl" />
-                <span>Đăng nhập với Google</span>
-              </Button>
-              <p className="text-center text-xs text-gray-500 mt-4">
-                Sử dụng tài khoản Google của bạn để tiếp tục.
-              </p>
-            </div>
-          </div>
+  const handleLogin = () => {
+    auth.signinRedirect();
+  };
+
+  // Show loading state while checking authentication
+  if (auth.isLoading) {
+    return (
+      <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Đang kiểm tra trạng thái đăng nhập...</p>
         </div>
       </div>
-    </main>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100 transform transition-all hover:scale-[1.04] hover:shadow-2xl">
+      {/* --- Auth Status Warning --- */}
+      <AuthStatus />
+      
+      {/* --- Title --- */}
+      <h1 className="text-4xl font-extrabold text-center text-orange-500 mb-3 drop-shadow-sm">
+        Chào fen 👋
+      </h1>
+      <p className="text-center text-gray-600 mb-6">
+        Đăng nhập để bú hết các khuyến mãi nào!
+      </p>
+
+      {/* --- Error Message --- */}
+      {auth.error && (
+        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+          {auth.error.message || "Có lỗi xảy ra khi đăng nhập"}
+        </div>
+      )}
+
+      {/* --- Login Button --- */}
+      <Button
+        onClick={handleLogin}
+        size="lg"
+        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+        disabled={auth.isLoading}
+      >
+        {auth.isLoading ? "Đang đăng nhập..." : "Đăng nhập nào ní ơi"}
+      </Button>
+
+      {/* --- Info Text --- */}
+      <div className="mt-6 text-center">
+        <p className="text-sm text-gray-500">
+          Bạn sẽ được chuyển hướng đến trang đăng nhập của AE tui
+        </p>
+      </div>
+    </div>
   );
 }

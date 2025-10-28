@@ -189,6 +189,10 @@ export default function UserManagement() {
       <ViewUserDetail
         open={!!viewUser}
         onClose={() => setViewUser(undefined)}
+        onEdit={(user) => {
+          setSelectedUser(user);
+          setOpenModal(true);
+        }}
         user={viewUser}
       />
     </main>
