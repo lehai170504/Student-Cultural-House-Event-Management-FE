@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PublicNavbar from "@/components/PublicNavbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 // Replace missing shadcn checkbox with native input for now
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -25,6 +25,10 @@ export default function RegisterCardPage() {
   const [successOpen, setSuccessOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mockCardNumber, setMockCardNumber] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const GenderSelect = dynamic(() => import("./GenderSelect"), { ssr: false });
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -60,9 +64,9 @@ export default function RegisterCardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-5" onSubmit={onSubmit}>
+              <form className="space-y-5" onSubmit={onSubmit} suppressHydrationWarning={true}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                  <div className="space-y-2" suppressHydrationWarning>
                     <Label htmlFor="fullName">Họ và tên</Label>
                     <Input id="fullName" placeholder="Nguyễn Văn A" value={fullName} onChange={(e) => setFullName(e.target.value)} />
                   </div>
@@ -88,18 +92,15 @@ export default function RegisterCardPage() {
                     <Label htmlFor="dob">Ngày sinh</Label>
                     <Input id="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Giới tính</Label>
-                    <Select value={gender} onValueChange={setGender}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Chọn giới tính" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Nam</SelectItem>
-                        <SelectItem value="female">Nữ</SelectItem>
-                        <SelectItem value="other">Khác</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-2" suppressHydrationWarning>
+                    <Label htmlFor="gender">Giới tính</Label>
+                    {mounted ? (
+                      <GenderSelect value={gender} onChange={setGender} />
+                    ) : (
+                      <div className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm flex items-center text-muted-foreground">
+                        Chọn giới tính
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="faculty">Khoa/Ngành</Label>
@@ -119,7 +120,7 @@ export default function RegisterCardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3" suppressHydrationWarning>
                   <input id="agree" type="checkbox" className="mt-1 h-4 w-4 border rounded" checked={agree} onChange={(e) => setAgree(e.target.checked)} />
                   <div className="space-y-1">
                     <Label htmlFor="agree">Tôi đồng ý với điều khoản và chính sách</Label>

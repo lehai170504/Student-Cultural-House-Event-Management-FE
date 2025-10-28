@@ -2,6 +2,16 @@
 
 import { useAuth } from "react-oidc-context";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import Link from "next/link";
+import { User as UserIcon, CreditCard, LogOut } from "lucide-react";
 
 export function UserProfile() {
   const auth = useAuth();
@@ -25,36 +35,43 @@ export function UserProfile() {
     window.location.href = logoutUrl;
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-      <div className="space-y-4">
-        {/* User Info */}
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-lg">
-            {auth.user.profile?.name?.[0] || auth.user.profile?.email?.[0] || "U"}
-          </div>
-          <div>
-            <p className="font-semibold text-gray-900">
-              {auth.user.profile?.name || auth.user.profile?.email || "User"}
-            </p>
-            <p className="text-sm text-gray-500">
-              {auth.user.profile?.email}
-            </p>
-          </div>
-        </div>
+  const avatarLetter = auth.user.profile?.name?.[0] || auth.user.profile?.email?.[0] || "U";
+  const displayName = auth.user.profile?.name || auth.user.profile?.email || "User";
 
-        {/* Logout Button */}
-        <div className="flex justify-center">
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-          >
-            Đăng xuất
-          </Button>
-        </div>
-      </div>
-    </div>
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-orange-50">
+          <span className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+            {avatarLetter}
+          </span>
+          <span className="hidden md:inline text-sm font-medium text-gray-800">{displayName}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="text-gray-700">
+          {displayName}
+          <div className="text-xs text-gray-500">{auth.user.profile?.email}</div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/profile" className="flex items-center gap-2">
+            <UserIcon className="h-4 w-4" />
+            <span>Hồ sơ</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href="/card/virtual" className="flex items-center gap-2">
+            <CreditCard className="h-4 w-4" />
+            <span>Thẻ ảo</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700 flex items-center gap-2">
+          <LogOut className="h-4 w-4" />
+          <span>Đăng xuất</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

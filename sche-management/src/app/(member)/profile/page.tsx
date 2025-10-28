@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from 'react-oidc-context';
+import { useRouter } from 'next/navigation';
 import { useAppDispatch, useAppSelector } from '../../../redux/hookRedux';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -75,6 +77,8 @@ const mockRecentActivities = [
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isEditing, setIsEditing] = useState(false);
+  const auth = useAuth();
+  const router = useRouter();
   
   const dispatch = useAppDispatch();
   const { currentUser, loading, error, isUpdating } = useAppSelector((state: any) => state.user);
@@ -84,6 +88,13 @@ export default function ProfilePage() {
       dispatch(fetchUserProfile());
     }
   }, [dispatch, currentUser]);
+
+  // Auth guard: redirect unauthenticated to login
+  useEffect(() => {
+    if (!auth.isLoading && !auth.isAuthenticated) {
+      router.push('/login');
+    }
+  }, [auth.isLoading, auth.isAuthenticated, router]);
 
   const handleUpdateUser = (updatedUser: any) => {
     dispatch(updateUserProfile(updatedUser));
@@ -146,12 +157,37 @@ export default function ProfilePage() {
   // Use currentUser data with fallback to mock data for additional fields
   const userData = {
     ...currentUser,
+    fullName: auth?.user?.profile?.name || currentUser.fullName,
+    email: auth?.user?.profile?.email || currentUser.email,
     joinDate: '2024-01-15',
     totalPoints: 1250,
     level: 'Gold',
     eventsAttended: 15,
     eventsOrganized: 3
   };
+
+  // Role-based access (simple example)
+  const roles: string[] = (
+    (auth?.user?.profile?.roles as any) ||
+    (auth?.user?.profile?.role ? [auth.user.profile.role] : undefined) ||
+    (auth?.user?.profile?.['cognito:groups'] as any) ||
+    []
+  );
+  const isMember = roles.length === 0 || roles.includes('Member') || roles.includes('Student') || roles.includes('User');
+
+  if (auth.isAuthenticated && !isMember) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <Card>
+          <CardContent className="p-8 text-center space-y-2">
+            <CardTitle>Không có quyền truy cập</CardTitle>
+            <CardDescription>Bạn không có quyền xem trang hồ sơ.</CardDescription>
+            <Button onClick={() => router.push('/')}>Về trang chủ</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-6">

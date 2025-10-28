@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "react-oidc-context";
 import { Button } from "@/components/ui/button";
-import { AuthStatus } from "@/components/AuthStatus";
+import Image from "next/image";
+import Link from "next/link";
 
 export default function LoginPage() {
   const auth = useAuth();
@@ -21,53 +22,54 @@ export default function LoginPage() {
     auth.signinRedirect();
   };
 
-  // Show loading state while checking authentication
-  if (auth.isLoading) {
-    return (
-      <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Đang kiểm tra trạng thái đăng nhập...</p>
-        </div>
-      </div>
-    );
-  }
+  // Layout wrapper
+  const Card = ({ children }: { children: React.ReactNode }) => (
+    <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100">
+      {children}
+    </div>
+  );
 
   return (
-    <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100 transform transition-all hover:scale-[1.04] hover:shadow-2xl">
-      {/* --- Auth Status Warning --- */}
-      <AuthStatus />
-      
-      {/* --- Title --- */}
-      <h1 className="text-4xl font-extrabold text-center text-orange-500 mb-3 drop-shadow-sm">
-        Chào fen 👋
-      </h1>
-      <p className="text-center text-gray-600 mb-6">
-        Đăng nhập để bú hết các khuyến mãi nào!
-      </p>
-
-      {/* --- Error Message --- */}
-      {auth.error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {auth.error.message || "Có lỗi xảy ra khi đăng nhập"}
+    <div className="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-orange-50 via-white to-amber-50 px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center max-w-5xl w-full">
+        {/* Side illustration */}
+        <div className="hidden md:block">
+          <div className="relative h-72 w-full">
+            <Image src="/LogoRMBG.png" alt="SVH Events" fill className="object-contain opacity-90" />
+          </div>
+          <h2 className="mt-4 text-2xl font-bold text-gray-800">SVH Events</h2>
+          <p className="text-gray-600">Cổng sự kiện sinh viên, tích điểm – đổi quà – kết nối.</p>
         </div>
-      )}
 
-      {/* --- Login Button --- */}
-      <Button
-        onClick={handleLogin}
-        size="lg"
-        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-        disabled={auth.isLoading}
-      >
-        {auth.isLoading ? "Đang đăng nhập..." : "Đăng nhập nào ní ơi"}
-      </Button>
+        {/* Auth card */}
+        <Card>
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-extrabold text-gray-800 mb-1">Đăng nhập</h1>
+            <p className="text-gray-600 text-sm">Tiếp tục để quản lý sự kiện và tích điểm</p>
+          </div>
 
-      {/* --- Info Text --- */}
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-500">
-          Bạn sẽ được chuyển hướng đến trang đăng nhập của AE tui
-        </p>
+          {auth.error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+              {auth.error.message || "Có lỗi xảy ra khi đăng nhập"}
+            </div>
+          )}
+
+          <Button
+            onClick={handleLogin}
+            size="lg"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+            disabled={auth.isLoading}
+          >
+            {auth.isLoading ? "Đang đăng nhập..." : "Đăng nhập với tài khoản trường"}
+          </Button>
+
+          <div className="mt-6 text-center text-sm text-gray-500">
+            <span>Bằng việc tiếp tục, bạn đồng ý với </span>
+            <Link href="#" className="text-orange-600 hover:underline">Điều khoản</Link>
+            <span> và </span>
+            <Link href="#" className="text-orange-600 hover:underline">Chính sách</Link>
+          </div>
+        </Card>
       </div>
     </div>
   );
