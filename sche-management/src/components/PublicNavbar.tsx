@@ -4,14 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -37,10 +30,7 @@ export default function PublicNavbar() {
     const onResize = () => {
       setIsResizing(true);
       if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
-      resizeTimerRef.current = window.setTimeout(
-        () => setIsResizing(false),
-        150
-      );
+      resizeTimerRef.current = window.setTimeout(() => setIsResizing(false), 150);
       // Trong khi resize, gọi lại scroll 1 lần sau cùng để đồng bộ trạng thái
       // nhưng đã debounce bằng timer phía trên
     };
@@ -75,12 +65,13 @@ export default function PublicNavbar() {
         )}
       >
         {/* Logo bên trái */}
-        <Link href="/">
-          <img
-            src="/LogoRMBG.png"
-            className="h-30 w-30"
-            alt="Student Cultural House Logo"
-          />
+        <Link
+          href="/"
+          className={clsx(
+            "font-bold text-orange-600 transition-colors duration-300 text-xl md:text-2xl"
+          )}
+        >
+          Student Cultural House
         </Link>
 
         {/* Menu giữa */}
@@ -115,14 +106,6 @@ export default function PublicNavbar() {
           >
             <Link href="/login">Đăng nhập</Link>
           </Button>
-          <Button
-            asChild
-            className={clsx(
-              "bg-orange-500 hover:bg-orange-600 text-white transition-colors duration-200 h-10 px-5 text-sm"
-            )}
-          >
-            <Link href="/register">Đăng kí</Link>
-          </Button>
         </div>
 
         {/* Mobile menu */}
@@ -156,24 +139,10 @@ export default function PublicNavbar() {
                     </SheetClose>
                   );
                 })}
-                <div className="pt-2 grid grid-cols-2 gap-2">
+                <div className="pt-2">
                   <SheetClose asChild>
                     <Link href="/login">
-                      <Button variant="outline" className="w-full">
-                        Đăng nhập
-                      </Button>
-                    </Link>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Link href="/register">
-                      <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">
-                        Đăng kí
-                      </Button>
-                    </Link>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Link href="/register">
-                      <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white">Đăng kí</Button>
+                      <Button variant="outline" className="w-full">Đăng nhập</Button>
                     </Link>
                   </SheetClose>
                 </div>
@@ -185,3 +154,5 @@ export default function PublicNavbar() {
     </header>
   );
 }
+
+
