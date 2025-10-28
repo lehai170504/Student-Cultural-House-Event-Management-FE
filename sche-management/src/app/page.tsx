@@ -20,7 +20,7 @@ export default function Home() {
       <EventCategoriesSection />
 
       {/* --- Membership Section --- */}
-      <section className="py-16 bg-gray-100">
+      <section id="membership" className="py-16 bg-gray-100">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-3xl font-bold text-gray-800 mb-6">
             Thẻ Thành Viên & Tích Điểm
