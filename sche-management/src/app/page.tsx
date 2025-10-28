@@ -45,9 +45,9 @@ export default function Home() {
                 Sở hữu ngay thẻ thành viên để tích điểm mỗi khi tham gia sự kiện
                 và đổi quà hấp dẫn.
               </p>
-              <button className="px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow hover:bg-orange-600 transition">
+              <a href="/card/register" className="inline-block px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg shadow hover:bg-orange-600 transition">
                 Đăng ký thẻ
-              </button>
+              </a>
             </div>
           </div>
         </div>
