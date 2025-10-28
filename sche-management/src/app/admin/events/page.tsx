@@ -15,18 +15,17 @@ import {
   Table,
   TableBody,
   TableHeader,
-  TableFooter,
   TableCell,
-  TableCaption,
   TableHead,
   TableRow,
 } from "@/components/ui/table";
+import ViewDetailEvent from "./components/ViewDetailEvent";
 
 interface EventItem {
   id: number;
   name: string;
   organizer: string;
-  date: string;
+  date: string; // dd/mm/yyyy
   status: "pending" | "approved" | "rejected";
 }
 
@@ -50,22 +49,41 @@ const events: EventItem[] = [
     name: "Cuộc thi ý tưởng khởi nghiệp",
     organizer: "CLB Khởi nghiệp",
     date: "20/12/2025",
-    status: "rejected",
+    status: "approved",
+  },
+  {
+    id: 4,
+    name: "Talkshow khởi nghiệp",
+    organizer: "CLB Doanh nhân trẻ",
+    date: "01/08/2025",
+    status: "approved",
   },
 ];
 
+function parseDate(str: string) {
+  const [day, month, year] = str.split("/").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+// Xác định tình trạng (upcoming, ongoing, past)
+function getEventPhase(dateStr: string) {
+  const today = new Date();
+  const eventDate = parseDate(dateStr);
+  const start = new Date(eventDate);
+  const end = new Date(eventDate);
+  end.setDate(end.getDate() + 1); // giả sử sự kiện kéo dài 1 ngày
+
+  if (today < start) return "upcoming";
+  if (today >= start && today < end) return "ongoing";
+  return "past";
+}
+
 export default function EventsManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
+  const [phaseFilter, setPhaseFilter] = useState("all");
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
-  const filteredEvents =
-    statusFilter === "all"
-      ? events
-      : events.filter((e) => e.status === statusFilter);
-
-  const statusColors: Record<
-    EventItem["status"],
-    { bg: string; text: string; label: string }
-  > = {
+  const statusColors = {
     pending: {
       bg: "bg-yellow-100",
       text: "text-yellow-600",
@@ -83,6 +101,29 @@ export default function EventsManagement() {
     },
   };
 
+  const phaseColors = {
+    upcoming: {
+      bg: "bg-blue-100",
+      text: "text-blue-600",
+      label: "Sắp diễn ra",
+    },
+    ongoing: {
+      bg: "bg-purple-100",
+      text: "text-purple-600",
+      label: "Đang diễn ra",
+    },
+    past: { bg: "bg-gray-200", text: "text-gray-700", label: "Đã kết thúc" },
+  };
+
+  const filteredEvents = events.filter((e) => {
+    const matchStatus = statusFilter === "all" || e.status === statusFilter;
+    const matchPhase =
+      phaseFilter === "all" ||
+      (e.status === "approved" && getEventPhase(e.date) === phaseFilter);
+
+    return matchStatus && matchPhase;
+  });
+
   return (
     <main className="min-h-screen bg-gray-50">
       <section className="relative bg-white rounded-2xl shadow p-8 mt-5">
@@ -94,20 +135,21 @@ export default function EventsManagement() {
                 Quản lý sự kiện
               </h1>
               <p className="text-lg text-gray-600">
-                Admin duyệt các sự kiện được tạo bởi Ban tổ chức
+                Admin duyệt và quản lý tình trạng sự kiện
               </p>
             </div>
 
-            <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
+            <div className="flex md:justify-end justify-center items-center gap-6">
+              {/* Filter theo trạng thái */}
               <div className="flex items-center gap-3">
                 <Label htmlFor="status" className="text-gray-700 font-medium">
-                  Lọc theo trạng thái:
+                  Trạng thái:
                 </Label>
                 <Select
                   value={statusFilter}
                   onValueChange={(val) => setStatusFilter(val)}
                 >
-                  <SelectTrigger id="status" className="w-[180px]">
+                  <SelectTrigger id="status" className="w-[160px]">
                     <SelectValue placeholder="Chọn trạng thái" />
                   </SelectTrigger>
                   <SelectContent>
@@ -118,6 +160,27 @@ export default function EventsManagement() {
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Filter theo tình trạng */}
+              <div className="flex items-center gap-3">
+                <Label htmlFor="phase" className="text-gray-700 font-medium">
+                  Tình trạng:
+                </Label>
+                <Select
+                  value={phaseFilter}
+                  onValueChange={(val) => setPhaseFilter(val)}
+                >
+                  <SelectTrigger id="phase" className="w-[160px]">
+                    <SelectValue placeholder="Chọn tình trạng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="upcoming">Sắp diễn ra</SelectItem>
+                    <SelectItem value="ongoing">Đang diễn ra</SelectItem>
+                    <SelectItem value="past">Đã kết thúc</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -125,53 +188,81 @@ export default function EventsManagement() {
           <div className="rounded-xl border">
             <Table>
               <TableHeader>
-                <TableRow className=" text-white">
+                <TableRow className="text-white">
                   <TableHead className="px-6 py-3">Tên sự kiện</TableHead>
                   <TableHead className="px-6 py-3">Ban tổ chức</TableHead>
                   <TableHead className="px-6 py-3">Ngày diễn ra</TableHead>
                   <TableHead className="px-6 py-3">Trạng thái</TableHead>
+                  <TableHead className="px-6 py-3">Tình trạng</TableHead>
                   <TableHead className="px-6 py-3">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell className="px-6 py-4">{event.name}</TableCell>
-                    <TableCell className="px-6 py-4">
-                      {event.organizer}
-                    </TableCell>
-                    <TableCell className="px-6 py-4">{event.date}</TableCell>
-                    <TableCell className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm ${statusColors[event.status].bg} ${statusColors[event.status].text}`}
-                      >
-                        {statusColors[event.status].label}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-6 py-4 flex gap-2">
-                      <Button variant="secondary" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      {event.status === "pending" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600"
+                {filteredEvents.map((event) => {
+                  const phase =
+                    event.status === "approved"
+                      ? getEventPhase(event.date)
+                      : null;
+                  return (
+                    <TableRow key={event.id}>
+                      <TableCell className="px-6 py-4">{event.name}</TableCell>
+                      <TableCell className="px-6 py-4">
+                        {event.organizer}
+                      </TableCell>
+                      <TableCell className="px-6 py-4">{event.date}</TableCell>
+                      <TableCell className="px-6 py-4">
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            statusColors[event.status].bg
+                          } ${statusColors[event.status].text}`}
                         >
-                          <Check className="h-4 w-4" />
+                          {statusColors[event.status].label}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-6 py-4">
+                        {phase && (
+                          <span
+                            className={`px-3 py-1 rounded-full text-sm ${phaseColors[phase].bg} ${phaseColors[phase].text}`}
+                          >
+                            {phaseColors[phase].label}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-6 py-4 flex gap-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setSelectedEvent(event)}
+                        >
+                          <Eye className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button variant="destructive" size="sm">
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        {event.status === "pending" && (
+                          <Button
+                            variant="default"
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600"
+                          >
+                            <Check className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button variant="destructive" size="sm">
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
         </div>
       </section>
+
+      {/* Component chi tiết */}
+      <ViewDetailEvent
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </main>
   );
 }
