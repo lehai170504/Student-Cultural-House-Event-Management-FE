@@ -10,12 +10,22 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, Search } from "lucide-react";
+import Image from "next/image";
 
 export default function Navbar() {
   return (
     <header className="w-full h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
-      {/* Logo / Tiêu đề */}
-      <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
+      {/* Logo + Tiêu đề */}
+      <div className="flex items-center gap-3">
+        <Image
+          src="/LogoRMBG.png"
+          alt="Logo"
+          width={40}
+          height={40}
+          className="object-contain hover:scale-105 transition-transform duration-300"
+        />
+        <h1 className="text-xl font-bold text-gray-800">Admin Panel</h1>
+      </div>
 
       {/* Thanh search */}
       <div className="hidden md:flex items-center w-1/3 relative">

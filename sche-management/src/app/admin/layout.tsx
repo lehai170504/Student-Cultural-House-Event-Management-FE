@@ -1,6 +1,6 @@
-import Navbar from "../admin/components/layouts/Navbar";
-import Sidebar from "../admin/components/layouts/Sidebar";
-import Footer from "../admin/components/layouts/Footer";
+import Navbar from "@/components/admin/layouts/Navbar";
+import Sidebar from "@/components/admin/layouts/Sidebar";
+import Footer from "@/components/admin/layouts/Footer";
 
 export default function AdminLayout({
   children,
@@ -8,25 +8,21 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="h-screen flex flex-col">
-      {/* Navbar cố định trên */}
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* Navbar dính trên cùng nhưng không che Sidebar */}
       <Navbar />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar chiếm width cố định */}
-        <div className="w-64 border-r bg-white">
+        <aside className="w-64 border-r bg-white flex-shrink-0">
           <Sidebar />
-        </div>
+        </aside>
 
         {/* Main chiếm phần còn lại */}
-        <main className="flex-1 p-6 overflow-y-auto bg-gray-50">
-          {children}
-        </main>
+        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
       </div>
 
-      {/* Footer cố định dưới */}z
       <Footer />
     </div>
   );
 }
-

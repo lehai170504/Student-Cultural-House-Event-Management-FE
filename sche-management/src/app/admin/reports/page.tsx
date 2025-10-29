@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { AttendanceReport } from "./components/layouts/AttendanceReport";
-import { FeedbackReport } from "./components/layouts/FeedbackReport";
-import { TransactionReport } from "./components/layouts/TransactionReport";
+import { AttendanceReport } from "@/components/admin/reports/AttendanceReport";
+import { FeedbackReport } from "@/components/admin/reports/FeedbackReport";
+import { TransactionReport } from "@/components/admin/reports/TransactionReport";
 
 export default function ReportsPage() {
   const [tab, setTab] = useState("attendance");

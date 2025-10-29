@@ -1,6 +1,6 @@
-import Navbar from "../admin/components/layouts/Navbar";
+import Navbar from "../../components/admin/layouts/Navbar";
 import Sidebar from "../organizer/components/layouts/Sidebar";
-import Footer from "../admin/components/layouts/Footer";
+import Footer from "../../components/admin/layouts/Footer";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (

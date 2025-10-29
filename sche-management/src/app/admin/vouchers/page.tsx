@@ -14,8 +14,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Eye, Trash2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CreateOrEditVoucher from "./components/CreateOrEditVoucher";
-import ViewDetailVoucher from "./components/ViewDetailVoucher";
+import CreateOrEditVoucher from "@/components/admin/vouchers/CreateOrEditVoucher";
+import ViewDetailVoucher from "@/components/admin/vouchers/ViewDetailVoucher";
 
 type Voucher = {
   id: number;

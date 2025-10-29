@@ -25,6 +25,7 @@ export interface AuthState {
   error: string | null;
 }
 
+
 export interface LoginFormData {
   email: string;
   password: string;
@@ -46,4 +47,14 @@ export interface ResetPasswordFormData {
   code: string;
   newPassword: string;
   confirmPassword: string;
+}
+
+export interface User {
+  id?: number;
+  username: string;
+  name?: string;
+  email?: string;
+  phone_number?: string;
+  role?: "student" | "org" | "booth";
+  status?: "active" | "inactive";
 }

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Mail, Shield, User, TicketPercent } from "lucide-react";
-import EditProfile from "./components/EditProfile";
+import EditProfile from "@/components/admin/profile/EditProfile";
 
 export default function Profile() {
   const [admin, setAdmin] = useState({

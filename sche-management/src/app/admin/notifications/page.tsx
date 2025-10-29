@@ -14,7 +14,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Bell, Users, CalendarPlus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import CreateNotification from "./components/CreateNotification";
+import CreateNotification from "@/components/admin/nottifications/CreateNotification";
 
 type Notification = {
   id: number;

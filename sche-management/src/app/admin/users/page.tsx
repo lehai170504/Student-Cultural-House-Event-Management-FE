@@ -19,36 +19,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import CreateOrEditUser from "./components/CreateOrEditUser";
-import ViewUserDetail from "./components/ViewUserDetail";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: "student" | "org" | "booth";
-  status: "active" | "inactive";
-}
+import CreateOrEditUser from "@/components/admin/users/CreateOrEditUser";
+import ViewUserDetail from "@/components/admin/users/ViewUserDetail";
+import { User } from "@/types/auth";
 
 const users: User[] = [
   {
     id: 1,
+    username: "nguyenvana",
     name: "Nguyễn Văn A",
     email: "a@student.edu.vn",
+    phone_number: "0901234567",
     role: "student",
     status: "active",
   },
   {
     id: 2,
+    username: "tranthib",
     name: "Trần Thị B",
     email: "b@org.vn",
+    phone_number: "0902345678",
     role: "org",
     status: "inactive",
   },
   {
     id: 3,
+    username: "levanc",
     name: "Lê Văn C",
     email: "c@booth.vn",
+    phone_number: "0903456789",
     role: "booth",
     status: "active",
   },
@@ -63,7 +62,7 @@ export default function UserManagement() {
   const filteredUsers =
     roleFilter === "all" ? users : users.filter((u) => u.role === roleFilter);
 
-  const roleLabels: Record<User["role"], string> = {
+  const roleLabels: Record<NonNullable<User["role"]>, string> = {
     student: "Sinh viên",
     org: "Ban tổ chức",
     booth: "Gian hàng",
@@ -128,8 +127,10 @@ export default function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="text-white">
+                  <TableHead className="px-6 py-3">Tên đăng nhập</TableHead>
                   <TableHead className="px-6 py-3">Họ tên</TableHead>
                   <TableHead className="px-6 py-3">Email</TableHead>
+                  <TableHead className="px-6 py-3">SĐT</TableHead>
                   <TableHead className="px-6 py-3">Vai trò</TableHead>
                   <TableHead className="px-6 py-3">Trạng thái</TableHead>
                   <TableHead className="px-6 py-3">Hành động</TableHead>
@@ -138,19 +139,23 @@ export default function UserManagement() {
               <TableBody>
                 {filteredUsers.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell className="px-6 py-4">{user.username}</TableCell>
                     <TableCell className="px-6 py-4">{user.name}</TableCell>
                     <TableCell className="px-6 py-4">{user.email}</TableCell>
+                    <TableCell className="px-6 py-4">{user.phone_number}</TableCell>
                     <TableCell className="px-6 py-4">
-                      {roleLabels[user.role]}
+                      {user.role && roleLabels[user.role]}
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          statusLabels[user.status].bg
-                        } ${statusLabels[user.status].text}`}
-                      >
-                        {statusLabels[user.status].label}
-                      </span>
+                      {user.status && (
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm ${
+                            statusLabels[user.status].bg
+                          } ${statusLabels[user.status].text}`}
+                        >
+                          {statusLabels[user.status].label}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell className="px-6 py-4 flex gap-2">
                       <Button

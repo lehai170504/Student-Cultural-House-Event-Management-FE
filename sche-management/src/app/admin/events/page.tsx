@@ -19,7 +19,7 @@ import {
   TableHead,
   TableRow,
 } from "@/components/ui/table";
-import ViewDetailEvent from "./components/ViewDetailEvent";
+import ViewDetailEvent from "@/components/admin/events/ViewDetailEvent";
 
 interface EventItem {
   id: number;
