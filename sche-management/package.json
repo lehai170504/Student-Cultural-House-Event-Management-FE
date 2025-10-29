@@ -65,6 +65,8 @@
     "recharts": "^2.15.4",
     "shadcn": "^3.3.1",
     "sonner": "^2.0.7",
+    "sweetalert2": "^11.26.3",
+    "sweetalert2-react-content": "^5.1.0",
     "tailwind-merge": "^3.3.1",
     "vaul": "^1.1.2",
     "zod": "^3.25.76"

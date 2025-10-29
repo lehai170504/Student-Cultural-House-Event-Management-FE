@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEventCategories } from "../hooks/useEventCategories";
+import { showToast } from "@/components/ui/Toast";
 
 interface CreateEventCategoryModalProps {
   open: boolean;
@@ -25,7 +26,6 @@ export default function CreateEventCategoryModal({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  // Reset form khi modal mở
   useEffect(() => {
     if (open) {
       setName("");
@@ -34,9 +34,18 @@ export default function CreateEventCategoryModal({
   }, [open]);
 
   const handleSave = async () => {
-    if (!name.trim()) return; // validate tên
-    await createCategory({ name, description });
-    onClose(); // đóng modal sau khi tạo
+    if (!name.trim()) {
+      showToast({ title: "Tên danh mục không được để trống", icon: "warning" });
+      return;
+    }
+
+    try {
+      await createCategory({ name, description });
+      showToast({ title: "Tạo danh mục thành công", icon: "success" });
+      onClose();
+    } catch (err) {
+      showToast({ title: "Lỗi khi tạo danh mục", icon: "error" });
+    }
   };
 
   return (
@@ -48,7 +57,7 @@ export default function CreateEventCategoryModal({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 mt-2">
+        <div className="space-y-4 mt-4">
           <div>
             <label className="block text-gray-700 font-medium mb-1">
               Tên danh mục
@@ -76,7 +85,11 @@ export default function CreateEventCategoryModal({
           <Button variant="secondary" onClick={onClose}>
             Hủy
           </Button>
-          <Button variant="default" onClick={handleSave} disabled={saving}>
+          <Button
+            className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
+            onClick={handleSave}
+            disabled={saving}
+          >
             Lưu
           </Button>
         </DialogFooter>

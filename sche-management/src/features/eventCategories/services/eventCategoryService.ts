@@ -12,9 +12,7 @@ export const eventCategoryService = {
   /** 🔹 Lấy tất cả danh mục sự kiện */
   async getAll(): Promise<EventCategory[]> {
     try {
-      console.log("📡 [getAll] Gọi API /event-categories...");
       const res = await axiosInstance.get<EventCategory[]>(endpoint);
-      console.log("✅ [getAll] API trả về:", res.data);
       return res.data;
     } catch (error) {
       console.error(

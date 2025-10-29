@@ -7,22 +7,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEventCategories } from "../hooks/useEventCategories";
+import { showToast } from "@/components/ui/Toast";
 
 interface ViewDetailEventCategoryProps {
-  categoryId: number;
+  categoryId: number | null; 
+  open: boolean;
   onClose: () => void;
 }
 
 export default function ViewDetailEventCategory({
   categoryId,
+  open,
   onClose,
 }: ViewDetailEventCategoryProps) {
-  const { detail, loadingDetail, updateCategory, resetCategoryDetail } =
+  const { detail, loadingDetail, updateCategory, resetCategoryDetail, loadDetail } =
     useEventCategories();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -31,13 +33,14 @@ export default function ViewDetailEventCategory({
 
   // Load chi tiết khi categoryId thay đổi
   useEffect(() => {
-    if (categoryId) {
+    if (open && categoryId) {
       resetCategoryDetail(); // xóa detail cũ
       setIsEditing(false);
+      loadDetail(categoryId);
     }
-  }, [categoryId, resetCategoryDetail]);
+  }, [categoryId, open, resetCategoryDetail, loadDetail]);
 
-  // Cập nhật form khi detail load xong
+  
   useEffect(() => {
     if (detail && detail.id === categoryId) {
       setName(detail.name);
@@ -47,12 +50,23 @@ export default function ViewDetailEventCategory({
 
   const handleSave = async () => {
     if (!detail) return;
-    await updateCategory(detail.id, { name, description });
-    setIsEditing(false);
+
+    if (!name.trim()) {
+      showToast({ title: "Tên danh mục không được để trống", icon: "warning" });
+      return;
+    }
+
+    try {
+      await updateCategory(detail.id, { name, description });
+      showToast({ title: "Cập nhật danh mục thành công", icon: "success" });
+      setIsEditing(false);
+    } catch {
+      showToast({ title: "Lỗi khi cập nhật danh mục", icon: "error" });
+    }
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg w-full rounded-xl p-6">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-gray-800">
@@ -63,7 +77,7 @@ export default function ViewDetailEventCategory({
         {loadingDetail || !detail ? (
           <p className="text-center py-10">Đang tải chi tiết...</p>
         ) : (
-          <div className="space-y-4 mt-2">
+          <div className="space-y-4 mt-4">
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Tên danh mục
@@ -72,6 +86,7 @@ export default function ViewDetailEventCategory({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={!isEditing}
+                placeholder="Nhập tên danh mục"
               />
             </div>
 
@@ -83,6 +98,7 @@ export default function ViewDetailEventCategory({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 disabled={!isEditing}
+                placeholder="Nhập mô tả (tùy chọn)"
               />
             </div>
           </div>
@@ -94,12 +110,19 @@ export default function ViewDetailEventCategory({
               <Button variant="secondary" onClick={() => setIsEditing(false)}>
                 Hủy
               </Button>
-              <Button variant="default" onClick={handleSave}>
+              <Button
+                className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
+                onClick={handleSave}
+                disabled={loadingDetail}
+              >
                 Lưu
               </Button>
             </>
           ) : (
-            <Button variant="default" onClick={() => setIsEditing(true)}>
+            <Button
+              className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
+              onClick={() => setIsEditing(true)}
+            >
               Chỉnh sửa
             </Button>
           )}

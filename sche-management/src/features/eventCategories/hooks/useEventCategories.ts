@@ -18,7 +18,6 @@ import type {
 export const useEventCategories = () => {
   const dispatch = useAppDispatch();
 
-  // 🔹 Lấy state từ Redux store
   const { list, detail, loadingList, loadingDetail, saving, deleting, error } =
     useAppSelector((state) => state.eventCategory);
 
@@ -39,9 +38,6 @@ export const useEventCategories = () => {
   const createCategory = useCallback(
     async (data: CreateEventCategory) => {
       const result = await dispatch(createEventCategory(data));
-      if (createEventCategory.fulfilled.match(result)) {
-        await dispatch(fetchAllEventCategories());
-      }
       return result;
     },
     [dispatch]
@@ -51,9 +47,6 @@ export const useEventCategories = () => {
   const updateCategory = useCallback(
     async (id: number, data: UpdateEventCategory) => {
       const result = await dispatch(updateEventCategory({ id, data }));
-      if (updateEventCategory.fulfilled.match(result)) {
-        await dispatch(fetchAllEventCategories());
-      }
       return result;
     },
     [dispatch]
@@ -63,9 +56,6 @@ export const useEventCategories = () => {
   const deleteCategoryById = useCallback(
     async (id: number) => {
       const result = await dispatch(deleteEventCategory(id));
-      if (deleteEventCategory.fulfilled.match(result)) {
-        await dispatch(fetchAllEventCategories());
-      }
       return result;
     },
     [dispatch]
@@ -87,18 +77,13 @@ export const useEventCategories = () => {
   }, [loadAll]);
 
   return {
-    // Data
     list,
     detail,
     error,
-
-    // Loading states
     loadingList,
     loadingDetail,
     saving,
     deleting,
-
-    // Actions
     loadAll,
     loadDetail,
     createCategory,
