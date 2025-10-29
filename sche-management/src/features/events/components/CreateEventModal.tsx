@@ -18,7 +18,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useEvents } from "../hooks/useEvents";
-import { useEventCategories } from "@/features/eventCategories/hooks/useEventCategories";
 import { showToast } from "@/components/ui/Toast";
 import type { CreateEvent } from "../types/events";
 
@@ -31,8 +30,8 @@ export default function CreateEventModal({
   open,
   onClose,
 }: CreateEventModalProps) {
-  const { createNewEvent, saving } = useEvents();
-  const { list: eventCategories, loadingList } = useEventCategories();
+  const { createNewEvent, saving, eventCategories, loadingCategories } =
+    useEvents();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -165,11 +164,13 @@ export default function CreateEventModal({
             <Select
               value={categoryId !== null ? categoryId.toString() : undefined}
               onValueChange={(value) => setCategoryId(Number(value))}
-              disabled={loadingList}
+              disabled={loadingCategories} 
             >
               <SelectTrigger>
                 <SelectValue
-                  placeholder={loadingList ? "Đang tải..." : "Chọn danh mục"}
+                  placeholder={
+                    loadingCategories ? "Đang tải..." : "Chọn danh mục"
+                  }
                 />
               </SelectTrigger>
               <SelectContent>

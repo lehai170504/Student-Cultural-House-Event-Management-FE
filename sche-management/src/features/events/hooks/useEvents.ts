@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   fetchAllEvents,
@@ -10,13 +10,21 @@ import {
   deleteEvent,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError } from "../slices/eventSlice";
+import {
+  fetchAllEventCategories,
+} from "@/features/eventCategories/thunks/eventCategoryThunks";
+
 import type { CreateEvent, UpdateEvent } from "../types/events";
+
 
 export const useEvents = () => {
   const dispatch = useAppDispatch();
 
   const { list, detail, loadingList, loadingDetail, saving, deleting, error } =
     useAppSelector((state) => state.event);
+
+  const { list: categories = [], loadingList: loadingCategories } =
+    useAppSelector((state) => state.eventCategory);
 
   /** 🔸 Lấy danh sách tất cả events */
   const loadAll = useCallback(
@@ -71,10 +79,16 @@ export const useEvents = () => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /** 🔸 Tự động load danh sách khi mount */
+  /** 🔸 Load danh mục luôn */
+  const loadCategories = useCallback(async () => {
+    await dispatch(fetchAllEventCategories());
+  }, [dispatch]);
+
+  /** 🔸 Tự động load events + categories khi mount */
   useEffect(() => {
     loadAll();
-  }, [loadAll]);
+    loadCategories();
+  }, [loadAll, loadCategories]);
 
   return {
     list,
@@ -84,6 +98,8 @@ export const useEvents = () => {
     loadingDetail,
     saving,
     deleting,
+    eventCategories: categories,
+    loadingCategories,
     loadAll,
     loadDetail,
     createNewEvent,

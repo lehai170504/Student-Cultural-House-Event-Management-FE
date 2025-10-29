@@ -19,7 +19,14 @@ const ViewDetailEvent = lazy(() => import("./ViewDetailEvent"));
 const CreateEventModal = lazy(() => import("./CreateEventModal"));
 
 export default function EventTable() {
-  const { list = [], loadingList, deleting, deleteEventById } = useEvents();
+  const {
+    list = [],
+    loadingList,
+    deleting,
+    deleteEventById,
+    eventCategories = [],
+    loadingCategories,
+  } = useEvents();
 
   const [search, setSearch] = useState("");
   const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
@@ -28,6 +35,10 @@ export default function EventTable() {
   const filteredEvents = Array.isArray(list)
     ? list.filter((e) => e.title?.toLowerCase().includes(search.toLowerCase()))
     : [];
+
+  const getCategoryName = (categoryId?: number) => {
+    return eventCategories.find((cat) => cat.id === categoryId)?.name ?? "-";
+  };
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -65,6 +76,7 @@ export default function EventTable() {
               <TableHeader>
                 <TableRow className="text-white">
                   <TableHead className="px-6 py-3">Tên sự kiện</TableHead>
+                  <TableHead className="px-6 py-3">Danh mục</TableHead>
                   <TableHead className="px-6 py-3">Địa điểm</TableHead>
                   <TableHead className="px-6 py-3">Thời gian</TableHead>
                   <TableHead className="px-6 py-3">Hành động</TableHead>
@@ -73,13 +85,13 @@ export default function EventTable() {
               <TableBody>
                 {loadingList ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6">
+                    <TableCell colSpan={5} className="text-center py-6">
                       Đang tải...
                     </TableCell>
                   </TableRow>
                 ) : filteredEvents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center py-6">
+                    <TableCell colSpan={5} className="text-center py-6">
                       Không có sự kiện nào
                     </TableCell>
                   </TableRow>
@@ -87,6 +99,9 @@ export default function EventTable() {
                   filteredEvents.map((event) => (
                     <TableRow key={event.id}>
                       <TableCell className="px-6 py-4">{event.title}</TableCell>
+                      <TableCell className="px-6 py-4">
+                        {event.category?.name ?? "-"}
+                      </TableCell>
                       <TableCell className="px-6 py-4">
                         {event.location}
                       </TableCell>

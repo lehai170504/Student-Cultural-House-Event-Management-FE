@@ -39,8 +39,9 @@ export default function ViewDetailEvent({
     updateExistingEvent,
     resetEventDetail,
     loadDetail,
+    eventCategories,
+    loadingCategories,
   } = useEvents();
-  const { list: eventCategories, loadingList } = useEventCategories();
 
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
@@ -188,11 +189,13 @@ export default function ViewDetailEvent({
               <Select
                 value={categoryId !== null ? categoryId.toString() : undefined}
                 onValueChange={(value) => setCategoryId(Number(value))}
-                disabled={!isEditing || loadingList}
+                disabled={!isEditing || loadingCategories} // dùng loadingCategories từ hook
               >
                 <SelectTrigger>
                   <SelectValue
-                    placeholder={loadingList ? "Đang tải..." : "Chọn danh mục"}
+                    placeholder={
+                      loadingCategories ? "Đang tải..." : "Chọn danh mục"
+                    }
                   />
                 </SelectTrigger>
                 <SelectContent>
