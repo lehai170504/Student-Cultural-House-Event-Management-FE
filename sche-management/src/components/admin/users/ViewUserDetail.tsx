@@ -9,7 +9,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Mail, User2, Shield, CircleDot, Phone, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { User as UserType } from "@/types/auth";
+import type { User as UserType } from "@/features/auth/types/auth";
 
 interface ViewUserDetailProps {
   open: boolean;
@@ -69,9 +69,7 @@ export default function ViewUserDetail({
             <User2 className="h-5 w-5 text-gray-500" />
             <div>
               <Label className="text-gray-500">Họ tên</Label>
-              <p className="font-semibold text-gray-800">
-                {user.name || "—"}
-              </p>
+              <p className="font-semibold text-gray-800">{user.name || "—"}</p>
             </div>
           </div>
 
@@ -117,9 +115,7 @@ export default function ViewUserDetail({
             <div className="flex items-center gap-3">
               <CircleDot
                 className={`h-5 w-5 ${
-                  user.status === "active"
-                    ? "text-green-500"
-                    : "text-red-500"
+                  user.status === "active" ? "text-green-500" : "text-red-500"
                 }`}
               />
               <div>

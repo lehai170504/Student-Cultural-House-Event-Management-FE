@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import cognitoUserAttributesService from "@/services/cognitoUserAttributesService";
+import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function ProfileCompletionPage() {
@@ -37,7 +37,8 @@ export default function ProfileCompletionPage() {
   const isFormValid = (): boolean => {
     if (!userType) return false;
     if (userType === "sinh viên" && !university) return false;
-    if (userType === "sinh viên" && !validateUniversity(university)) return false;
+    if (userType === "sinh viên" && !validateUniversity(university))
+      return false;
     return true;
   };
 
@@ -45,7 +46,7 @@ export default function ProfileCompletionPage() {
   useEffect(() => {
     const checkAuth = async () => {
       setCheckingAuth(true);
-      
+
       if (!auth.isLoading) {
         if (!auth.isAuthenticated || !auth.user) {
           // Not authenticated, redirect to login
@@ -59,9 +60,12 @@ export default function ProfileCompletionPage() {
             router.push("/login");
             return;
           }
-          
-          const attributes = await cognitoUserAttributesService.fetchUserAttributes(auth.user.id_token);
-          
+
+          const attributes =
+            await cognitoUserAttributesService.fetchUserAttributes(
+              auth.user.id_token
+            );
+
           if (cognitoUserAttributesService.hasCompletedOnboarding(attributes)) {
             // Already completed, redirect to home
             router.push("/");
@@ -72,7 +76,7 @@ export default function ProfileCompletionPage() {
           // Continue anyway
         }
       }
-      
+
       setCheckingAuth(false);
     };
 
@@ -110,7 +114,9 @@ export default function ProfileCompletionPage() {
           attributesToUpdate["custom:university"] = `Trường ${universityValue}`;
         } else {
           // Capitalize the T in "Trường"
-          attributesToUpdate["custom:university"] = `Trường ${universityValue.substring(7)}`;
+          attributesToUpdate[
+            "custom:university"
+          ] = `Trường ${universityValue.substring(7)}`;
         }
       }
 
@@ -161,11 +167,17 @@ export default function ProfileCompletionPage() {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {/* User Type */}
           <div>
-            <Label htmlFor="user_type" className="block text-sm font-medium text-gray-700 mb-2">
+            <Label
+              htmlFor="user_type"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
               Loại người dùng <span className="text-red-500">*</span>
             </Label>
             <Select value={userType} onValueChange={setUserType} required>
-              <SelectTrigger className="w-full" aria-invalid={!userType && error ? true : undefined}>
+              <SelectTrigger
+                className="w-full"
+                aria-invalid={!userType && error ? true : undefined}
+              >
                 <SelectValue placeholder="Chọn loại người dùng" />
               </SelectTrigger>
               <SelectContent>
@@ -178,7 +190,10 @@ export default function ProfileCompletionPage() {
           {/* University (only show if user is a student) */}
           {userType === "sinh viên" && (
             <div>
-              <Label htmlFor="university" className="block text-sm font-medium text-gray-700 mb-2">
+              <Label
+                htmlFor="university"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Tên trường Đại học <span className="text-red-500">*</span>
               </Label>
               <Input
@@ -188,11 +203,22 @@ export default function ProfileCompletionPage() {
                 onChange={(e) => setUniversity(e.target.value)}
                 placeholder="Ví dụ: Trường Đại Học FPT"
                 className="w-full"
-                aria-invalid={university && !validateUniversity(university) ? true : undefined}
-                aria-describedby={university && !validateUniversity(university) ? "university-error" : undefined}
+                aria-invalid={
+                  university && !validateUniversity(university)
+                    ? true
+                    : undefined
+                }
+                aria-describedby={
+                  university && !validateUniversity(university)
+                    ? "university-error"
+                    : undefined
+                }
               />
               {university && !validateUniversity(university) && (
-                <p id="university-error" className="mt-1 text-sm text-red-600 flex items-center gap-1">
+                <p
+                  id="university-error"
+                  className="mt-1 text-sm text-red-600 flex items-center gap-1"
+                >
                   <AlertCircle className="h-4 w-4" />
                   Tên trường phải bắt đầu bằng &quot;Trường&quot;
                 </p>
@@ -212,7 +238,9 @@ export default function ProfileCompletionPage() {
           {success && (
             <div className="bg-green-50 border border-green-200 rounded-md p-3 flex items-center gap-2 text-green-800">
               <CheckCircle2 className="h-5 w-5" />
-              <p className="text-sm">Cập nhật thông tin thành công! Đang chuyển hướng...</p>
+              <p className="text-sm">
+                Cập nhật thông tin thành công! Đang chuyển hướng...
+              </p>
             </div>
           )}
 

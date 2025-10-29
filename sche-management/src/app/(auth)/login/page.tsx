@@ -37,7 +37,7 @@ export default function LoginPage() {
     <div className="w-full max-w-md bg-white shadow-xl rounded-2xl p-8 border border-gray-100 transform transition-all hover:scale-[1.04] hover:shadow-2xl">
       {/* --- Auth Status Warning --- */}
       <AuthStatus />
-      
+
       {/* --- Title --- */}
       <h1 className="text-4xl font-extrabold text-center text-orange-500 mb-3 drop-shadow-sm">
         Chào fen 👋

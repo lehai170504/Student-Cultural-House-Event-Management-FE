@@ -1,15 +1,19 @@
-import { 
-  signIn, 
-  signUp, 
-  signOut, 
-  confirmSignUp, 
-  getCurrentUser, 
-  resendSignUpCode, 
-  resetPassword, 
-  confirmResetPassword, 
-  updatePassword 
-} from 'aws-amplify/auth';
-import { SignUpParams, SignInParams, ConfirmSignUpParams } from '@/types/auth';
+import {
+  signIn,
+  signUp,
+  signOut,
+  confirmSignUp,
+  getCurrentUser,
+  resendSignUpCode,
+  resetPassword,
+  confirmResetPassword,
+  updatePassword,
+} from "aws-amplify/auth";
+import {
+  SignUpParams,
+  SignInParams,
+  ConfirmSignUpParams,
+} from "@/features/auth/types/auth";
 
 export interface AuthUser {
   id: string;
@@ -32,7 +36,7 @@ class AuthService {
         password,
         attributes: name ? { name } : {},
       };
-      
+
       const result = await signUp(signUpParams);
       return { success: true, data: result };
     } catch (error: any) {
@@ -47,7 +51,7 @@ class AuthService {
         username: email,
         confirmationCode: code,
       };
-      
+
       const result = await confirmSignUp(confirmParams);
       return { success: true, data: result };
     } catch (error: any) {
@@ -62,7 +66,7 @@ class AuthService {
         username: email,
         password,
       };
-      
+
       const result = await signIn(signInParams);
       return { success: true, data: result };
     } catch (error: any) {
@@ -121,12 +125,16 @@ class AuthService {
   }
 
   // Đặt lại mật khẩu
-  async forgotPasswordSubmit(email: string, code: string, newPassword: string): Promise<any> {
+  async forgotPasswordSubmit(
+    email: string,
+    code: string,
+    newPassword: string
+  ): Promise<any> {
     try {
       await confirmResetPassword({
         username: email,
         confirmationCode: code,
-        newPassword: newPassword
+        newPassword: newPassword,
       });
       return { success: true };
     } catch (error: any) {
@@ -140,7 +148,7 @@ class AuthService {
       const user = await getCurrentUser();
       await updatePassword({
         oldPassword,
-        newPassword
+        newPassword,
       });
       return { success: true };
     } catch (error: any) {
@@ -150,27 +158,39 @@ class AuthService {
 
   // Xử lý lỗi authentication
   private handleAuthError(error: any): AuthError {
-    console.error('Auth Error:', error);
-    
+    console.error("Auth Error:", error);
+
     switch (error.code) {
-      case 'UserNotFoundException':
-        return { code: 'USER_NOT_FOUND', message: 'Người dùng không tồn tại' };
-      case 'NotAuthorizedException':
-        return { code: 'INVALID_CREDENTIALS', message: 'Email hoặc mật khẩu không đúng' };
-      case 'UserNotConfirmedException':
-        return { code: 'USER_NOT_CONFIRMED', message: 'Tài khoản chưa được xác thực' };
-      case 'UsernameExistsException':
-        return { code: 'USER_EXISTS', message: 'Tài khoản đã tồn tại' };
-      case 'InvalidPasswordException':
-        return { code: 'INVALID_PASSWORD', message: 'Mật khẩu không đúng định dạng' };
-      case 'CodeMismatchException':
-        return { code: 'INVALID_CODE', message: 'Mã xác thực không đúng' };
-      case 'ExpiredCodeException':
-        return { code: 'EXPIRED_CODE', message: 'Mã xác thực đã hết hạn' };
-      case 'LimitExceededException':
-        return { code: 'LIMIT_EXCEEDED', message: 'Vượt quá giới hạn yêu cầu' };
+      case "UserNotFoundException":
+        return { code: "USER_NOT_FOUND", message: "Người dùng không tồn tại" };
+      case "NotAuthorizedException":
+        return {
+          code: "INVALID_CREDENTIALS",
+          message: "Email hoặc mật khẩu không đúng",
+        };
+      case "UserNotConfirmedException":
+        return {
+          code: "USER_NOT_CONFIRMED",
+          message: "Tài khoản chưa được xác thực",
+        };
+      case "UsernameExistsException":
+        return { code: "USER_EXISTS", message: "Tài khoản đã tồn tại" };
+      case "InvalidPasswordException":
+        return {
+          code: "INVALID_PASSWORD",
+          message: "Mật khẩu không đúng định dạng",
+        };
+      case "CodeMismatchException":
+        return { code: "INVALID_CODE", message: "Mã xác thực không đúng" };
+      case "ExpiredCodeException":
+        return { code: "EXPIRED_CODE", message: "Mã xác thực đã hết hạn" };
+      case "LimitExceededException":
+        return { code: "LIMIT_EXCEEDED", message: "Vượt quá giới hạn yêu cầu" };
       default:
-        return { code: 'UNKNOWN_ERROR', message: 'Có lỗi xảy ra, vui lòng thử lại' };
+        return {
+          code: "UNKNOWN_ERROR",
+          message: "Có lỗi xảy ra, vui lòng thử lại",
+        };
     }
   }
 }

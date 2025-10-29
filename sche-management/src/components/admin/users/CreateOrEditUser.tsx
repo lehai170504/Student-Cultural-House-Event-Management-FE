@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { User } from "@/types/auth";
+import type { User } from "@/features/auth/types/auth";
 
 interface CreateOrEditUserProps {
   open: boolean;

@@ -1,6 +1,12 @@
-import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import authService from '@/services/authService';
-import { AuthState, LoginFormData, RegisterFormData, ForgotPasswordFormData, ResetPasswordFormData } from '@/types/auth';
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import authService from "@/features/auth/services/authService";
+import {
+  AuthState,
+  LoginFormData,
+  RegisterFormData,
+  ForgotPasswordFormData,
+  ResetPasswordFormData,
+} from "@/features/auth/types/auth";
 
 const initialState: AuthState = {
   user: null,
@@ -11,9 +17,12 @@ const initialState: AuthState = {
 
 // Async thunks
 export const loginUser = createAsyncThunk(
-  'auth/loginUser',
+  "auth/loginUser",
   async (credentials: LoginFormData, { rejectWithValue }) => {
-    const result = await authService.signIn(credentials.email, credentials.password);
+    const result = await authService.signIn(
+      credentials.email,
+      credentials.password
+    );
     if (result.success) {
       return result.data;
     } else {
@@ -23,9 +32,13 @@ export const loginUser = createAsyncThunk(
 );
 
 export const registerUser = createAsyncThunk(
-  'auth/registerUser',
+  "auth/registerUser",
   async (userData: RegisterFormData, { rejectWithValue }) => {
-    const result = await authService.signUp(userData.email, userData.password, userData.name);
+    const result = await authService.signUp(
+      userData.email,
+      userData.password,
+      userData.name
+    );
     if (result.success) {
       return result.data;
     } else {
@@ -35,8 +48,11 @@ export const registerUser = createAsyncThunk(
 );
 
 export const confirmUser = createAsyncThunk(
-  'auth/confirmUser',
-  async ({ email, code }: { email: string; code: string }, { rejectWithValue }) => {
+  "auth/confirmUser",
+  async (
+    { email, code }: { email: string; code: string },
+    { rejectWithValue }
+  ) => {
     const result = await authService.confirmSignUp(email, code);
     if (result.success) {
       return result.data;
@@ -47,7 +63,7 @@ export const confirmUser = createAsyncThunk(
 );
 
 export const logoutUser = createAsyncThunk(
-  'auth/logoutUser',
+  "auth/logoutUser",
   async (_, { rejectWithValue }) => {
     const result = await authService.signOut();
     if (result.success) {
@@ -59,7 +75,7 @@ export const logoutUser = createAsyncThunk(
 );
 
 export const getCurrentUser = createAsyncThunk(
-  'auth/getCurrentUser',
+  "auth/getCurrentUser",
   async (_, { rejectWithValue }) => {
     const result = await authService.getCurrentUser();
     if (result.success) {
@@ -71,7 +87,7 @@ export const getCurrentUser = createAsyncThunk(
 );
 
 export const checkAuthStatus = createAsyncThunk(
-  'auth/checkAuthStatus',
+  "auth/checkAuthStatus",
   async (_, { rejectWithValue }) => {
     const isAuthenticated = await authService.isAuthenticated();
     if (isAuthenticated) {
@@ -85,7 +101,7 @@ export const checkAuthStatus = createAsyncThunk(
 );
 
 export const forgotPassword = createAsyncThunk(
-  'auth/forgotPassword',
+  "auth/forgotPassword",
   async (email: string, { rejectWithValue }) => {
     const result = await authService.forgotPassword(email);
     if (result.success) {
@@ -97,9 +113,16 @@ export const forgotPassword = createAsyncThunk(
 );
 
 export const resetPassword = createAsyncThunk(
-  'auth/resetPassword',
-  async ({ email, code, newPassword }: ResetPasswordFormData, { rejectWithValue }) => {
-    const result = await authService.forgotPasswordSubmit(email, code, newPassword);
+  "auth/resetPassword",
+  async (
+    { email, code, newPassword }: ResetPasswordFormData,
+    { rejectWithValue }
+  ) => {
+    const result = await authService.forgotPasswordSubmit(
+      email,
+      code,
+      newPassword
+    );
     if (result.success) {
       return true;
     } else {
@@ -109,7 +132,7 @@ export const resetPassword = createAsyncThunk(
 );
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -136,7 +159,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      
+
       // Register
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
@@ -150,7 +173,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      
+
       // Confirm User
       .addCase(confirmUser.pending, (state) => {
         state.isLoading = true;
@@ -164,7 +187,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      
+
       // Logout
       .addCase(logoutUser.pending, (state) => {
         state.isLoading = true;
@@ -179,7 +202,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      
+
       // Get Current User
       .addCase(getCurrentUser.pending, (state) => {
         state.isLoading = true;
@@ -194,7 +217,7 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
       })
-      
+
       // Check Auth Status
       .addCase(checkAuthStatus.pending, (state) => {
         state.isLoading = true;
@@ -214,7 +237,7 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
       })
-      
+
       // Forgot Password
       .addCase(forgotPassword.pending, (state) => {
         state.isLoading = true;
@@ -228,7 +251,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload as string;
       })
-      
+
       // Reset Password
       .addCase(resetPassword.pending, (state) => {
         state.isLoading = true;

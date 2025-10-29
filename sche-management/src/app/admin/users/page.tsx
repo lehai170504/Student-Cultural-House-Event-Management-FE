@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import CreateOrEditUser from "@/components/admin/users/CreateOrEditUser";
 import ViewUserDetail from "@/components/admin/users/ViewUserDetail";
-import { User } from "@/types/auth";
+import { User } from "@/features/auth/types/auth";
 
 const users: User[] = [
   {
@@ -142,7 +142,9 @@ export default function UserManagement() {
                     <TableCell className="px-6 py-4">{user.username}</TableCell>
                     <TableCell className="px-6 py-4">{user.name}</TableCell>
                     <TableCell className="px-6 py-4">{user.email}</TableCell>
-                    <TableCell className="px-6 py-4">{user.phone_number}</TableCell>
+                    <TableCell className="px-6 py-4">
+                      {user.phone_number}
+                    </TableCell>
                     <TableCell className="px-6 py-4">
                       {user.role && roleLabels[user.role]}
                     </TableCell>

@@ -3,7 +3,7 @@
 import { useAuth } from "react-oidc-context";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import cognitoUserAttributesService from "@/services/cognitoUserAttributesService";
+import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 import { Loader2 } from "lucide-react";
 
 export default function AuthCallback() {
@@ -17,11 +17,12 @@ export default function AuthCallback() {
         if (auth.isAuthenticated && auth.user?.id_token) {
           try {
             setStatus("fetching-attributes");
-            
+
             // Fetch user attributes from ID token
-            const attributes = await cognitoUserAttributesService.fetchUserAttributes(
-              auth.user.id_token
-            );
+            const attributes =
+              await cognitoUserAttributesService.fetchUserAttributes(
+                auth.user.id_token
+              );
 
             setStatus("checking-onboarding");
 
