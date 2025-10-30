@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { Event, EventDetail } from "@/features/events/types/events";
+import type { PagedResponse } from "@/features/events/types/events";
 import {
   fetchAllEvents,
   fetchEventById,
@@ -16,6 +17,12 @@ interface EventState {
   saving: boolean;
   deleting: boolean;
   error: string | null;
+
+  currentPage: number;
+  totalElements: number;
+  totalPages: number;
+  pageSize: number;
+  isLastPage: boolean;
 }
 
 const initialState: EventState = {
@@ -26,6 +33,12 @@ const initialState: EventState = {
   saving: false,
   deleting: false,
   error: null,
+
+  currentPage: 0,
+  totalElements: 0,
+  totalPages: 0,
+  pageSize: 10,
+  isLastPage: true,
 };
 
 const eventSlice = createSlice({
@@ -38,6 +51,13 @@ const eventSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
+    resetPagination: (state) => {
+      state.list = [];
+      state.currentPage = 0;
+      state.totalElements = 0;
+      state.totalPages = 0;
+      state.isLastPage = true;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -45,73 +65,103 @@ const eventSlice = createSlice({
       .addCase(fetchAllEvents.pending, (state) => {
         state.loadingList = true;
       })
-      .addCase(fetchAllEvents.fulfilled, (state, action: PayloadAction<Event[]>) => {
-        state.loadingList = false;
-        state.list = action.payload || [];
-      })
+      .addCase(
+        fetchAllEvents.fulfilled,
+        (state, action: PayloadAction<PagedResponse<Event>>) => {
+          state.loadingList = false;
+
+          state.list = action.payload.content || [];
+
+          state.currentPage = action.payload.number;
+          state.pageSize = action.payload.size;
+          state.totalElements = action.payload.totalElements;
+          state.totalPages = action.payload.totalPages;
+          state.isLastPage = action.payload.last;
+
+          state.error = null;
+        }
+      )
       .addCase(fetchAllEvents.rejected, (state, action) => {
         state.loadingList = false;
-        state.error = action.payload as string || null;
+        state.error = (action.payload as string) || null;
       })
 
       // fetch by id
       .addCase(fetchEventById.pending, (state) => {
         state.loadingDetail = true;
       })
-      .addCase(fetchEventById.fulfilled, (state, action: PayloadAction<EventDetail>) => {
-        state.loadingDetail = false;
-        state.detail = action.payload;
-      })
+      .addCase(
+        fetchEventById.fulfilled,
+        (state, action: PayloadAction<EventDetail>) => {
+          state.loadingDetail = false;
+          state.detail = action.payload;
+        }
+      )
       .addCase(fetchEventById.rejected, (state, action) => {
         state.loadingDetail = false;
-        state.error = action.payload as string || null;
+        state.error = (action.payload as string) || null;
       })
 
       // create
       .addCase(createEvent.pending, (state) => {
         state.saving = true;
       })
-      .addCase(createEvent.fulfilled, (state, action: PayloadAction<EventDetail>) => {
-        state.saving = false;
-        state.list = state.list ? [...state.list, action.payload] : [action.payload];
-      })
+      .addCase(
+        createEvent.fulfilled,
+        (state, action: PayloadAction<EventDetail>) => {
+          state.saving = false;
+          state.list = state.list
+            ? [action.payload, ...state.list]
+            : [action.payload];
+          state.error = null;
+        }
+      )
       .addCase(createEvent.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.payload as string || null;
+        state.error = (action.payload as string) || null;
       })
 
       // update
       .addCase(updateEvent.pending, (state) => {
         state.saving = true;
       })
-      .addCase(updateEvent.fulfilled, (state, action: PayloadAction<EventDetail>) => {
-        state.saving = false;
-        const idx = state.list.findIndex((e) => e.id === action.payload.id);
-        if (idx !== -1) {
-          state.list[idx] = action.payload;
-        } else {
-          state.list = [...state.list, action.payload];
+      .addCase(
+        updateEvent.fulfilled,
+        (state, action: PayloadAction<EventDetail>) => {
+          state.saving = false;
+          const idx = state.list.findIndex((e) => e.id === action.payload.id);
+          if (idx !== -1) {
+            state.list[idx] = action.payload;
+          }
+          if (state.detail && state.detail.id === action.payload.id) {
+            state.detail = action.payload;
+          }
+          state.error = null;
         }
-      })
+      )
       .addCase(updateEvent.rejected, (state, action) => {
         state.saving = false;
-        state.error = action.payload as string || null;
+        state.error = (action.payload as string) || null;
       })
 
       // delete
       .addCase(deleteEvent.pending, (state) => {
         state.deleting = true;
       })
-      .addCase(deleteEvent.fulfilled, (state, action: PayloadAction<number>) => {
-        state.deleting = false;
-        state.list = state.list.filter((e) => e.id !== action.payload);
-      })
+      .addCase(
+        deleteEvent.fulfilled,
+        (state, action: PayloadAction<number>) => {
+          state.deleting = false;
+          state.list = state.list.filter((e) => e.id !== action.payload);
+          state.error = null;
+        }
+      )
       .addCase(deleteEvent.rejected, (state, action) => {
         state.deleting = false;
-        state.error = action.payload as string || null;
+        state.error = (action.payload as string) || null;
       });
   },
 });
 
-export const { resetDetail, clearError } = eventSlice.actions;
+export const { resetDetail, clearError, resetPagination } = eventSlice.actions;
 export default eventSlice.reducer;

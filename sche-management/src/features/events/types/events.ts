@@ -8,7 +8,7 @@ export interface Event {
   title: string;
   description: string;
   startTime: string; // ISO string
-  endTime: string;   // ISO string
+  endTime: string; // ISO string
   location: string;
   category: EventCategory;
   rewardPerCheckin: number;
@@ -41,3 +41,12 @@ export interface UpdateEvent {
 }
 
 export type EventDetail = Event;
+
+export interface PagedResponse<T> {
+  content: T[];
+  number: number; // Trang hiện tại (0-indexed)
+  size: number; // Kích thước trang
+  totalElements: number; // Tổng số phần tử
+  totalPages: number; // Tổng số trang
+  last: boolean; // Có phải trang cuối không
+}

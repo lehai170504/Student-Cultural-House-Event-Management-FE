@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
   fetchAllEvents,
@@ -9,24 +9,34 @@ import {
   updateEvent,
   deleteEvent,
 } from "../thunks/eventThunks";
-import { resetDetail, clearError } from "../slices/eventSlice";
-import {
-  fetchAllEventCategories,
-} from "@/features/eventCategories/thunks/eventCategoryThunks";
+import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
+import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
 
 import type { CreateEvent, UpdateEvent } from "../types/events";
-
 
 export const useEvents = () => {
   const dispatch = useAppDispatch();
 
-  const { list, detail, loadingList, loadingDetail, saving, deleting, error } =
-    useAppSelector((state) => state.event);
+  // THÊM CÁC TRƯỜNG PHÂN TRANG VÀO DESTRUCTURING
+  const {
+    list,
+    detail,
+    loadingList,
+    loadingDetail,
+    saving,
+    deleting,
+    error,
+    currentPage, // Thêm
+    totalElements, // Thêm
+    totalPages, // Thêm
+    pageSize, // Thêm
+    isLastPage, // Thêm
+  } = useAppSelector((state) => state.event);
 
   const { list: categories = [], loadingList: loadingCategories } =
     useAppSelector((state) => state.eventCategory);
 
-  /** 🔸 Lấy danh sách tất cả events */
+  /** 🔸 Lấy danh sách tất cả events (có hỗ trợ params cho phân trang/filter) */
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
       await dispatch(fetchAllEvents(params));
@@ -74,6 +84,11 @@ export const useEvents = () => {
     dispatch(resetDetail());
   }, [dispatch]);
 
+  /** 🔸 Reset Pagination (danh sách và metadata phân trang) */
+  const resetEventPagination = useCallback(() => {
+    dispatch(resetPagination());
+  }, [dispatch]);
+
   /** 🔸 Xoá lỗi */
   const clearEventError = useCallback(() => {
     dispatch(clearError());
@@ -91,21 +106,34 @@ export const useEvents = () => {
   }, [loadAll, loadCategories]);
 
   return {
+    // DỮ LIỆU SỰ KIỆN
     list,
     detail,
     error,
+    eventCategories: categories,
+
+    // TRẠNG THÁI LOADING
     loadingList,
     loadingDetail,
     saving,
     deleting,
-    eventCategories: categories,
     loadingCategories,
+
+    // TRẠNG THÁI PHÂN TRANG (MỚI)
+    currentPage,
+    totalElements,
+    totalPages,
+    pageSize,
+    isLastPage,
+
+    // ACTIONS
     loadAll,
     loadDetail,
     createNewEvent,
     updateExistingEvent,
     deleteEventById,
     resetEventDetail,
+    resetEventPagination, // Thêm action reset pagination
     clearEventError,
   };
 };
