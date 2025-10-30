@@ -120,3 +120,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* smooth scroll for in-page anchors */
+html {
+  scroll-behavior: smooth;
+}

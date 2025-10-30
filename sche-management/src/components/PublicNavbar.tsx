@@ -7,12 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "react-oidc-context";
+import { UserProfile } from "@/components/UserProfile";
 
 export default function PublicNavbar() {
   const pathname = usePathname();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const resizeTimerRef = useRef<number | null>(null);
+  const auth = useAuth();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     // Hysteresis để tránh nhấp nháy khi gần đỉnh trang và trong lúc resize
@@ -48,6 +53,7 @@ export default function PublicNavbar() {
     { label: "Trang chủ", href: "/" },
     { label: "Sự kiện", href: "/events" },
     { label: "Đổi quà", href: "/gifts" },
+    { label: "Đăng ký thẻ", href: "/#membership" },
     { label: "Liên hệ", href: "/contact" },
   ];
 
@@ -97,15 +103,19 @@ export default function PublicNavbar() {
 
         {/* Actions bên phải */}
         <div className="hidden md:flex items-center gap-2">
-          <Button
-            asChild
-            variant="ghost"
-            className={clsx(
-              "hover:bg-orange-50 hover:text-orange-600 transition-colors duration-200 h-10 px-4 text-sm"
-            )}
-          >
-            <Link href="/login">Đăng nhập</Link>
-          </Button>
+          {mounted && auth?.isAuthenticated ? (
+            <UserProfile />
+          ) : (
+            <Button
+              asChild
+              variant="ghost"
+              className={clsx(
+                "hover:bg-orange-600 bg-orange-400 text-white hover:text-white transition-colors duration-200 h-10 px-4 text-sm"
+              )}
+            >
+              <Link href="/login">Đăng nhập</Link>
+            </Button>
+          )}
         </div>
 
         {/* Mobile menu */}
@@ -140,11 +150,17 @@ export default function PublicNavbar() {
                   );
                 })}
                 <div className="pt-2">
-                  <SheetClose asChild>
-                    <Link href="/login">
-                      <Button variant="outline" className="w-full">Đăng nhập</Button>
-                    </Link>
-                  </SheetClose>
+                  {mounted && auth?.isAuthenticated ? (
+                    <div className="px-2 py-2">
+                      <UserProfile />
+                    </div>
+                  ) : (
+                    <SheetClose asChild>
+                      <Link href="/login">
+                        <Button variant="outline" className="w-full">Đăng nhập</Button>
+                      </Link>
+                    </SheetClose>
+                  )}
                 </div>
               </div>
             </SheetContent>
