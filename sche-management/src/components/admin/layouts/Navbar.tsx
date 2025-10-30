@@ -11,10 +11,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, Search } from "lucide-react";
 import Image from "next/image";
-import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
+import { useAuth } from "react-oidc-context";
+import { cognitoDomain } from "@/config/oidc-config";
 
 export default function Navbar() {
-  const { user } = useUserProfile();
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    const redirectUri = `${base}/`;
+
+    // Xây URL logout theo chuẩn Cognito Hosted UI
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID as string;
+    // Lấy id_token hiện tại nếu còn để thêm id_token_hint (tuỳ chọn)
+    const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY as string;
+    const storageKey = `oidc.user:${authority}:${clientId}`;
+    const userJson = (typeof window !== "undefined" && localStorage.getItem(storageKey)) || "{}";
+    const idToken = (() => {
+      try { return JSON.parse(userJson)?.id_token || ""; } catch { return ""; }
+    })();
+
+    try { await auth.removeUser(); } catch {}
+
+    const url = `${cognitoDomain}/logout?client_id=${encodeURIComponent(clientId)}&logout_uri=${encodeURIComponent(redirectUri)}${idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : ""}`;
+    window.location.href = url;
+  };
 
   return (
     <header className="w-full h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
@@ -64,16 +85,12 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3 py-2"
             >
               <img
-                src={
-                  user
-                    ? `https://i.pravatar.cc/40?u=${user.id}`
-                    : "https://i.pravatar.cc/40"
-                }
+                src="https://i.pravatar.cc/40"
                 alt="avatar"
                 className="w-8 h-8 rounded-full"
               />
               <span className="hidden sm:inline text-gray-700 font-medium">
-                {user ? user.fullName : "Admin"}
+                Admin
               </span>
             </Button>
           </DropdownMenuTrigger>
@@ -89,7 +106,7 @@ export default function Navbar() {
 
             <DropdownMenuItem
               className="text-red-600 focus:bg-red-50"
-              onClick={() => alert("Đăng xuất")}
+              onClick={handleLogout}
             >
               Đăng xuất
             </DropdownMenuItem>

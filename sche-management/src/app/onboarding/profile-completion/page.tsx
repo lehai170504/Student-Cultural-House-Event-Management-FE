@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import { universityService } from "@/features/universities/services/universityService";
+import { useUniversities } from "@/features/universities/hooks/useUniversities";
 
 export default function ProfileCompletionPage() {
   const auth = useAuth();
@@ -27,8 +27,8 @@ export default function ProfileCompletionPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [universities, setUniversities] = useState<Array<{ id: number; name: string }>>([]);
-  const [isLoadingUniversities, setIsLoadingUniversities] = useState(false);
+  const { list: universitiesFromRedux = [], loading: universitiesLoading } =
+    useUniversities();
 
   // Validate university format
   const validateUniversity = (value: string): boolean => {
@@ -86,27 +86,7 @@ export default function ProfileCompletionPage() {
     checkAuth();
   }, [auth.isLoading, auth.isAuthenticated, auth.user, router]);
 
-  // Lấy danh sách trường khi chọn loại người dùng là "sinh viên"
-  useEffect(() => {
-    const fetchUniversities = async () => {
-      if (userType !== "sinh viên") return;
-      setIsLoadingUniversities(true);
-      try {
-        const data = await universityService.getAll();
-        const list: Array<{ id: number; name: string }> = (data as any)?.data
-          ? (data as any).data.map((u: any) => ({ id: u.id, name: u.name }))
-          : (data || []).map((u: any) => ({ id: u.id, name: u.name }));
-        setUniversities(list);
-      } catch (err) {
-        console.error("Không tải được danh sách trường:", err);
-        setError("Không tải được danh sách trường. Vui lòng thử lại.");
-      } finally {
-        setIsLoadingUniversities(false);
-      }
-    };
-
-    fetchUniversities();
-  }, [userType]);
+  // Không cần fetch thủ công: useUniversities tự load khi mount và lưu Redux
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -225,23 +205,27 @@ export default function ProfileCompletionPage() {
                 value={university}
                 onValueChange={setUniversity}
                 required
-                disabled={isLoadingUniversities}
+                disabled={universitiesLoading}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue
                     placeholder={
-                      isLoadingUniversities
+                      universitiesLoading
                         ? "Đang tải danh sách trường..."
                         : "Chọn trường Đại học"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {universities.map((u) => (
-                    <SelectItem key={u.id} value={u.name}>
-                      {u.name}
-                    </SelectItem>
-                  ))}
+                  {universitiesFromRedux.map((u: any) => {
+                    const name = (u?.name ?? "").toString();
+                    const id = Number(u?.id ?? 0);
+                    return (
+                      <SelectItem key={id} value={name}>
+                        {name}
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
