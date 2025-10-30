@@ -11,8 +11,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, Search } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "react-oidc-context";
+import { cognitoDomain } from "@/config/oidc-config";
 
 export default function Navbar() {
+  const auth = useAuth();
+
+  const handleLogout = async () => {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    const redirectUri = `${base}/`;
+
+    // Xây URL logout theo chuẩn Cognito Hosted UI
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID as string;
+    // Lấy id_token hiện tại nếu còn để thêm id_token_hint (tuỳ chọn)
+    const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY as string;
+    const storageKey = `oidc.user:${authority}:${clientId}`;
+    const userJson = (typeof window !== "undefined" && localStorage.getItem(storageKey)) || "{}";
+    const idToken = (() => {
+      try { return JSON.parse(userJson)?.id_token || ""; } catch { return ""; }
+    })();
+
+    try { await auth.removeUser(); } catch {}
+
+    const url = `${cognitoDomain}/logout?client_id=${encodeURIComponent(clientId)}&logout_uri=${encodeURIComponent(redirectUri)}${idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : ""}`;
+    window.location.href = url;
+  };
+
   return (
     <header className="w-full h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
       {/* Logo + Tiêu đề */}
@@ -82,7 +106,7 @@ export default function Navbar() {
 
             <DropdownMenuItem
               className="text-red-600 focus:bg-red-50"
-              onClick={() => alert("Đăng xuất")}
+              onClick={handleLogout}
             >
               Đăng xuất
             </DropdownMenuItem>
