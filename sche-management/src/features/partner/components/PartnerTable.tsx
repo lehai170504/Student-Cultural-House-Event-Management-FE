@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { usePartners } from "../hooks/usePartners";
+// @ts-ignore
 import { toast, Toaster } from "sonner"; // Thêm Toaster
 
 const CreatePartnerModal = lazy(() => import("./CreatePartnerModal"));
@@ -126,10 +127,7 @@ export default function PartnerTable() {
                   <TableHead className="px-6 py-3">Wallet ID</TableHead>
                   <TableHead className="px-6 py-3">Ngày tạo</TableHead>
                   <TableHead className="px-6 py-3">Trạng thái</TableHead>
-                  <TableHead className="px-6 py-3 text-center">
-                    Hành động
-                  </TableHead>{" "}
-                  {/* Đổi lại thành Hành động cho phù hợp */}
+                  <TableHead className="px-6 py-3 text-center">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
