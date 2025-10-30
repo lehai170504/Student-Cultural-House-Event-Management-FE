@@ -4,7 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "react-oidc-context";
@@ -20,12 +27,10 @@ export default function PublicNavbar() {
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
-    // Hysteresis để tránh nhấp nháy khi gần đỉnh trang và trong lúc resize
     const onScroll = () => {
       if (isResizing) return;
       const y = window.scrollY;
       setIsScrolled((prev) => {
-        // Bật khi vượt ngưỡng cao, tắt khi xuống dưới ngưỡng thấp
         if (!prev && y > 24) return true;
         if (prev && y < 4) return false;
         return prev;
@@ -35,9 +40,10 @@ export default function PublicNavbar() {
     const onResize = () => {
       setIsResizing(true);
       if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
-      resizeTimerRef.current = window.setTimeout(() => setIsResizing(false), 150);
-      // Trong khi resize, gọi lại scroll 1 lần sau cùng để đồng bộ trạng thái
-      // nhưng đã debounce bằng timer phía trên
+      resizeTimerRef.current = window.setTimeout(
+        () => setIsResizing(false),
+        150
+      );
     };
 
     onScroll();
@@ -60,7 +66,6 @@ export default function PublicNavbar() {
   return (
     <header
       className={clsx(
-        // Hạn chế transition để tránh rung khi layout thay đổi
         "w-full bg-white border-b px-4 md:px-6 shadow-sm flex items-center justify-between transition-colors duration-300 sticky top-0 z-50 h-16 md:h-20"
       )}
     >
@@ -71,13 +76,15 @@ export default function PublicNavbar() {
         )}
       >
         {/* Logo bên trái */}
-        <Link
-          href="/"
-          className={clsx(
-            "font-bold text-orange-600 transition-colors duration-300 text-xl md:text-2xl"
-          )}
-        >
-          Student Cultural House
+        <Link href="/" className="flex items-center gap-2">
+          <img
+            src="/LogoRMBG.png"
+            alt="Student Cultural House Logo"
+            className="h-10 md:h-12 object-contain"
+          />
+          <span className="font-bold text-orange-600 text-xl md:text-2xl">
+            Student Cultural House
+          </span>
         </Link>
 
         {/* Menu giữa */}
@@ -157,7 +164,9 @@ export default function PublicNavbar() {
                   ) : (
                     <SheetClose asChild>
                       <Link href="/login">
-                        <Button variant="outline" className="w-full">Đăng nhập</Button>
+                        <Button variant="outline" className="w-full">
+                          Đăng nhập
+                        </Button>
                       </Link>
                     </SheetClose>
                   )}
@@ -170,5 +179,3 @@ export default function PublicNavbar() {
     </header>
   );
 }
-
-
