@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "react-oidc-context";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,18 +22,24 @@ export function UserProfile() {
   }
 
   const handleLogout = () => {
-    console.log('Logout button clicked!');
-    // Redirect to Cognito logout
-    const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 'https://ap-southeast-29rljnqhok.auth.ap-southeast-2.amazoncognito.com';
-    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '6rer5strq9ga876qntv37ngv6d';
-    const baseUri = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
-    const logoutUri = baseUri + '/';
-    const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
-    console.log('Logout URL:', logoutUrl);
-    // Clear local auth state first
-    auth.removeUser();
-    // Redirect
-    window.location.href = logoutUrl;
+    // Show toast
+    toast.success("Đang đăng xuất...", {
+      description: "Hẹn gặp lại bạn!",
+    });
+    
+    // Small delay to show toast before redirect
+    setTimeout(() => {
+      // Redirect to Cognito logout
+      const cognitoDomain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || 'https://ap-southeast-29rljnqhok.auth.ap-southeast-2.amazoncognito.com';
+      const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || '6rer5strq9ga876qntv37ngv6d';
+      const baseUri = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const logoutUri = baseUri + '/';
+      const logoutUrl = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
+      // Clear local auth state first
+      auth.removeUser();
+      // Redirect
+      window.location.href = logoutUrl;
+    }, 100);
   };
 
   const avatarLetter = auth.user.profile?.name?.[0] || auth.user.profile?.email?.[0] || "U";
