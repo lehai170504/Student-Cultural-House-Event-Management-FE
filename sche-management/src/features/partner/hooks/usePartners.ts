@@ -1,49 +1,101 @@
+// src/features/partner/hooks/usePartners.ts
+
 "use client";
 
 import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { fetchAllPartners, createPartner } from "../thunks/partnerThunks";
-import { clearError } from "../slices/partnerSlice";
+// ✅ Import thunk mới: fetchPartnerById
+import { fetchAllPartners, createPartner, fetchPartnerById } from "../thunks/partnerThunks";
+// ✅ Import action mới: clearSelectedPartner
+import { clearError, clearSelectedPartner } from "../slices/partnerSlice";
 import type { CreatePartner } from "@/features/partner/types/partner";
 
 export const usePartners = () => {
-  const dispatch = useAppDispatch();
+  const dispatch = useAppDispatch();
 
-  const { list, loadingList, saving, error } = useAppSelector(
-    (state) => state.partner
-  );
+  // ✅ Lấy thêm các state mới: selectedPartner, loadingDetail
+  const { 
+        list, 
+        loadingList, 
+        saving, 
+        error, 
+        selectedPartner, 
+        loadingDetail 
+    } = useAppSelector(
+    (state) => state.partner
+  );
 
-  /** 🔸 Lấy danh sách tất cả partner */
-  const loadAll = useCallback(async () => {
-    await dispatch(fetchAllPartners());
-  }, [dispatch]);
+  /** 🔸 Lấy danh sách tất cả partner */
+  const loadAll = useCallback(async () => {
+    try {
+      await dispatch(fetchAllPartners()).unwrap();
+    } catch (err) {
+      console.error("❌ Lỗi khi tải partner:", err);
+    }
+  }, [dispatch]);
 
-  /** 🔸 Tạo mới partner */
-  const createNewPartner = useCallback(
-    async (data: CreatePartner) => {
-      const result = await dispatch(createPartner(data));
-      return result;
+  /** 🔸 Tạo mới partner */
+  const createNewPartner = useCallback(
+    async (data: CreatePartner) => {
+      try {
+        const result = await dispatch(createPartner(data)).unwrap();
+        return result;
+      } catch (err) {
+        console.error("❌ Lỗi khi tạo partner:", err);
+        throw err;
+      }
+    },
+    [dispatch]
+  );
+
+  /** 🔸 ✅ Lấy chi tiết partner theo ID */
+  const loadPartnerById = useCallback(
+    async (id: string) => {
+        try {
+            const result = await dispatch(fetchPartnerById(id)).unwrap();
+            return result;
+        } catch (err) {
+            console.error(`❌ Lỗi khi tải chi tiết partner ${id}:`, err);
+            throw err;
+        }
     },
     [dispatch]
   );
-
-  /** 🔸 Xoá lỗi */
-  const clearPartnerError = useCallback(() => {
-    dispatch(clearError());
+  
+  /** 🔸 ✅ Xoá chi tiết partner khỏi state */
+  const clearPartnerDetail = useCallback(() => {
+    dispatch(clearSelectedPartner());
   }, [dispatch]);
 
-  /** 🔸 Tự động load danh sách khi mount */
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
 
-  return {
-    list,
-    error,
-    loadingList,
-    saving,
-    loadAll,
-    createNewPartner,
-    clearPartnerError,
-  };
+  /** 🔸 Xoá lỗi chung (danh sách, tạo, chi tiết) */
+  const clearPartnerError = useCallback(() => {
+    dispatch(clearError());
+  }, [dispatch]);
+
+  /** 🔸 Tự động load danh sách khi mount */
+  useEffect(() => {
+    if (!list?.length) {
+      loadAll();
+    }
+  }, [loadAll, list?.length]);
+
+  return {
+    // State danh sách & thao tác
+    list,
+    loadingList,
+    saving,
+    loadAll,
+    createNewPartner,
+    
+    // ✅ State Chi tiết & thao tác (MỚI)
+    selectedPartner,
+    loadingDetail,
+    loadPartnerById,
+    clearPartnerDetail,
+
+    // State lỗi
+    error,
+    clearPartnerError,
+  };
 };

@@ -1,30 +1,48 @@
-import { createAsyncThunk } from "@reduxjs/toolkit";
-import { partnerService } from "@/features/partner/services/partnerService";
-import type { Partner, CreatePartner } from "@/features/partner/types/partner";
-import { getErrorMessage } from "@/utils/errorHandler";
+// src/features/partner/thunks/partnerThunks.ts
 
-// 🔹 Lấy tất cả partner
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import { partnerService } from "../services/partnerService"; // Import service
+import type { Partner, CreatePartner } from "@/features/partner/types/partner"; // Đảm bảo đúng đường dẫn types
+
+// Thunk để LẤY TẤT CẢ danh sách đối tác
 export const fetchAllPartners = createAsyncThunk<
-  Partner[],
-  void,
-  { rejectValue: string }
->("partners/fetchAll", async (_, { rejectWithValue }) => {
-  try {
-    return await partnerService.getAll();
-  } catch (err: any) {
-    return rejectWithValue(getErrorMessage(err, "Lỗi khi tải danh sách partner"));
-  }
+  Partner[], // Kiểu dữ liệu trả về khi fulfilled (Partner[])
+  void,      // Kiểu dữ liệu đầu vào (arg)
+  { rejectValue: string } // Kiểu dữ liệu lỗi trả về
+>("partner/fetchAllPartners", async (_, { rejectWithValue }) => {
+  try {
+    const data = await partnerService.getAll();
+    return data;
+  } catch (error: any) {
+    // Trích xuất thông báo lỗi từ response hoặc trả về thông báo chung
+    return rejectWithValue(error.response?.data?.message || "Lỗi tải danh sách đối tác.");
+  }
 });
 
-// 🔹 Tạo mới partner
+// Thunk để TẠO MỚI đối tác
 export const createPartner = createAsyncThunk<
-  Partner,
-  CreatePartner,
+  Partner,      // Kiểu dữ liệu trả về khi fulfilled (Partner)
+  CreatePartner, // Kiểu dữ liệu đầu vào (newPartnerData)
+  { rejectValue: string }
+>("partner/createPartner", async (newPartnerData, { rejectWithValue }) => {
+  try {
+    const data = await partnerService.create(newPartnerData);
+    return data;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || "Lỗi tạo đối tác mới.");
+  }
+});
+
+// 💡 THUNK MỚI: Lấy Đối tác theo ID
+export const fetchPartnerById = createAsyncThunk<
+  Partner,      // Kiểu dữ liệu trả về khi fulfilled
+  string,       // Kiểu dữ liệu đầu vào (partnerId)
   { rejectValue: string }
->("partners/create", async (data, { rejectWithValue }) => {
+>("partner/fetchPartnerById", async (partnerId, { rejectWithValue }) => {
   try {
-    return await partnerService.create(data);
-  } catch (err: any) {
-    return rejectWithValue(getErrorMessage(err, "Lỗi khi tạo partner"));
+    const data = await partnerService.getById(partnerId);
+    return data;
+  } catch (error: any) {
+    return rejectWithValue(error.response?.data?.message || `Lỗi tải chi tiết đối tác ${partnerId}.`);
   }
 });
