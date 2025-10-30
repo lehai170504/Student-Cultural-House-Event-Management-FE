@@ -1,4 +1,5 @@
 // OIDC Configuration for AWS Cognito
+import { WebStorageStateStore } from "oidc-client-ts";
 export const oidcConfig = {
   authority: process.env.NEXT_PUBLIC_COGNITO_AUTHORITY || "https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_9RLjNQhOk",
   client_id: process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "6rer5strq9ga876qntv37ngv6d",
@@ -11,8 +12,11 @@ export const oidcConfig = {
   // Additional OIDC options
   post_logout_redirect_uri: (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000") + "/",
   silent_redirect_uri: (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000") + "/",
-  // Customize token storage
-  userStore: undefined, // Use default localStorage
+  // Customize token storage: dùng localStorage để giữ đăng nhập giữa tabs
+  userStore:
+    typeof window !== "undefined"
+      ? new WebStorageStateStore({ store: window.localStorage })
+      : undefined,
   // Customize authentication flow
   extraQueryParams: {},
   // Handle authentication events
