@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+// @ts-ignore
 import { toast } from "sonner";
 import { useWallet } from "@/features/wallet/hooks/useWallet";
 import type { RequestWalletTopUpPartner } from "@/features/wallet/types/wallet";
@@ -30,24 +31,10 @@ export default function TopUpPartnerModal({
   partnerId,
   partnerName,
 }: TopUpPartnerModalProps) {
-  const { doTopUpPartner, loading, error, lastMessage } = useWallet();
+  const { doTopUpPartner } = useWallet();
   const [amount, setAmount] = useState<number | string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-  useEffect(() => {
-    if (!isProcessing) return;
-
-    if (error) {
-      toast.error("Nạp coin thất bại", {
-        description: error,
-      });
-      setIsProcessing(false);
-    } else if (lastMessage) {
-      const topUpAmount = Number(amount);
-      onTopUpSuccess(partnerName, topUpAmount);
-      setIsProcessing(false);
-    }
-  }, [error, lastMessage, isProcessing, onTopUpSuccess, partnerName, amount]);
 
   useEffect(() => {
     if (open) {
@@ -73,7 +60,21 @@ export default function TopUpPartnerModal({
       amount: topUpAmount,
     };
 
-    await doTopUpPartner(payload);
+    try {
+      const action: any = await doTopUpPartner(payload);
+      const ok = action?.meta?.requestStatus === "fulfilled";
+      if (ok) {
+        toast.success("Nạp coin thành công", {
+          description: `${topUpAmount} coin đã được nạp cho đối tác ${partnerName}`,
+        });
+        onTopUpSuccess(partnerName, topUpAmount);
+      } else {
+        const errMsg = action?.payload || "Không thể nạp coin. Vui lòng thử lại.";
+        toast.error("Nạp coin thất bại", { description: String(errMsg) });
+      }
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
