@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeroSlide {
@@ -62,12 +61,10 @@ const heroSlides: HeroSlide[] = [
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  // Auto scroll effect
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 3000); // Change slide every 3 seconds
-
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
@@ -81,7 +78,7 @@ export default function HeroSection() {
 
   return (
     <section className="relative h-[70vh] md:h-screen overflow-hidden">
-      {/* Background Images */}
+      {/* Background */}
       <div className="absolute inset-0">
         {heroSlides.map((slide, index) => (
           <div
@@ -95,7 +92,6 @@ export default function HeroSection() {
               alt={slide.title}
               className="w-full h-full object-cover"
             />
-            {/* Overlay */}
             <div className="absolute inset-0 bg-black/40" />
           </div>
         ))}
@@ -115,8 +111,8 @@ export default function HeroSection() {
               {heroSlides[currentSlide].description}
             </p>
             <Button
-              size="sm"
-              className="bg-orange-500 hover:bg-orange-600 text-white px-5 sm:px-7 md:px-8 py-3 sm:py-4 text-base sm:text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              size="lg"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
               onClick={() =>
                 (window.location.href = heroSlides[currentSlide].buttonLink)
               }
@@ -128,30 +124,28 @@ export default function HeroSection() {
       </div>
 
       {/* Navigation Arrows */}
-      <button
-        onClick={goToPrevious}
-        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 sm:p-3 rounded-full transition-all duration-300 backdrop-blur-sm"
-      >
-        <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-      </button>
-      <button
-        onClick={goToNext}
-        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 bg-white/20 hover:bg-white/30 text-white p-2 sm:p-3 rounded-full transition-all duration-300 backdrop-blur-sm"
-      >
-        <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-      </button>
+      <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-20">
+        <Button variant="outline" size="icon" onClick={goToPrevious}>
+          &#8592;
+        </Button>
+      </div>
+      <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20">
+        <Button variant="outline" size="icon" onClick={goToNext}>
+          &#8594;
+        </Button>
+      </div>
 
-      {/* Dots Indicator */}
-      <div className="absolute bottom-5 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 flex space-x-2 sm:space-x-3">
+      {/* Dots */}
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
         {heroSlides.map((_, index) => (
-          <button
+          <Button
             key={index}
-            onClick={() => goToSlide(index)}
-            className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-all duration-300 ${
-              index === currentSlide
-                ? "bg-orange-500 scale-125"
-                : "bg-white/50 hover:bg-white/70"
+            variant={index === currentSlide ? "default" : "outline"}
+            size="icon"
+            className={`w-3 h-3 rounded-full p-0 ${
+              index === currentSlide ? "bg-orange-500" : "bg-white/50"
             }`}
+            onClick={() => goToSlide(index)}
           />
         ))}
       </div>

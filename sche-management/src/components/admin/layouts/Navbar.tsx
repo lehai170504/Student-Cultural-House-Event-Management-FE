@@ -26,14 +26,26 @@ export default function Navbar() {
     // Lấy id_token hiện tại nếu còn để thêm id_token_hint (tuỳ chọn)
     const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY as string;
     const storageKey = `oidc.user:${authority}:${clientId}`;
-    const userJson = (typeof window !== "undefined" && localStorage.getItem(storageKey)) || "{}";
+    const userJson =
+      (typeof window !== "undefined" && localStorage.getItem(storageKey)) ||
+      "{}";
     const idToken = (() => {
-      try { return JSON.parse(userJson)?.id_token || ""; } catch { return ""; }
+      try {
+        return JSON.parse(userJson)?.id_token || "";
+      } catch {
+        return "";
+      }
     })();
 
-    try { await auth.removeUser(); } catch {}
+    try {
+      await auth.removeUser();
+    } catch {}
 
-    const url = `${cognitoDomain}/logout?client_id=${encodeURIComponent(clientId)}&logout_uri=${encodeURIComponent(redirectUri)}${idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : ""}`;
+    const url = `${cognitoDomain}/logout?client_id=${encodeURIComponent(
+      clientId
+    )}&logout_uri=${encodeURIComponent(redirectUri)}${
+      idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : ""
+    }`;
     window.location.href = url;
   };
 
@@ -99,6 +111,13 @@ export default function Navbar() {
             <DropdownMenuItem asChild>
               <a href="/admin/profile" className="w-full">
                 Xem Profile
+              </a>
+            </DropdownMenuItem>
+
+            {/* Mục mới dẫn về trang chủ */}
+            <DropdownMenuItem asChild>
+              <a href="/" className="w-full">
+                Trang Chủ
               </a>
             </DropdownMenuItem>
 
