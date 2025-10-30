@@ -106,15 +106,6 @@ export default function VirtualCardPage() {
               </CardContent>
             </Card>
           </div>
-
-          <div className="flex gap-3">
-            <Button asChild variant="outline">
-              <Link href="/">Về trang chủ</Link>
-            </Button>
-            <Button asChild className="bg-orange-500 hover:bg-orange-600">
-              <Link href="/events">Khám phá sự kiện</Link>
-            </Button>
-          </div>
         </div>
       </section>
     </main>
