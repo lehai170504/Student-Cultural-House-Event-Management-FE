@@ -1,18 +1,26 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import { eventService } from "@/features/events/services/eventService";
-import type { Event, EventDetail, CreateEvent, UpdateEvent } from "@/features/events/types/events";
+import type {
+  Event,
+  EventDetail,
+  CreateEvent,
+  UpdateEvent,
+  PagedResponse,
+} from "@/features/events/types/events";
 import { getErrorMessage } from "@/utils/errorHandler";
 
 // 🔹 Lấy tất cả events với filter tùy chọn
 export const fetchAllEvents = createAsyncThunk<
-  Event[],
+  PagedResponse<Event>,
   Record<string, any> | undefined,
   { rejectValue: string }
 >("events/fetchAll", async (params, { rejectWithValue }) => {
   try {
     return await eventService.getAll(params);
   } catch (err: any) {
-    return rejectWithValue(getErrorMessage(err, "Lỗi khi tải danh sách events"));
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi tải danh sách events")
+    );
   }
 });
 

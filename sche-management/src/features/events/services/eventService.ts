@@ -1,15 +1,25 @@
 // src/features/events/services/eventService.ts
 import axiosInstance from "@/config/axiosInstance";
-import { Event, CreateEvent, UpdateEvent, EventDetail } from "../types/events";
+import {
+  Event,
+  CreateEvent,
+  UpdateEvent,
+  EventDetail,
+  PagedResponse,
+} from "../types/events";
 
 const endpoint = "/events";
 
 export const eventService = {
   /** 🔹 Lấy tất cả events với filter tùy chọn */
-  async getAll(params?: Record<string, any>): Promise<Event[]> {
+  async getAll(params?: Record<string, any>): Promise<PagedResponse<Event>> {
     try {
-      const res = await axiosInstance.get<{ content: Event[] }>(endpoint, { params });
-      return res.data.content;
+      // FE cần gọi API và nhận về PagedResponse<Event>
+      const res = await axiosInstance.get<PagedResponse<Event>>(endpoint, {
+        params,
+      });
+      // Trả về toàn bộ đối tượng phân trang
+      return res.data;
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách events:", error);
       throw error;
@@ -41,7 +51,10 @@ export const eventService = {
   /** 🔹 Cập nhật event theo ID */
   async update(id: number, data: UpdateEvent): Promise<EventDetail> {
     try {
-      const res = await axiosInstance.put<EventDetail>(`${endpoint}/${id}`, data);
+      const res = await axiosInstance.put<EventDetail>(
+        `${endpoint}/${id}`,
+        data
+      );
       return res.data;
     } catch (error) {
       console.error(`❌ [update] Lỗi khi cập nhật event ID ${id}:`, error);

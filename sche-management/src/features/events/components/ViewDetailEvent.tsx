@@ -18,7 +18,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useEvents } from "../hooks/useEvents";
-import { useEventCategories } from "@/features/eventCategories/hooks/useEventCategories";
 import { showToast } from "@/components/ui/Toast";
 import type { UpdateEvent } from "../types/events";
 
