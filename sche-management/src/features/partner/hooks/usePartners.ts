@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { fetchAllPartners, createPartner } from "../thunks/partnerThunks";
+import {
+  fetchAllPartners,
+  createPartner,
+  updatePartnerStatus,
+} from "../thunks/partnerThunks";
 import { clearError } from "../slices/partnerSlice";
 import type { CreatePartner } from "@/features/partner/types/partner";
 
@@ -27,6 +31,15 @@ export const usePartners = () => {
     [dispatch]
   );
 
+  /** 🔸 Cập nhật trạng thái partner */
+  const changePartnerStatus = useCallback(
+    async (id: number, status: "ACTIVE" | "INACTIVE") => {
+      const result = await dispatch(updatePartnerStatus({ id, status }));
+      return result;
+    },
+    [dispatch]
+  );
+
   /** 🔸 Xoá lỗi */
   const clearPartnerError = useCallback(() => {
     dispatch(clearError());
@@ -44,6 +57,7 @@ export const usePartners = () => {
     saving,
     loadAll,
     createNewPartner,
+    changePartnerStatus,
     clearPartnerError,
   };
 };

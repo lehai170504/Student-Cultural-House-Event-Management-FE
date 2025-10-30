@@ -70,7 +70,7 @@ export default function LoginPage() {
           className="w-full bg-orange-500 hover:bg-orange-600 text-white"
           disabled={auth.isLoading}
         >
-          Đăng nhập với tài khoản trường
+          Hãy đăng nhập để có trải nghiệm thực tế nhất
         </Button>
 
         <div className="mt-6 text-center text-sm text-gray-500">

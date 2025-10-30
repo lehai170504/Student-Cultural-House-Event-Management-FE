@@ -43,6 +43,7 @@ export function UserProfile() {
   const isPartners = groups.includes("PARTNERS");
   const profileHref = isAdmin ? "/admin/profile" : "/profile";
 
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

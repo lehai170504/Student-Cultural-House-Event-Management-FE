@@ -6,3 +6,5 @@ export interface University {
   createdAt: string;
 }
 
+
+

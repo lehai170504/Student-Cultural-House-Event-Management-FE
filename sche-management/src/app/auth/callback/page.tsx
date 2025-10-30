@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner"; // ✅ import toast từ sonner
+// @ts-ignore - UI toast lib may not have types in this env
+import { toast } from "sonner"; 
+import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 
 export default function AuthCallback() {
   const auth = useAuth();
@@ -45,7 +47,25 @@ export default function AuthCallback() {
           role = profile?.["cognito:groups"]?.[0] || null;
         }
 
-        // ✅ 3️⃣ Thông báo & chuyển hướng theo role
+        // ✅ 3️⃣ Kiểm tra lần đầu đăng nhập: nếu chưa đủ hồ sơ → đưa đi onboarding
+        try {
+          const idToken = auth.user?.id_token;
+          if (idToken) {
+            const attributes =
+              await cognitoUserAttributesService.fetchUserAttributes(idToken);
+            const needs = cognitoUserAttributesService.needsOnboarding(attributes);
+            if (needs) {
+              setStatus("redirecting");
+              router.push("/onboarding/profile-completion");
+              return; 
+            }
+          }
+        } catch (err) {
+          
+          console.warn("Skip onboarding check due to error:", err);
+        }
+
+        // ✅ 4️⃣ Thông báo & chuyển hướng theo role
         setStatus("redirecting");
 
         toast.success("Đăng nhập thành công 🎉", {

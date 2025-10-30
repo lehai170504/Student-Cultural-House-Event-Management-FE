@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useUniversities } from "@/features/universities/hooks/useUniversities";
 
 export default function ProfileCompletionPage() {
   const auth = useAuth();
@@ -26,6 +27,8 @@ export default function ProfileCompletionPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const { list: universitiesFromRedux = [], loading: universitiesLoading } =
+    useUniversities();
 
   // Validate university format
   const validateUniversity = (value: string): boolean => {
@@ -82,6 +85,8 @@ export default function ProfileCompletionPage() {
 
     checkAuth();
   }, [auth.isLoading, auth.isAuthenticated, auth.user, router]);
+
+  // Không cần fetch thủ công: useUniversities tự load khi mount và lưu Redux
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,33 +201,33 @@ export default function ProfileCompletionPage() {
               >
                 Tên trường Đại học <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="university"
-                type="text"
+              <Select
                 value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-                placeholder="Ví dụ: Trường Đại Học FPT"
-                className="w-full"
-                aria-invalid={
-                  university && !validateUniversity(university)
-                    ? true
-                    : undefined
-                }
-                aria-describedby={
-                  university && !validateUniversity(university)
-                    ? "university-error"
-                    : undefined
-                }
-              />
-              {university && !validateUniversity(university) && (
-                <p
-                  id="university-error"
-                  className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  Tên trường phải bắt đầu bằng &quot;Trường&quot;
-                </p>
-              )}
+                onValueChange={setUniversity}
+                required
+                disabled={universitiesLoading}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={
+                      universitiesLoading
+                        ? "Đang tải danh sách trường..."
+                        : "Chọn trường Đại học"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {universitiesFromRedux.map((u: any) => {
+                    const name = (u?.name ?? "").toString();
+                    const id = Number(u?.id ?? 0);
+                    return (
+                      <SelectItem key={id} value={name}>
+                        {name}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
             </div>
           )}
 

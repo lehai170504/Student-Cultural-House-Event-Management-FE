@@ -6,6 +6,7 @@ export interface Partner {
   contactPhone: string;
   walletId: number;
   createdAt: string;
+  status: "ACTIVE" | "INACTIVE";
 }
 
 export interface CreatePartner {
@@ -19,4 +20,10 @@ export interface CreatePartner {
 export interface CreateFuntEvent {
   eventId: string;
   amount: string;
+}
+
+export interface PartnerRepsonse {
+  status: number;
+  message: string;
+  data: Partner[];
 }
