@@ -35,4 +35,18 @@ export interface RedeemRequest {
   description?: string;
 }
 
+export interface RequestWalletTopUpPartner {
+  partnerId: string;
+  amount: number;
+}
 
+export interface ResponseWalletTopUpPartner {
+  id: number;
+  walletId: number;
+  counterpartyId: number;
+  txnType: string;
+  amount: number;
+  referenceType: string;
+  referenceId: number | null;
+  createdAt: string;
+}

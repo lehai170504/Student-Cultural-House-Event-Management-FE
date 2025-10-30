@@ -6,9 +6,12 @@ import type {
   TransferRequest,
   RollbackRequest,
   RedeemRequest,
+  RequestWalletTopUpPartner,
+  ResponseWalletTopUpPartner,
 } from "../types/wallet";
 
-const endpoint = "/wallets"; // baseURL already contains /api/v1
+const endpoint = "/wallets";
+const adminTopupEndpoint = "/admin/wallets/topup";
 
 export const walletService = {
   async transfer(payload: TransferRequest): Promise<{ message: string }> {
@@ -40,6 +43,14 @@ export const walletService = {
     });
     return res.data?.data ?? res.data;
   },
+
+  async topUpPartner(
+    payload: RequestWalletTopUpPartner // Sử dụng RequestWalletTopUpPartner mới
+  ): Promise<ResponseWalletTopUpPartner> {
+    const res = await axiosInstance.post<ResponseWalletTopUpPartner>(
+      adminTopupEndpoint,
+      payload
+    );
+    return res.data;
+  },
 };
-
-

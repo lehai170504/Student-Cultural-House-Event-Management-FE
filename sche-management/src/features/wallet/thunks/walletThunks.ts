@@ -7,6 +7,8 @@ import type {
   TransferRequest,
   RollbackRequest,
   RedeemRequest,
+  RequestWalletTopUpPartner,
+  ResponseWalletTopUpPartner,
 } from "../types/wallet";
 
 export const transferCoins = createAsyncThunk<
@@ -45,6 +47,21 @@ export const redeemCoins = createAsyncThunk<
   }
 });
 
+/** 🔹 Admin Top Up Coin for Partner */
+export const topUpPartnerCoins = createAsyncThunk<
+  ResponseWalletTopUpPartner,
+  RequestWalletTopUpPartner,
+  { rejectValue: string }
+>("wallet/topUpPartner", async (payload, { rejectWithValue }) => {
+  try {
+    return await walletService.topUpPartner(payload);
+  } catch (e: any) {
+    return rejectWithValue(
+      e?.response?.data?.message || "Top up partner failed"
+    );
+  }
+});
+
 export const fetchWalletById = createAsyncThunk<
   Wallet,
   number,
@@ -70,5 +87,3 @@ export const fetchWalletTransactions = createAsyncThunk<
     );
   }
 });
-
-

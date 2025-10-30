@@ -11,11 +11,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, CheckCircle, XCircle } from "lucide-react";
+import { Plus, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { usePartners } from "../hooks/usePartners";
-import { toast } from "sonner";
+import { toast, Toaster } from "sonner"; // Thêm Toaster
 
 const CreatePartnerModal = lazy(() => import("./CreatePartnerModal"));
+const TopUpPartnerModal = lazy(() => import("./TopUpPartnerModal"));
+
+interface Partner {
+  id: number;
+  name: string;
+  organizationType: string;
+  contactEmail: string;
+  contactPhone: string;
+  walletId: number;
+  createdAt: string;
+  status: "ACTIVE" | "INACTIVE";
+}
 
 export default function PartnerTable() {
   const {
@@ -28,9 +40,13 @@ export default function PartnerTable() {
 
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
+  // State lưu trữ partner đang được nạp tiền
+  const [topUp, setTopUp] = useState<Partner | null>(null);
 
-  const filteredPartners = Array.isArray(list)
-    ? list.filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
+  const filteredPartners: Partner[] = Array.isArray(list)
+    ? list.filter((p: Partner) =>
+        p.name?.toLowerCase().includes(search.toLowerCase())
+      )
     : [];
 
   const toggleStatus = async (
@@ -55,6 +71,18 @@ export default function PartnerTable() {
         description: `Không thể thay đổi trạng thái của đối tác ${partnerName}. Vui lòng thử lại.`,
       });
     }
+  };
+
+  const handleTopUpSuccess = (partnerName: string, amount: number) => {
+    setTopUp(null);
+
+    loadAll();
+
+    const formattedAmount = new Intl.NumberFormat("vi-VN").format(amount);
+    toast.success(`Nạp tiền thành công cho ${partnerName}`, {
+      description: `Đã nạp thành công ${formattedAmount} Coin.`,
+      duration: 5000,
+    });
   };
 
   return (
@@ -98,18 +126,22 @@ export default function PartnerTable() {
                   <TableHead className="px-6 py-3">Wallet ID</TableHead>
                   <TableHead className="px-6 py-3">Ngày tạo</TableHead>
                   <TableHead className="px-6 py-3">Trạng thái</TableHead>
+                  <TableHead className="px-6 py-3 text-center">
+                    Hành động
+                  </TableHead>{" "}
+                  {/* Đổi lại thành Hành động cho phù hợp */}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingList ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6">
+                    <TableCell colSpan={9} className="text-center py-6">
                       Đang tải...
                     </TableCell>
                   </TableRow>
                 ) : filteredPartners.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6">
+                    <TableCell colSpan={9} className="text-center py-6">
                       Không có đối tác nào
                     </TableCell>
                   </TableRow>
@@ -164,6 +196,18 @@ export default function PartnerTable() {
                           </span>
                         </Button>
                       </TableCell>
+
+                      <TableCell className="px-6 py-4 text-center">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-1"
+                          onClick={() => setTopUp(partner)}
+                        >
+                          <DollarSign className="h-4 w-4" />
+                          Nạp Coin
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))
                 )}
@@ -173,6 +217,7 @@ export default function PartnerTable() {
         </div>
       </section>
 
+      {/* Modal tạo mới */}
       {creating && (
         <Suspense fallback={<p>Đang tải...</p>}>
           <CreatePartnerModal
@@ -197,6 +242,23 @@ export default function PartnerTable() {
           />
         </Suspense>
       )}
+
+      {/* Modal Nạp tiền */}
+      {topUp && (
+        <Suspense fallback={<p>Đang tải...</p>}>
+          <TopUpPartnerModal
+            open={!!topUp}
+            onClose={() => {
+              setTopUp(null);
+            }}
+            onTopUpSuccess={handleTopUpSuccess}
+            partnerId={topUp.walletId.toString()}
+            partnerName={topUp.name}
+          />
+        </Suspense>
+      )}
+
+      <Toaster position="top-right" richColors />
     </main>
   );
 }
