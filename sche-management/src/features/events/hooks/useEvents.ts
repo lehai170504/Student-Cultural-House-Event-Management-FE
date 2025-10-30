@@ -8,6 +8,10 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
+  registerForEvent,
+  sendEventFeedback,
+  checkinEvent,
+  fetchEventAttendees,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
 import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
@@ -17,7 +21,6 @@ import type { CreateEvent, UpdateEvent } from "../types/events";
 export const useEvents = () => {
   const dispatch = useAppDispatch();
 
-  // THÊM CÁC TRƯỜNG PHÂN TRANG VÀO DESTRUCTURING
   const {
     list,
     detail,
@@ -26,17 +29,24 @@ export const useEvents = () => {
     saving,
     deleting,
     error,
-    currentPage, // Thêm
-    totalElements, // Thêm
-    totalPages, // Thêm
-    pageSize, // Thêm
-    isLastPage, // Thêm
+    currentPage,
+    totalElements,
+    totalPages,
+    pageSize,
+    isLastPage,
+
+    // EXTENDED STATE
+    registering,
+    sendingFeedback,
+    checkingIn,
+    loadingAttendees,
+    attendees,
   } = useAppSelector((state) => state.event);
 
   const { list: categories = [], loadingList: loadingCategories } =
     useAppSelector((state) => state.eventCategory);
 
-  /** 🔸 Lấy danh sách tất cả events (có hỗ trợ params cho phân trang/filter) */
+  /** 🔸 Lấy danh sách tất cả events */
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
       await dispatch(fetchAllEvents(params));
@@ -84,7 +94,7 @@ export const useEvents = () => {
     dispatch(resetDetail());
   }, [dispatch]);
 
-  /** 🔸 Reset Pagination (danh sách và metadata phân trang) */
+  /** 🔸 Reset Pagination */
   const resetEventPagination = useCallback(() => {
     dispatch(resetPagination());
   }, [dispatch]);
@@ -94,10 +104,46 @@ export const useEvents = () => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /** 🔸 Load danh mục luôn */
+  /** 🔸 Load danh mục */
   const loadCategories = useCallback(async () => {
     await dispatch(fetchAllEventCategories());
   }, [dispatch]);
+
+  /** 🔸 1️⃣ Đăng ký sự kiện */
+  const registerForEventByStudent = useCallback(
+    async (eventId: number, studentId: number) => {
+      const result = await dispatch(registerForEvent({ eventId, studentId }));
+      return result;
+    },
+    [dispatch]
+  );
+
+  /** 🔸 2️⃣ Gửi feedback */
+  const sendFeedbackForEvent = useCallback(
+    async (eventId: number, data: { rating: number; comments: string }) => {
+      const result = await dispatch(sendEventFeedback({ eventId, data }));
+      return result;
+    },
+    [dispatch]
+  );
+
+  /** 🔸 3️⃣ Check-in sự kiện */
+  const checkinForEvent = useCallback(
+    async (data: { eventId: number; phoneNumber: string }) => {
+      const result = await dispatch(checkinEvent(data));
+      return result;
+    },
+    [dispatch]
+  );
+
+  /** 🔸 4️⃣ Lấy danh sách người tham dự */
+  const loadEventAttendees = useCallback(
+    async (eventId: number, params?: Record<string, any>) => {
+      const result = await dispatch(fetchEventAttendees({ eventId, params }));
+      return result;
+    },
+    [dispatch]
+  );
 
   /** 🔸 Tự động load events + categories khi mount */
   useEffect(() => {
@@ -109,6 +155,7 @@ export const useEvents = () => {
     // DỮ LIỆU SỰ KIỆN
     list,
     detail,
+    attendees,
     error,
     eventCategories: categories,
 
@@ -118,8 +165,12 @@ export const useEvents = () => {
     saving,
     deleting,
     loadingCategories,
+    registering,
+    sendingFeedback,
+    checkingIn,
+    loadingAttendees,
 
-    // TRẠNG THÁI PHÂN TRANG (MỚI)
+    // TRẠNG THÁI PHÂN TRANG
     currentPage,
     totalElements,
     totalPages,
@@ -133,7 +184,13 @@ export const useEvents = () => {
     updateExistingEvent,
     deleteEventById,
     resetEventDetail,
-    resetEventPagination, // Thêm action reset pagination
+    resetEventPagination,
     clearEventError,
+
+    // EXTENDED ACTIONS
+    registerForEventByStudent,
+    sendFeedbackForEvent,
+    checkinForEvent,
+    loadEventAttendees,
   };
 };

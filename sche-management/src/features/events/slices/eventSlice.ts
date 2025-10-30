@@ -1,12 +1,23 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { Event, EventDetail } from "@/features/events/types/events";
-import type { PagedResponse } from "@/features/events/types/events";
+import type {
+  Event,
+  EventDetail,
+  PagedResponse,
+  EventRegistration,
+  EventFeedbackResponse,
+  EventCheckinResponse,
+  AttendeesResponse,
+} from "@/features/events/types/events";
 import {
   fetchAllEvents,
   fetchEventById,
   createEvent,
   updateEvent,
   deleteEvent,
+  registerForEvent,
+  sendEventFeedback,
+  checkinEvent,
+  fetchEventAttendees,
 } from "../thunks/eventThunks";
 
 interface EventState {
@@ -17,6 +28,13 @@ interface EventState {
   saving: boolean;
   deleting: boolean;
   error: string | null;
+
+  // extended actions state
+  registering: boolean;
+  sendingFeedback: boolean;
+  checkingIn: boolean;
+  loadingAttendees: boolean;
+  attendees: AttendeesResponse | null;
 
   currentPage: number;
   totalElements: number;
@@ -33,6 +51,12 @@ const initialState: EventState = {
   saving: false,
   deleting: false,
   error: null,
+
+  registering: false,
+  sendingFeedback: false,
+  checkingIn: false,
+  loadingAttendees: false,
+  attendees: null,
 
   currentPage: 0,
   totalElements: 0,
@@ -61,6 +85,8 @@ const eventSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ========== CRUD ==========
+
       // fetch all
       .addCase(fetchAllEvents.pending, (state) => {
         state.loadingList = true;
@@ -69,15 +95,12 @@ const eventSlice = createSlice({
         fetchAllEvents.fulfilled,
         (state, action: PayloadAction<PagedResponse<Event>>) => {
           state.loadingList = false;
-
           state.list = action.payload.content || [];
-
           state.currentPage = action.payload.number;
           state.pageSize = action.payload.size;
           state.totalElements = action.payload.totalElements;
           state.totalPages = action.payload.totalPages;
           state.isLastPage = action.payload.last;
-
           state.error = null;
         }
       )
@@ -130,12 +153,9 @@ const eventSlice = createSlice({
         (state, action: PayloadAction<EventDetail>) => {
           state.saving = false;
           const idx = state.list.findIndex((e) => e.id === action.payload.id);
-          if (idx !== -1) {
-            state.list[idx] = action.payload;
-          }
-          if (state.detail && state.detail.id === action.payload.id) {
+          if (idx !== -1) state.list[idx] = action.payload;
+          if (state.detail && state.detail.id === action.payload.id)
             state.detail = action.payload;
-          }
           state.error = null;
         }
       )
@@ -158,6 +178,64 @@ const eventSlice = createSlice({
       )
       .addCase(deleteEvent.rejected, (state, action) => {
         state.deleting = false;
+        state.error = (action.payload as string) || null;
+      })
+
+      // ========== EXTENDED ACTIONS ==========
+
+      // register for event
+      .addCase(registerForEvent.pending, (state) => {
+        state.registering = true;
+      })
+      .addCase(registerForEvent.fulfilled, (state) => {
+        state.registering = false;
+        state.error = null;
+      })
+      .addCase(registerForEvent.rejected, (state, action) => {
+        state.registering = false;
+        state.error = (action.payload as string) || null;
+      })
+
+      // send feedback
+      .addCase(sendEventFeedback.pending, (state) => {
+        state.sendingFeedback = true;
+      })
+      .addCase(sendEventFeedback.fulfilled, (state) => {
+        state.sendingFeedback = false;
+        state.error = null;
+      })
+      .addCase(sendEventFeedback.rejected, (state, action) => {
+        state.sendingFeedback = false;
+        state.error = (action.payload as string) || null;
+      })
+
+      // check-in
+      .addCase(checkinEvent.pending, (state) => {
+        state.checkingIn = true;
+      })
+      .addCase(checkinEvent.fulfilled, (state) => {
+        state.checkingIn = false;
+        state.error = null;
+      })
+      .addCase(checkinEvent.rejected, (state, action) => {
+        state.checkingIn = false;
+        state.error = (action.payload as string) || null;
+      })
+
+      // fetch attendees
+      .addCase(fetchEventAttendees.pending, (state) => {
+        state.loadingAttendees = true;
+      })
+      .addCase(
+        fetchEventAttendees.fulfilled,
+        (state, action: PayloadAction<AttendeesResponse>) => {
+          state.loadingAttendees = false;
+          state.attendees = action.payload;
+          state.error = null;
+        }
+      )
+      .addCase(fetchEventAttendees.rejected, (state, action) => {
+        state.loadingAttendees = false;
         state.error = (action.payload as string) || null;
       });
   },

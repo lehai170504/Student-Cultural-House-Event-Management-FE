@@ -14,6 +14,8 @@ import {
   SignInParams,
   ConfirmSignUpParams,
 } from "@/features/auth/types/auth";
+import { AuthResponse } from "../types/auth";
+import axiosInstance from "@/config/axiosInstance";
 
 export interface AuthUser {
   id: string;
@@ -41,6 +43,19 @@ class AuthService {
       return { success: true, data: result };
     } catch (error: any) {
       return { success: false, error: this.handleAuthError(error) };
+    }
+  }
+
+  async getProfile(): Promise<
+    | { success: true; data: AuthResponse["data"] }
+    | { success: false; error: any }
+  > {
+    try {
+      const res = await axiosInstance.get<AuthResponse>("/me");
+      return { success: true, data: res.data.data };
+    } catch (error: any) {
+      console.error("❌ [getProfile] Lỗi khi lấy thông tin user:", error);
+      return { success: false, error };
     }
   }
 

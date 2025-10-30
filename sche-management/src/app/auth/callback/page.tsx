@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuth } from "react-oidc-context";
 import { useEffect, useState } from "react";
+import { useAuth } from "react-oidc-context";
 import { useRouter } from "next/navigation";
-import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner"; // ✅ import toast từ sonner
 
 export default function AuthCallback() {
   const auth = useAuth();
@@ -12,54 +12,73 @@ export default function AuthCallback() {
   const [status, setStatus] = useState("checking");
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      if (!auth.isLoading) {
-        if (auth.isAuthenticated && auth.user?.id_token) {
-          try {
-            setStatus("fetching-attributes");
+    const handleCallback = async () => {
+      if (auth.isLoading) return;
 
-            // Fetch user attributes from ID token
-            const attributes =
-              await cognitoUserAttributesService.fetchUserAttributes(
-                auth.user.id_token
-              );
+      if (!auth.isAuthenticated) {
+        setStatus("redirecting-login");
+        toast.error("Phiên đăng nhập không hợp lệ. Vui lòng thử lại.");
+        router.push("/login");
+        return;
+      }
 
-            setStatus("checking-onboarding");
+      try {
+        setStatus("reading-profile");
 
-            // Check if user needs onboarding
-            if (cognitoUserAttributesService.needsOnboarding(attributes)) {
-              setStatus("redirecting-onboarding");
-              // Redirect to onboarding page
-              router.push("/onboarding/profile-completion");
-            } else {
-              setStatus("redirecting-home");
-              // Redirect to home page
-              router.push("/");
-            }
-          } catch (error) {
-            console.error("Error checking user attributes:", error);
-            // On error, redirect to home anyway (graceful degradation)
-            setStatus("redirecting-home");
-            router.push("/");
-          }
-        } else {
-          // Not authenticated, redirect to login
-          setStatus("redirecting-login");
-          router.push("/login");
+        let role: string | null = null;
+
+        // ✅ 1️⃣ Lấy dữ liệu OIDC từ sessionStorage
+        const storedKeys = Object.keys(sessionStorage).filter((k) =>
+          k.startsWith("oidc.user:")
+        );
+
+        if (storedKeys.length > 0) {
+          const data = JSON.parse(
+            sessionStorage.getItem(storedKeys[0]) || "{}"
+          );
+          role = data?.profile?.["cognito:groups"]?.[0] || null;
         }
+
+        // ✅ 2️⃣ Fallback sang auth.user.profile
+        if (!role && auth.user?.profile) {
+          const profile = auth.user.profile as Record<string, any>;
+          role = profile?.["cognito:groups"]?.[0] || null;
+        }
+
+        // ✅ 3️⃣ Thông báo & chuyển hướng theo role
+        setStatus("redirecting");
+
+        toast.success("Đăng nhập thành công 🎉", {
+          description: "Chào mừng bạn quay lại hệ thống!",
+          duration: 2500,
+          position: "top-right",
+          className:
+            "border border-green-200 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-100 shadow-lg",
+        });
+
+        if (role === "Admin") {
+          router.push("/admin/dashboard");
+        } else if (role === "PARTNER") {
+          router.push("/partner/dashboard");
+        } else {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Error during callback:", error);
+        toast.error("Có lỗi xảy ra khi xử lý đăng nhập.");
+        setStatus("redirecting-login");
+        router.push("/login");
       }
     };
 
-    handleAuthCallback();
-  }, [auth.isLoading, auth.isAuthenticated, auth.user, router]);
+    handleCallback();
+  }, [auth.isAuthenticated, auth.isLoading, auth.user, router]);
 
   const statusMessages: Record<string, string> = {
-    checking: "Đang kiểm tra...",
-    "fetching-attributes": "Đang tải thông tin tài khoản...",
-    "checking-onboarding": "Đang kiểm tra thông tin hồ sơ...",
-    "redirecting-onboarding": "Đang chuyển hướng...",
-    "redirecting-home": "Đang chuyển hướng...",
-    "redirecting-login": "Đang chuyển hướng...",
+    checking: "Đang kiểm tra đăng nhập...",
+    "reading-profile": "Đang đọc thông tin tài khoản...",
+    redirecting: "Đang chuyển hướng...",
+    "redirecting-login": "Đang quay lại trang đăng nhập...",
   };
 
   return (

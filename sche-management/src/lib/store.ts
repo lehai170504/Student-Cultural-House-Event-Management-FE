@@ -4,6 +4,7 @@ import userReducer from "@/features/users/slices/userSlice";
 import eventCategoryReducer from "@/features/eventCategories/slices/eventCategorySlice";
 import eventReducer from "@/features/events/slices/eventSlice"
 import universityReducer from "@/features/universities/slices/universitySlice"
+import partnerReducer from "@/features/partner/slices/partnerSlice"
 
 // Store singleton
 export const store = configureStore({
@@ -13,6 +14,7 @@ export const store = configureStore({
     eventCategory: eventCategoryReducer,
     event: eventReducer,
     university: universityReducer,
+    partner: partnerReducer,
   },
 });
 

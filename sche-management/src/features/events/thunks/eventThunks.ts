@@ -6,8 +6,18 @@ import type {
   CreateEvent,
   UpdateEvent,
   PagedResponse,
+  EventRegistration,
+  EventFeedbackRequest,
+  EventFeedbackResponse,
+  EventCheckinRequest,
+  EventCheckinResponse,
+  AttendeesResponse,
 } from "@/features/events/types/events";
 import { getErrorMessage } from "@/utils/errorHandler";
+
+// ============================================================
+// 🔸 EVENT CRUD
+// ============================================================
 
 // 🔹 Lấy tất cả events với filter tùy chọn
 export const fetchAllEvents = createAsyncThunk<
@@ -74,5 +84,65 @@ export const deleteEvent = createAsyncThunk<
     return id;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi xoá event"));
+  }
+});
+
+// ============================================================
+// 🔸 EVENT EXTENDED ACTIONS
+// ============================================================
+
+// 🔹 1️⃣ Đăng ký sự kiện
+export const registerForEvent = createAsyncThunk<
+  EventRegistration,
+  { eventId: number; studentId: number },
+  { rejectValue: string }
+>("events/register", async ({ eventId, studentId }, { rejectWithValue }) => {
+  try {
+    return await eventService.register(eventId, studentId);
+  } catch (err: any) {
+    return rejectWithValue(getErrorMessage(err, "Lỗi khi đăng ký sự kiện"));
+  }
+});
+
+// 🔹 2️⃣ Gửi feedback
+export const sendEventFeedback = createAsyncThunk<
+  EventFeedbackResponse,
+  { eventId: number; data: EventFeedbackRequest },
+  { rejectValue: string }
+>("events/sendFeedback", async ({ eventId, data }, { rejectWithValue }) => {
+  try {
+    return await eventService.sendFeedback(eventId, data);
+  } catch (err: any) {
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi gửi phản hồi sự kiện")
+    );
+  }
+});
+
+// 🔹 3️⃣ Check-in sự kiện
+export const checkinEvent = createAsyncThunk<
+  EventCheckinResponse,
+  EventCheckinRequest,
+  { rejectValue: string }
+>("events/checkin", async (data, { rejectWithValue }) => {
+  try {
+    return await eventService.checkin(data);
+  } catch (err: any) {
+    return rejectWithValue(getErrorMessage(err, "Lỗi khi check-in sự kiện"));
+  }
+});
+
+// 🔹 4️⃣ Lấy danh sách người tham dự
+export const fetchEventAttendees = createAsyncThunk<
+  AttendeesResponse,
+  { eventId: number; params?: Record<string, any> },
+  { rejectValue: string }
+>("events/fetchAttendees", async ({ eventId, params }, { rejectWithValue }) => {
+  try {
+    return await eventService.getAttendees(eventId, params);
+  } catch (err: any) {
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi tải danh sách người tham dự")
+    );
   }
 });
