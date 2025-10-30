@@ -6,7 +6,8 @@ import type {
 } from "@/features/partner/types/partner";
 import type { Wallet, WalletTransaction } from "@/features/wallet/types/wallet";
 
-const endpoint = "/admin/partners";
+// Partner endpoints are under /partners per Swagger
+const endpoint = "/partners";
 
 export const partnerService = {
   /** 🔹 Lấy tất cả partner */
