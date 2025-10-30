@@ -76,7 +76,7 @@ export function UserProfile() {
         ) : (
           <>
             <DropdownMenuItem asChild>
-              <Link href="/profile" className="flex items-center gap-2">
+              <Link href="/students/profile" className="flex items-center gap-2">
                 <UserIcon className="h-4 w-4" />
                 <span>Hồ sơ</span>
               </Link>
