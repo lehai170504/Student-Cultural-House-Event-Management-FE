@@ -11,8 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Bell, Search } from "lucide-react";
 import Image from "next/image";
+import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 
 export default function Navbar() {
+  const { user } = useUserProfile();
+
   return (
     <header className="w-full h-16 bg-white border-b flex items-center justify-between px-6 shadow-sm">
       {/* Logo + Tiêu đề */}
@@ -61,12 +64,16 @@ export default function Navbar() {
               className="flex items-center gap-2 px-3 py-2"
             >
               <img
-                src="https://i.pravatar.cc/40"
+                src={
+                  user
+                    ? `https://i.pravatar.cc/40?u=${user.id}`
+                    : "https://i.pravatar.cc/40"
+                }
                 alt="avatar"
                 className="w-8 h-8 rounded-full"
               />
               <span className="hidden sm:inline text-gray-700 font-medium">
-                Admin
+                {user ? user.fullName : "Admin"}
               </span>
             </Button>
           </DropdownMenuTrigger>

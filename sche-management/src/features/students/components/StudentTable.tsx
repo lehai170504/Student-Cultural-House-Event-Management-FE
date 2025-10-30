@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, Suspense, lazy } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -11,26 +10,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, CheckCircle, XCircle } from "lucide-react";
-import { usePartners } from "../hooks/usePartners";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useUniversityUsers } from "../hooks/useStudents";
 
-const CreatePartnerModal = lazy(() => import("./CreatePartnerModal"));
-
-export default function PartnerTable() {
+export default function StudentTable() {
   const {
-    list = [],
+    list: students,
     loadingList,
-    createNewPartner,
     loadAll,
-    changePartnerStatus,
-  } = usePartners();
+    changeStudentStatus,
+  } = useUniversityUsers();
 
   const [search, setSearch] = useState("");
-  const [creating, setCreating] = useState(false);
 
-  const filteredPartners = Array.isArray(list)
-    ? list.filter((p) => p.name?.toLowerCase().includes(search.toLowerCase()))
+  const filteredStudents = Array.isArray(students)
+    ? students.filter((s) =>
+        s.fullName?.toLowerCase().includes(search.toLowerCase())
+      )
     : [];
 
   const toggleStatus = async (
@@ -38,21 +36,21 @@ export default function PartnerTable() {
     currentStatus: "ACTIVE" | "INACTIVE"
   ) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
-    const partnerName =
-      filteredPartners.find((p) => p.id === id)?.name || "Đối tác";
+    const studentName =
+      filteredStudents.find((s) => s.id === id)?.fullName || "Sinh viên";
 
-    const success = await changePartnerStatus(id, newStatus);
+    const success = await changeStudentStatus(id, newStatus);
 
     if (success) {
       loadAll();
       const statusText =
         newStatus === "ACTIVE" ? "Đã kích hoạt" : "Đã tạm dừng";
-      toast.success(`${partnerName} ${statusText}`, {
-        description: `Trạng thái của đối tác đã được cập nhật thành ${newStatus}.`,
+      toast.success(`${studentName} ${statusText}`, {
+        description: `Trạng thái của sinh viên đã được cập nhật thành ${newStatus}.`,
       });
     } else {
       toast.error(`Cập nhật trạng thái thất bại`, {
-        description: `Không thể thay đổi trạng thái của đối tác ${partnerName}. Vui lòng thử lại.`,
+        description: `Không thể thay đổi trạng thái của sinh viên ${studentName}. Vui lòng thử lại.`,
       });
     }
   };
@@ -61,41 +59,36 @@ export default function PartnerTable() {
     <main className="min-h-screen bg-gray-50">
       <section className="relative bg-white rounded-2xl shadow p-8 mt-5">
         <div className="container mx-auto px-6">
+          {/* Header + Search */}
           <div className="grid md:grid-cols-2 gap-6 items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                Quản lý đối tác
+                Quản lý sinh viên
               </h1>
-              <p className="text-lg text-gray-600">Quản lý các đối tác</p>
+              <p className="text-lg text-gray-600">Danh sách sinh viên</p>
             </div>
 
             <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
               <Input
-                placeholder="Tìm kiếm đối tác..."
+                placeholder="Tìm kiếm sinh viên..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-[200px]"
               />
-              <Button
-                className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
-                onClick={() => setCreating(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Tạo mới
-              </Button>
+              {/* Nút Tạo mới đã được loại bỏ theo yêu cầu */}
             </div>
           </div>
 
+          {/* Table */}
           <div className="rounded-xl border">
             <Table>
               <TableHeader>
                 <TableRow className="bg-gray-100">
-                  <TableHead className="px-6 py-3">STT</TableHead>
-                  <TableHead className="px-6 py-3">Tên đối tác</TableHead>
-                  <TableHead className="px-6 py-3">Loại tổ chức</TableHead>
+                  <TableHead className="px-6 py-3">#</TableHead>
+                  <TableHead className="px-6 py-3">Tên sinh viên</TableHead>
+                  <TableHead className="px-6 py-3">Trường</TableHead>
                   <TableHead className="px-6 py-3">Email</TableHead>
                   <TableHead className="px-6 py-3">Số điện thoại</TableHead>
-                  <TableHead className="px-6 py-3">Wallet ID</TableHead>
                   <TableHead className="px-6 py-3">Ngày tạo</TableHead>
                   <TableHead className="px-6 py-3">Trạng thái</TableHead>
                 </TableRow>
@@ -103,56 +96,53 @@ export default function PartnerTable() {
               <TableBody>
                 {loadingList ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6">
+                    <TableCell colSpan={7} className="text-center py-6">
                       Đang tải...
                     </TableCell>
                   </TableRow>
-                ) : filteredPartners.length === 0 ? (
+                ) : filteredStudents.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-6">
-                      Không có đối tác nào
+                    <TableCell colSpan={7} className="text-center py-6">
+                      Không có sinh viên nào
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredPartners.map((partner, index) => (
-                    <TableRow key={partner.id}>
+                  filteredStudents.map((student, index) => (
+                    <TableRow key={student.id}>
                       <TableCell className="px-6 py-4">{index + 1}</TableCell>
                       <TableCell className="px-6 py-4">
-                        {partner.name}
+                        {student.fullName}
                       </TableCell>
                       <TableCell className="px-6 py-4">
-                        {partner.organizationType}
+                        {student.universityName}
                       </TableCell>
                       <TableCell className="px-6 py-4">
-                        {partner.contactEmail}
+                        {student.email}
                       </TableCell>
                       <TableCell className="px-6 py-4">
-                        {partner.contactPhone}
+                        {student.phoneNumber}
                       </TableCell>
                       <TableCell className="px-6 py-4">
-                        {partner.walletId}
-                      </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {new Date(partner.createdAt).toLocaleDateString()}
+                        {new Date(student.createdAt).toLocaleDateString()}
                       </TableCell>
 
                       <TableCell className="px-6 py-4">
                         <Button
                           size="sm"
                           variant={
-                            partner.status === "ACTIVE" ? "default" : "outline"
+                            student.status === "ACTIVE" ? "default" : "outline"
                           }
                           className={
-                            partner.status === "ACTIVE"
+                            student.status === "ACTIVE"
                               ? "bg-green-600 hover:bg-green-700 text-white w-[120px]"
                               : "border-red-500 text-red-600 hover:bg-red-50 w-[120px]"
                           }
                           onClick={() =>
-                            toggleStatus(partner.id, partner.status)
+                            toggleStatus(student.id, student.status)
                           }
                         >
                           <span className="flex items-center justify-center gap-1">
-                            {partner.status === "ACTIVE" ? (
+                            {student.status === "ACTIVE" ? (
                               <>
                                 <CheckCircle className="h-4 w-4" /> Hoạt động
                               </>
@@ -172,31 +162,6 @@ export default function PartnerTable() {
           </div>
         </div>
       </section>
-
-      {creating && (
-        <Suspense fallback={<p>Đang tải...</p>}>
-          <CreatePartnerModal
-            open={creating}
-            onClose={() => setCreating(false)}
-            onCreate={async (data) => {
-              const success = await createNewPartner(data);
-              setCreating(false);
-
-              if (success) {
-                loadAll();
-                toast.success("Tạo đối tác thành công", {
-                  description: `Đối tác ${data.name} đã được thêm vào hệ thống.`,
-                });
-              } else {
-                toast.error("Tạo đối tác thất bại", {
-                  description:
-                    "Đã xảy ra lỗi trong quá trình tạo đối tác. Vui lòng thử lại.",
-                });
-              }
-            }}
-          />
-        </Suspense>
-      )}
     </main>
   );
 }

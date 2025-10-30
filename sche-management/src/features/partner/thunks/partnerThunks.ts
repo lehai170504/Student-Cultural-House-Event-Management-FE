@@ -10,9 +10,11 @@ export const fetchAllPartners = createAsyncThunk<
   { rejectValue: string }
 >("partners/fetchAll", async (_, { rejectWithValue }) => {
   try {
-    return await partnerService.getAll();
+    return await partnerService.getAll(); // trả về Partner[]
   } catch (err: any) {
-    return rejectWithValue(getErrorMessage(err, "Lỗi khi tải danh sách partner"));
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi tải danh sách partner")
+    );
   }
 });
 
@@ -23,8 +25,22 @@ export const createPartner = createAsyncThunk<
   { rejectValue: string }
 >("partners/create", async (data, { rejectWithValue }) => {
   try {
-    return await partnerService.create(data);
+    return await partnerService.create(data); // trả về Partner
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi tạo partner"));
+  }
+});
+
+export const updatePartnerStatus = createAsyncThunk<
+  Partner,
+  { id: number; status: "ACTIVE" | "INACTIVE" },
+  { rejectValue: string }
+>("partners/updateStatus", async ({ id, status }, { rejectWithValue }) => {
+  try {
+    return await partnerService.updateStatus(id, status); // trả về Partner
+  } catch (err: any) {
+    return rejectWithValue(
+      getErrorMessage(err, `Lỗi khi cập nhật trạng thái partner id=${id}`)
+    );
   }
 });
