@@ -6,7 +6,8 @@ import axios, {
 } from "axios";
 
 /**
- * Helper: Lấy access_token từ sessionStorage (OIDC lưu ở đây)
+ * Helper: Lấy access_token ưu tiên từ localStorage (giữ được giữa tabs),
+ * fallback sang sessionStorage nếu không có.
  */
 const getAccessToken = (): string | null => {
   try {
@@ -14,7 +15,10 @@ const getAccessToken = (): string | null => {
     const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!;
     const key = `oidc.user:${authority}:${clientId}`;
 
-    const userJson = sessionStorage.getItem(key);
+    // Ưu tiên localStorage để giữ đăng nhập giữa tabs
+    const userJson =
+      (typeof window !== "undefined" && window.localStorage.getItem(key)) ||
+      (typeof window !== "undefined" && window.sessionStorage.getItem(key));
     if (!userJson) return null;
 
     const user = JSON.parse(userJson);
