@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { universityService } from "@/features/universities/services/universityService";
 
 export default function ProfileCompletionPage() {
   const auth = useAuth();
@@ -26,6 +27,8 @@ export default function ProfileCompletionPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [universities, setUniversities] = useState<Array<{ id: number; name: string }>>([]);
+  const [isLoadingUniversities, setIsLoadingUniversities] = useState(false);
 
   // Validate university format
   const validateUniversity = (value: string): boolean => {
@@ -82,6 +85,28 @@ export default function ProfileCompletionPage() {
 
     checkAuth();
   }, [auth.isLoading, auth.isAuthenticated, auth.user, router]);
+
+  // Lấy danh sách trường khi chọn loại người dùng là "sinh viên"
+  useEffect(() => {
+    const fetchUniversities = async () => {
+      if (userType !== "sinh viên") return;
+      setIsLoadingUniversities(true);
+      try {
+        const data = await universityService.getAll();
+        const list: Array<{ id: number; name: string }> = (data as any)?.data
+          ? (data as any).data.map((u: any) => ({ id: u.id, name: u.name }))
+          : (data || []).map((u: any) => ({ id: u.id, name: u.name }));
+        setUniversities(list);
+      } catch (err) {
+        console.error("Không tải được danh sách trường:", err);
+        setError("Không tải được danh sách trường. Vui lòng thử lại.");
+      } finally {
+        setIsLoadingUniversities(false);
+      }
+    };
+
+    fetchUniversities();
+  }, [userType]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
@@ -196,33 +221,29 @@ export default function ProfileCompletionPage() {
               >
                 Tên trường Đại học <span className="text-red-500">*</span>
               </Label>
-              <Input
-                id="university"
-                type="text"
+              <Select
                 value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-                placeholder="Ví dụ: Trường Đại Học FPT"
-                className="w-full"
-                aria-invalid={
-                  university && !validateUniversity(university)
-                    ? true
-                    : undefined
-                }
-                aria-describedby={
-                  university && !validateUniversity(university)
-                    ? "university-error"
-                    : undefined
-                }
-              />
-              {university && !validateUniversity(university) && (
-                <p
-                  id="university-error"
-                  className="mt-1 text-sm text-red-600 flex items-center gap-1"
-                >
-                  <AlertCircle className="h-4 w-4" />
-                  Tên trường phải bắt đầu bằng &quot;Trường&quot;
-                </p>
-              )}
+                onValueChange={setUniversity}
+                required
+                disabled={isLoadingUniversities}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={
+                      isLoadingUniversities
+                        ? "Đang tải danh sách trường..."
+                        : "Chọn trường Đại học"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  {universities.map((u) => (
+                    <SelectItem key={u.id} value={u.name}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
