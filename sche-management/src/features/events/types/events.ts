@@ -15,8 +15,8 @@ export interface Event {
   totalBudgetCoin: number;
   status: string;
   createdAt: string; // ISO string
+  maxAttendees?: number; // mới
 }
-
 export interface CreateEvent {
   partnerId: number;
   title: string;
@@ -40,7 +40,48 @@ export interface UpdateEvent {
   status: string;
 }
 
-export type EventDetail = Event;
+// Paged response cho Event
+export interface PagedEventResponse {
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  content: Event[];
+  first: boolean;
+  last: boolean;
+  numberOfElements: number;
+  sort: {
+    empty: boolean;
+    sorted: boolean;
+    unsorted: boolean;
+  };
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
+    offset: number;
+    paged: boolean;
+    unpaged: boolean;
+    sort: {
+      empty: boolean;
+      sorted: boolean;
+      unsorted: boolean;
+    };
+  };
+  empty: boolean;
+}
+
+// Response tổng
+export interface EventResponse {
+  status: number;
+  message: string;
+  data: PagedEventResponse;
+}
+
+export interface EventDetailResponse {
+  status: number;
+  message: string;
+  data: Event;
+}
 
 export interface PagedResponse<T> {
   content: T[];

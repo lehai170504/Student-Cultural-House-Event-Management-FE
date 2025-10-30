@@ -1,8 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type {
   Event,
-  EventDetail,
-  PagedResponse,
+  PagedEventResponse,
   EventRegistration,
   EventFeedbackResponse,
   EventCheckinResponse,
@@ -22,7 +21,7 @@ import {
 
 interface EventState {
   list: Event[];
-  detail: EventDetail | null;
+  detail: Event | null;
   loadingList: boolean;
   loadingDetail: boolean;
   saving: boolean;
@@ -93,7 +92,7 @@ const eventSlice = createSlice({
       })
       .addCase(
         fetchAllEvents.fulfilled,
-        (state, action: PayloadAction<PagedResponse<Event>>) => {
+        (state, action: PayloadAction<PagedEventResponse>) => {
           state.loadingList = false;
           state.list = action.payload.content || [];
           state.currentPage = action.payload.number;
@@ -115,9 +114,10 @@ const eventSlice = createSlice({
       })
       .addCase(
         fetchEventById.fulfilled,
-        (state, action: PayloadAction<EventDetail>) => {
+        (state, action: PayloadAction<Event>) => {
           state.loadingDetail = false;
           state.detail = action.payload;
+          state.error = null;
         }
       )
       .addCase(fetchEventById.rejected, (state, action) => {
@@ -129,16 +129,11 @@ const eventSlice = createSlice({
       .addCase(createEvent.pending, (state) => {
         state.saving = true;
       })
-      .addCase(
-        createEvent.fulfilled,
-        (state, action: PayloadAction<EventDetail>) => {
-          state.saving = false;
-          state.list = state.list
-            ? [action.payload, ...state.list]
-            : [action.payload];
-          state.error = null;
-        }
-      )
+      .addCase(createEvent.fulfilled, (state, action: PayloadAction<Event>) => {
+        state.saving = false;
+        state.list = [action.payload, ...state.list];
+        state.error = null;
+      })
       .addCase(createEvent.rejected, (state, action) => {
         state.saving = false;
         state.error = (action.payload as string) || null;
@@ -148,17 +143,14 @@ const eventSlice = createSlice({
       .addCase(updateEvent.pending, (state) => {
         state.saving = true;
       })
-      .addCase(
-        updateEvent.fulfilled,
-        (state, action: PayloadAction<EventDetail>) => {
-          state.saving = false;
-          const idx = state.list.findIndex((e) => e.id === action.payload.id);
-          if (idx !== -1) state.list[idx] = action.payload;
-          if (state.detail && state.detail.id === action.payload.id)
-            state.detail = action.payload;
-          state.error = null;
-        }
-      )
+      .addCase(updateEvent.fulfilled, (state, action: PayloadAction<Event>) => {
+        state.saving = false;
+        const idx = state.list.findIndex((e) => e.id === action.payload.id);
+        if (idx !== -1) state.list[idx] = action.payload;
+        if (state.detail?.id === action.payload.id)
+          state.detail = action.payload;
+        state.error = null;
+      })
       .addCase(updateEvent.rejected, (state, action) => {
         state.saving = false;
         state.error = (action.payload as string) || null;
@@ -183,7 +175,7 @@ const eventSlice = createSlice({
 
       // ========== EXTENDED ACTIONS ==========
 
-      // register for event
+      // register
       .addCase(registerForEvent.pending, (state) => {
         state.registering = true;
       })

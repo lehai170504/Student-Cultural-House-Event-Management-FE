@@ -4,15 +4,16 @@ import {
   CreateEventCategory,
   UpdateEventCategory,
   EventCategoryDetail,
+  EventCategoryResponse,
 } from "@/features/eventCategories/types/eventCategories";
 
 const endpoint = "/event-categories";
 
 export const eventCategoryService = {
   /** 🔹 Lấy tất cả danh mục sự kiện */
-  async getAll(): Promise<EventCategory[]> {
+  async getAll(): Promise<EventCategoryResponse> {
     try {
-      const res = await axiosInstance.get<EventCategory[]>(endpoint);
+      const res = await axiosInstance.get<EventCategoryResponse>(endpoint);
       return res.data;
     } catch (error) {
       console.error(

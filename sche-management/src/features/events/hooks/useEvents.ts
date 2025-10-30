@@ -49,7 +49,8 @@ export const useEvents = () => {
   /** 🔸 Lấy danh sách tất cả events */
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
-      await dispatch(fetchAllEvents(params));
+      const res = await dispatch(fetchAllEvents(params)).unwrap();
+      return res;
     },
     [dispatch]
   );
