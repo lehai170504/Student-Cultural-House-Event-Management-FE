@@ -37,6 +37,11 @@ export function UserProfile() {
 
   const avatarLetter = auth.user.profile?.name?.[0] || auth.user.profile?.email?.[0] || "U";
   const displayName = auth.user.profile?.name || auth.user.profile?.email || "User";
+  const groupsFromProfile = (auth.user?.profile?.["cognito:groups"] as unknown) as string[] | undefined;
+  const groups = Array.isArray(groupsFromProfile) ? groupsFromProfile : [];
+  const isAdmin = groups.includes("Admin");
+  const isPartners = groups.includes("PARTNERS");
+  const profileHref = isAdmin ? "/admin/profile" : "/profile";
 
   return (
     <DropdownMenu>
@@ -54,18 +59,36 @@ export function UserProfile() {
           <div className="text-xs text-gray-500">{auth.user.profile?.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/profile" className="flex items-center gap-2">
-            <UserIcon className="h-4 w-4" />
-            <span>Hồ sơ</span>
-          </Link>
-        </DropdownMenuItem>
-        <DropdownMenuItem asChild>
-          <Link href="/card/virtual" className="flex items-center gap-2">
-            <CreditCard className="h-4 w-4" />
-            <span>Thẻ ảo</span>
-          </Link>
-        </DropdownMenuItem>
+        {isAdmin ? (
+          <DropdownMenuItem asChild>
+            <Link href="/admin/dashboard" className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
+        ) : isPartners ? (
+          <DropdownMenuItem asChild>
+            <Link href="/organizer/events" className="flex items-center gap-2">
+              <UserIcon className="h-4 w-4" />
+              <span>Dashboard</span>
+            </Link>
+          </DropdownMenuItem>
+        ) : (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/profile" className="flex items-center gap-2">
+                <UserIcon className="h-4 w-4" />
+                <span>Hồ sơ</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/card/virtual" className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                <span>Thẻ ảo</span>
+              </Link>
+            </DropdownMenuItem>
+          </>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700 flex items-center gap-2">
           <LogOut className="h-4 w-4" />
