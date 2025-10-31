@@ -27,7 +27,7 @@ export default function ProfileCompletionPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const { list: universitiesFromRedux = [], loading: universitiesLoading } =
+  const { list: universitiesFromRedux = [], loadingList: universitiesLoading } =
     useUniversities();
 
   // Validate university format
