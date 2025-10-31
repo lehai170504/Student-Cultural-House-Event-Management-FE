@@ -161,19 +161,19 @@ export default function EventDetailPage() {
         <div className="grid md:grid-cols-3 gap-6 mt-6">
           {[
             {
-              title: "Phần thưởng check-in",
-              value: event.rewardPerCheckin,
+              title: "Phí đăng ký",
+              value: event.pointCostToRegister,
               color: "yellow",
+            },
+            {
+              title: "Tổng điểm thưởng",
+              value: event.totalRewardPoints,
+              color: "purple",
             },
             {
               title: "Tổng ngân sách",
               value: event.totalBudgetCoin,
-              color: "purple",
-            },
-            {
-              title: "Danh mục",
-              value: event.category.name,
-              color: "blue",
+              color: "green",
             },
           ].map((info, idx) => (
             <motion.div
@@ -186,9 +186,7 @@ export default function EventDetailPage() {
                   <CardTitle>{info.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex items-center justify-center gap-2">
-                  {info.color !== "blue" && (
-                    <Coins className={`text-${info.color}-600 h-5 w-5`} />
-                  )}
+                  <Coins className={`text-${info.color}-600 h-5 w-5`} />
                   <span className={`font-bold text-${info.color}-600 text-lg`}>
                     {info.value}
                   </span>
