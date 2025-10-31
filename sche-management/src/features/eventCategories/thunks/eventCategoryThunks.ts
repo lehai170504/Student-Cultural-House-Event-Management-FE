@@ -15,7 +15,8 @@ export const fetchAllEventCategories = createAsyncThunk<
   { rejectValue: string }
 >("eventCategories/fetchAll", async (_, { rejectWithValue }) => {
   try {
-    return await eventCategoryService.getAll();
+    const res = await eventCategoryService.getAll();
+    return res.data;
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải danh sách danh mục sự kiện")

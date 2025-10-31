@@ -78,8 +78,8 @@ export default function AuthCallback() {
 
         if (role === "Admin") {
           router.push("/admin/dashboard");
-        } else if (role === "PARTNER") {
-          router.push("/partner/dashboard");
+        } else if (role === "PARTNER" || role === "PARTNERS") {
+          router.push("/partner/events");
         } else {
           router.push("/");
         }

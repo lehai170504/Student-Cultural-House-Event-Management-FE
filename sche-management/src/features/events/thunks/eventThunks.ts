@@ -2,16 +2,15 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { eventService } from "@/features/events/services/eventService";
 import type {
   Event,
-  EventDetail,
   CreateEvent,
   UpdateEvent,
-  PagedResponse,
   EventRegistration,
   EventFeedbackRequest,
   EventFeedbackResponse,
   EventCheckinRequest,
   EventCheckinResponse,
   AttendeesResponse,
+  PagedEventResponse,
 } from "@/features/events/types/events";
 import { getErrorMessage } from "@/utils/errorHandler";
 
@@ -21,12 +20,13 @@ import { getErrorMessage } from "@/utils/errorHandler";
 
 // 🔹 Lấy tất cả events với filter tùy chọn
 export const fetchAllEvents = createAsyncThunk<
-  PagedResponse<Event>,
+  PagedEventResponse,
   Record<string, any> | undefined,
   { rejectValue: string }
 >("events/fetchAll", async (params, { rejectWithValue }) => {
   try {
-    return await eventService.getAll(params);
+    const res = await eventService.getAll(params);
+    return res.data; // trả về PagedEventResponse
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải danh sách events")
@@ -36,12 +36,13 @@ export const fetchAllEvents = createAsyncThunk<
 
 // 🔹 Lấy chi tiết event theo ID
 export const fetchEventById = createAsyncThunk<
-  EventDetail,
+  Event, // trả về thẳng Event
   number,
   { rejectValue: string }
 >("events/fetchById", async (id, { rejectWithValue }) => {
   try {
-    return await eventService.getById(id);
+    const res = await eventService.getById(id);
+    return res.data;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi tải chi tiết event"));
   }
@@ -49,12 +50,13 @@ export const fetchEventById = createAsyncThunk<
 
 // 🔹 Tạo mới event
 export const createEvent = createAsyncThunk<
-  EventDetail,
+  Event,
   CreateEvent,
   { rejectValue: string }
 >("events/create", async (data, { rejectWithValue }) => {
   try {
-    return await eventService.create(data);
+    const res = await eventService.create(data);
+    return res.data;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi tạo event"));
   }
@@ -62,12 +64,13 @@ export const createEvent = createAsyncThunk<
 
 // 🔹 Cập nhật event theo ID
 export const updateEvent = createAsyncThunk<
-  EventDetail,
+  Event,
   { id: number; data: UpdateEvent },
   { rejectValue: string }
 >("events/update", async ({ id, data }, { rejectWithValue }) => {
   try {
-    return await eventService.update(id, data);
+    const res = await eventService.update(id, data);
+    return res.data;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi cập nhật event"));
   }

@@ -4,6 +4,12 @@ export interface EventCategory {
   description: string;
 }
 
+export interface EventCategoryResponse {
+  status: number;
+  message: string;
+  data: EventCategory[];
+}
+
 export interface CreateEventCategory {
   name: string;
   description: string;

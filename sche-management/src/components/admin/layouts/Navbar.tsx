@@ -29,21 +29,32 @@ export default function Navbar() {
       const base = typeof window !== "undefined" ? window.location.origin : "";
       const redirectUri = `${base}/`;
 
-      // Xây URL logout theo chuẩn Cognito Hosted UI
-      const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID as string;
-      // Lấy id_token hiện tại nếu còn để thêm id_token_hint (tuỳ chọn)
-      const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY as string;
-      const storageKey = `oidc.user:${authority}:${clientId}`;
-      const userJson = (typeof window !== "undefined" && localStorage.getItem(storageKey)) || "{}";
-      const idToken = (() => {
-        try { return JSON.parse(userJson)?.id_token || ""; } catch { return ""; }
-      })();
+    // Xây URL logout theo chuẩn Cognito Hosted UI
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID as string;
+    // Lấy id_token hiện tại nếu còn để thêm id_token_hint (tuỳ chọn)
+    const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY as string;
+    const storageKey = `oidc.user:${authority}:${clientId}`;
+    const userJson =
+      (typeof window !== "undefined" && localStorage.getItem(storageKey)) ||
+      "{}";
+    const idToken = (() => {
+      try {
+        return JSON.parse(userJson)?.id_token || "";
+      } catch {
+        return "";
+      }
+    })();
 
-      try { await auth.removeUser(); } catch {}
+    try {
+      await auth.removeUser();
+    } catch {}
 
-      const url = `${cognitoDomain}/logout?client_id=${encodeURIComponent(clientId)}&logout_uri=${encodeURIComponent(redirectUri)}${idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : ""}`;
-      window.location.href = url;
-    }, 100);
+    const url = `${cognitoDomain}/logout?client_id=${encodeURIComponent(
+      clientId
+    )}&logout_uri=${encodeURIComponent(redirectUri)}${
+      idToken ? `&id_token_hint=${encodeURIComponent(idToken)}` : ""
+    }`;
+    window.location.href = url;
   };
 
   return (
@@ -108,6 +119,13 @@ export default function Navbar() {
             <DropdownMenuItem asChild>
               <a href="/admin/profile" className="w-full">
                 Xem Profile
+              </a>
+            </DropdownMenuItem>
+
+            {/* Mục mới dẫn về trang chủ */}
+            <DropdownMenuItem asChild>
+              <a href="/" className="w-full">
+                Trang Chủ
               </a>
             </DropdownMenuItem>
 
