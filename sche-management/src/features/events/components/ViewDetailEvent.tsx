@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -18,8 +17,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { useEvents } from "../hooks/useEvents";
-import { showToast } from "@/components/ui/Toast";
-import type { UpdateEvent } from "../types/events";
+import { Button } from "@/components/ui/button";
 
 interface ViewDetailEventProps {
   eventId: number | null;
@@ -35,14 +33,11 @@ export default function ViewDetailEvent({
   const {
     detail,
     loadingDetail,
-    updateExistingEvent,
-    resetEventDetail,
     loadDetail,
     eventCategories,
     loadingCategories,
   } = useEvents();
 
-  const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -50,57 +45,46 @@ export default function ViewDetailEvent({
   const [endTime, setEndTime] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
 
+  const [pointCostToRegister, setPointCostToRegister] = useState("0");
+  const [totalRewardPoints, setTotalRewardPoints] = useState("0");
+  const [totalBudgetCoin, setTotalBudgetCoin] = useState("0");
+
   // Load chi tiết khi eventId thay đổi
   useEffect(() => {
     if (open && eventId) {
-      resetEventDetail(); // xóa detail cũ
-      setIsEditing(false);
       loadDetail(eventId);
     }
-  }, [eventId, open, resetEventDetail, loadDetail]);
+  }, [eventId, open, loadDetail]);
 
+  // Khi detail load xong
   useEffect(() => {
     if (detail && detail.id === eventId) {
       setTitle(detail.title);
       setDescription(detail.description);
       setLocation(detail.location);
-      setStartTime(detail.startTime);
-      setEndTime(detail.endTime);
+
+      // Format ngày giờ thành "yyyy-MM-dd HH:mm"
+      const formatDate = (dateStr: string) => {
+        const d = new Date(dateStr);
+        return d.toLocaleString("vi-VN", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+      };
+
+      setStartTime(formatDate(detail.startTime));
+      setEndTime(formatDate(detail.endTime));
+
       setCategoryId(detail.category.id);
+
+      setPointCostToRegister(detail.pointCostToRegister.toString());
+      setTotalRewardPoints(detail.totalRewardPoints.toString());
+      setTotalBudgetCoin(detail.totalBudgetCoin.toString());
     }
   }, [detail, eventId]);
-
-  const handleSave = async () => {
-    if (!detail) return;
-
-    if (!title.trim()) {
-      showToast({ title: "Tên sự kiện không được để trống", icon: "warning" });
-      return;
-    }
-    if (!categoryId) {
-      showToast({ title: "Chọn danh mục sự kiện", icon: "warning" });
-      return;
-    }
-
-    const updatedData: UpdateEvent = {
-      title,
-      description,
-      location,
-      startTime,
-      endTime,
-      categoryId,
-      rewardPerCheckin: detail.rewardPerCheckin,
-      status: detail.status,
-    };
-
-    try {
-      await updateExistingEvent(detail.id, updatedData);
-      showToast({ title: "Cập nhật sự kiện thành công", icon: "success" });
-      setIsEditing(false);
-    } catch {
-      showToast({ title: "Lỗi khi cập nhật sự kiện", icon: "error" });
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -115,56 +99,48 @@ export default function ViewDetailEvent({
           <p className="text-center py-10">Đang tải chi tiết...</p>
         ) : (
           <div className="space-y-4 mt-4">
-            {/* Tên */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Tên sự kiện
               </label>
               <Input
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                disabled={!isEditing}
-                placeholder="Nhập tên sự kiện"
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
               />
             </div>
 
-            {/* Mô tả */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Mô tả
               </label>
               <Input
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={!isEditing}
-                placeholder="Nhập mô tả"
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
               />
             </div>
 
-            {/* Địa điểm */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Địa điểm
               </label>
               <Input
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                disabled={!isEditing}
-                placeholder="Nhập địa điểm"
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
               />
             </div>
 
-            {/* Thời gian */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-gray-700 font-medium mb-1">
                   Thời gian bắt đầu
                 </label>
                 <Input
-                  type="datetime-local"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  disabled={!isEditing}
+                  readOnly
+                  className="bg-gray-100 cursor-not-allowed"
                 />
               </div>
               <div>
@@ -172,23 +148,19 @@ export default function ViewDetailEvent({
                   Thời gian kết thúc
                 </label>
                 <Input
-                  type="datetime-local"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  disabled={!isEditing}
+                  readOnly
+                  className="bg-gray-100 cursor-not-allowed"
                 />
               </div>
             </div>
 
-            {/* Danh mục sự kiện */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Danh mục sự kiện
               </label>
               <Select
                 value={categoryId !== null ? categoryId.toString() : undefined}
-                onValueChange={(value) => setCategoryId(Number(value))}
-                disabled={!isEditing || loadingCategories} // dùng loadingCategories từ hook
               >
                 <SelectTrigger>
                   <SelectValue
@@ -206,31 +178,46 @@ export default function ViewDetailEvent({
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">
+                Điểm đăng ký
+              </label>
+              <Input
+                value={pointCostToRegister}
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">
+                Tổng điểm thưởng
+              </label>
+              <Input
+                value={totalRewardPoints}
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-700 font-medium mb-1">
+                Tổng ngân sách coin
+              </label>
+              <Input
+                value={totalBudgetCoin}
+                readOnly
+                className="bg-gray-100 cursor-not-allowed"
+              />
+            </div>
           </div>
         )}
 
-        <DialogFooter className="mt-6 flex justify-end gap-2">
-          {isEditing ? (
-            <>
-              <Button variant="secondary" onClick={() => setIsEditing(false)}>
-                Hủy
-              </Button>
-              <Button
-                className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
-                onClick={handleSave}
-                disabled={loadingDetail}
-              >
-                Lưu
-              </Button>
-            </>
-          ) : (
-            <Button
-              className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
-              onClick={() => setIsEditing(true)}
-            >
-              Chỉnh sửa
-            </Button>
-          )}
+        <DialogFooter className="mt-6 flex justify-end">
+          <Button variant="secondary" onClick={onClose}>
+            Đóng
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -23,7 +23,6 @@ import { Eye, Plus, Trash2 } from "lucide-react";
 import { useEvents } from "../hooks/useEvents";
 
 const ViewDetailEvent = lazy(() => import("./ViewDetailEvent"));
-const CreateEventModal = lazy(() => import("./CreateEventModal"));
 
 export default function EventTable() {
   const {
@@ -109,13 +108,6 @@ export default function EventTable() {
                 onChange={handleSearch}
                 className="w-[200px]"
               />
-              <Button
-                className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
-                onClick={() => setCreating(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Tạo mới
-              </Button>
             </div>
           </div>
 
@@ -287,24 +279,12 @@ export default function EventTable() {
       </section>
 
       {/* Modal chi tiết */}
-      {selectedEvent && (
-        <Suspense fallback={<p>Đang tải...</p>}>
-          <ViewDetailEvent
-            eventId={selectedEvent}
-            open={!!selectedEvent}
-            onClose={() => setSelectedEvent(null)}
-          />
-        </Suspense>
-      )}
-
-      {/* Modal tạo mới */}
-      {creating && (
-        <Suspense fallback={<p>Đang tải...</p>}>
-          <CreateEventModal
-            open={creating}
-            onClose={() => setCreating(false)}
-          />
-        </Suspense>
+      {selectedEvent !== null && (
+        <ViewDetailEvent
+          eventId={selectedEvent}
+          open={selectedEvent !== null}
+          onClose={() => setSelectedEvent(null)}
+        />
       )}
     </main>
   );

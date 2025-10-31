@@ -26,12 +26,13 @@ export const fetchAllEventCategories = createAsyncThunk<
 
 // 🔹 Lấy chi tiết danh mục
 export const fetchEventCategoryById = createAsyncThunk<
-  EventCategoryDetail,
+  EventCategory,
   number,
   { rejectValue: string }
 >("eventCategories/fetchById", async (id, { rejectWithValue }) => {
   try {
-    return await eventCategoryService.getById(id);
+    const category = await eventCategoryService.getById(id);
+    return category;
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải chi tiết danh mục sự kiện")
@@ -39,14 +40,15 @@ export const fetchEventCategoryById = createAsyncThunk<
   }
 });
 
-// 🔹 Tạo mới danh mục
+/** 🔹 Tạo mới danh mục sự kiện */
 export const createEventCategory = createAsyncThunk<
-  EventCategoryDetail,
+  EventCategory,
   CreateEventCategory,
   { rejectValue: string }
 >("eventCategories/create", async (data, { rejectWithValue }) => {
   try {
-    return await eventCategoryService.create(data);
+    const category = await eventCategoryService.create(data);
+    return category;
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tạo danh mục sự kiện")
@@ -54,14 +56,15 @@ export const createEventCategory = createAsyncThunk<
   }
 });
 
-// 🔹 Cập nhật danh mục
+/** 🔹 Cập nhật danh mục sự kiện theo ID */
 export const updateEventCategory = createAsyncThunk<
-  EventCategoryDetail,
+  EventCategory,
   { id: number; data: UpdateEventCategory },
   { rejectValue: string }
 >("eventCategories/update", async ({ id, data }, { rejectWithValue }) => {
   try {
-    return await eventCategoryService.update(id, data);
+    const category = await eventCategoryService.update(id, data);
+    return category;
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi cập nhật danh mục sự kiện")

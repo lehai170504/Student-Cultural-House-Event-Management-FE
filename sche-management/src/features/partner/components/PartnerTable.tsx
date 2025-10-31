@@ -14,7 +14,7 @@ import {
 import { Plus, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { usePartners } from "../hooks/usePartners";
 // @ts-ignore
-import { toast, Toaster } from "sonner"; // Thêm Toaster
+import { toast, Toaster } from "sonner";
 
 const CreatePartnerModal = lazy(() => import("./CreatePartnerModal"));
 const TopUpPartnerModal = lazy(() => import("./TopUpPartnerModal"));
@@ -127,7 +127,9 @@ export default function PartnerTable() {
                   <TableHead className="px-6 py-3">Wallet ID</TableHead>
                   <TableHead className="px-6 py-3">Ngày tạo</TableHead>
                   <TableHead className="px-6 py-3">Trạng thái</TableHead>
-                  <TableHead className="px-6 py-3 text-center">Hành động</TableHead>
+                  <TableHead className="px-6 py-3 text-center">
+                    Hành động
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

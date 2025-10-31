@@ -6,5 +6,16 @@ export interface University {
   createdAt: string;
 }
 
+export interface CreateUniversity {
+  name: string;
+  code: string;
+  domain: string;
+}
 
+export type UpdateUniversity = CreateUniversity;
 
+export interface UniversityResponse {
+  status: number;
+  message: string;
+  data: University[];
+}

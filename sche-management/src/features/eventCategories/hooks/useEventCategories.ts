@@ -13,13 +13,21 @@ import { resetDetail, clearError } from "../slices/eventCategorySlice";
 import type {
   CreateEventCategory,
   UpdateEventCategory,
+  EventCategory,
 } from "../types/eventCategories";
 
 export const useEventCategories = () => {
   const dispatch = useAppDispatch();
 
-  const { list, detail, loadingList, loadingDetail, saving, deleting, error } =
-    useAppSelector((state) => state.eventCategory);
+  const {
+    list,
+    detailCategory, // ✅ theo slice mới
+    loadingList,
+    loadingDetail,
+    saving,
+    deleting,
+    error,
+  } = useAppSelector((state) => state.eventCategory);
 
   /** 🔸 Lấy danh sách tất cả danh mục */
   const loadAll = useCallback(async () => {
@@ -78,7 +86,7 @@ export const useEventCategories = () => {
 
   return {
     list,
-    detail,
+    detail: detailCategory, // ✅ trả về detailCategory
     error,
     loadingList,
     loadingDetail,

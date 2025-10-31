@@ -12,22 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Bell, Search } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "react-oidc-context";
-import { toast } from "sonner";
 import { cognitoDomain } from "@/config/oidc-config";
 
 export default function Navbar() {
   const auth = useAuth();
 
   const handleLogout = async () => {
-    // Show toast
-    toast.success("Đang đăng xuất...", {
-      description: "Hẹn gặp lại bạn!",
-    });
-    
-    // Small delay to show toast before redirect
-    setTimeout(async () => {
-      const base = typeof window !== "undefined" ? window.location.origin : "";
-      const redirectUri = `${base}/`;
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    const redirectUri = `${base}/`;
 
     // Xây URL logout theo chuẩn Cognito Hosted UI
     const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID as string;

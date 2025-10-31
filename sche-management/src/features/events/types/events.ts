@@ -11,7 +11,8 @@ export interface Event {
   endTime: string; // ISO string
   location: string;
   category: EventCategory;
-  rewardPerCheckin: number;
+  pointCostToRegister: number;
+  totalRewardPoints: number;
   totalBudgetCoin: number;
   status: string;
   createdAt: string; // ISO string
@@ -25,7 +26,8 @@ export interface CreateEvent {
   endTime: string;
   location: string;
   categoryId: number;
-  rewardPerCheckin: number;
+  pointCostToRegister: number;
+  totalRewardPoints: number;
   totalBudgetCoin: number;
 }
 
@@ -36,7 +38,9 @@ export interface UpdateEvent {
   endTime: string;
   location: string;
   categoryId: number;
-  rewardPerCheckin: number;
+  pointCostToRegister: number;
+  totalRewardPoints: number;
+  totalBudgetCoin: number;
   status: string;
 }
 

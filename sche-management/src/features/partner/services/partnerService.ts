@@ -8,12 +8,13 @@ import type { Wallet, WalletTransaction } from "@/features/wallet/types/wallet";
 
 // Partner endpoints are under /partners per Swagger
 const endpoint = "/partners";
+const endpoint2 = "/admin/partners";
 
 export const partnerService = {
   /** 🔹 Lấy tất cả partner */
   async getAll(): Promise<Partner[]> {
     try {
-      const res = await axiosInstance.get<PartnerRepsonse>(endpoint);
+      const res = await axiosInstance.get<PartnerRepsonse>(endpoint2);
       return res.data.data;
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách partner:", error);
@@ -24,7 +25,7 @@ export const partnerService = {
   /** 🔹 Tạo mới partner */
   async create(data: CreatePartner): Promise<Partner> {
     try {
-      const res = await axiosInstance.post<Partner>(endpoint, data);
+      const res = await axiosInstance.post<Partner>(endpoint2, data);
       return res.data;
     } catch (error) {
       console.error("❌ [create] Lỗi khi tạo partner:", error);
@@ -39,7 +40,7 @@ export const partnerService = {
   ): Promise<Partner> {
     try {
       const res = await axiosInstance.patch<Partner>(
-        `${endpoint}/${id}/status`,
+        `${endpoint2}/${id}/status`,
         { status }
       );
       return res.data;

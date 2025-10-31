@@ -25,12 +25,12 @@ export const eventCategoryService = {
   },
 
   /** 🔹 Lấy chi tiết danh mục sự kiện theo ID */
-  async getById(id: number): Promise<EventCategoryDetail> {
+  async getById(id: number): Promise<EventCategory> {
     try {
       const res = await axiosInstance.get<EventCategoryDetail>(
         `${endpoint}/${id}`
       );
-      return res.data;
+      return res.data.data;
     } catch (error) {
       console.error(
         `❌ [getById] Lỗi khi lấy danh mục sự kiện ID ${id}:`,
@@ -39,11 +39,10 @@ export const eventCategoryService = {
       throw error;
     }
   },
-
   /** 🔹 Tạo mới danh mục sự kiện */
-  async create(data: CreateEventCategory): Promise<EventCategoryDetail> {
+  async create(data: CreateEventCategory): Promise<EventCategory> {
     try {
-      const res = await axiosInstance.post<EventCategoryDetail>(endpoint, data);
+      const res = await axiosInstance.post<EventCategory>(endpoint, data);
       return res.data;
     } catch (error) {
       console.error("❌ [create] Lỗi khi tạo danh mục sự kiện:", error);
@@ -52,12 +51,9 @@ export const eventCategoryService = {
   },
 
   /** 🔹 Cập nhật danh mục sự kiện theo ID */
-  async update(
-    id: number,
-    data: UpdateEventCategory
-  ): Promise<EventCategoryDetail> {
+  async update(id: number, data: UpdateEventCategory): Promise<EventCategory> {
     try {
-      const res = await axiosInstance.put<EventCategoryDetail>(
+      const res = await axiosInstance.put<EventCategory>(
         `${endpoint}/${id}`,
         data
       );

@@ -1,3 +1,4 @@
+// EventCategoryTable.tsx
 "use client";
 
 import { useState, Suspense, lazy } from "react";
@@ -11,27 +12,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Eye, Plus, Trash2 } from "lucide-react";
+import { Eye, Trash2 } from "lucide-react";
 import { useEventCategories } from "../hooks/useEventCategories";
 
-// Lazy load modal
 const ViewDetailEventCategory = lazy(() => import("./ViewDetailEventCategory"));
-const CreateEventCategoryModal = lazy(
-  () => import("./CreateEventCategoryModal")
-);
 
 export default function EventCategoryTable() {
   const {
     list = [],
     loadingList,
     deleting,
-    loadDetail,
     deleteCategoryById,
   } = useEventCategories();
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [creating, setCreating] = useState(false);
 
   const filteredCategories = Array.isArray(list)
     ? list.filter((c) => c.name?.toLowerCase().includes(search.toLowerCase()))
@@ -41,7 +36,6 @@ export default function EventCategoryTable() {
     <main className="min-h-screen bg-gray-50">
       <section className="relative bg-white rounded-2xl shadow p-8 mt-5">
         <div className="container mx-auto px-6">
-          {/* Header + Search + Tạo mới */}
           <div className="grid md:grid-cols-2 gap-6 items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -51,7 +45,6 @@ export default function EventCategoryTable() {
                 Admin quản lý các danh mục sự kiện
               </p>
             </div>
-
             <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
               <Input
                 placeholder="Tìm kiếm danh mục..."
@@ -59,17 +52,9 @@ export default function EventCategoryTable() {
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-[200px]"
               />
-              <Button
-                className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
-                onClick={() => setCreating(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Tạo mới
-              </Button>
             </div>
           </div>
 
-          {/* Table */}
           <div className="rounded-xl border">
             <Table>
               <TableHeader>
@@ -102,28 +87,26 @@ export default function EventCategoryTable() {
                         {category.description}
                       </TableCell>
                       <TableCell className="px-6 py-4 flex gap-2">
-                        {/* View Button */}
                         <Button
                           variant="outline"
                           size="sm"
                           className="flex items-center gap-1 px-2 py-1 rounded-md
-               border-2 border-orange-500 text-orange-500 font-medium
-               transition-all duration-200
-               hover:bg-orange-500 hover:text-white hover:scale-105
-               active:scale-95 shadow-sm"
+                             border-2 border-orange-500 text-orange-500 font-medium
+                             transition-all duration-200
+                             hover:bg-orange-500 hover:text-white hover:scale-105
+                             active:scale-95 shadow-sm"
                           onClick={() => setSelectedCategory(category.id)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
 
-                        {/* Delete Button */}
                         <Button
                           variant="destructive"
                           size="sm"
                           className="flex items-center gap-1 px-2 py-1 rounded-md
-               bg-red-500 text-white font-medium
-               transition-all duration-200
-               hover:bg-red-600 hover:scale-105 active:scale-95 shadow-sm"
+                             bg-red-500 text-white font-medium
+                             transition-all duration-200
+                             hover:bg-red-600 hover:scale-105 active:scale-95 shadow-sm"
                           disabled={deleting}
                           onClick={() => deleteCategoryById(category.id)}
                         >
@@ -141,21 +124,13 @@ export default function EventCategoryTable() {
 
       {/* Modal chi tiết */}
       {selectedCategory && (
-        <Suspense fallback={<p>Đang tải...</p>}>
+        <Suspense
+          fallback={<p className="text-center py-4">Đang tải chi tiết...</p>}
+        >
           <ViewDetailEventCategory
             categoryId={selectedCategory}
             open={!!selectedCategory}
             onClose={() => setSelectedCategory(null)}
-          />
-        </Suspense>
-      )}
-
-      {/* Modal tạo mới */}
-      {creating && (
-        <Suspense fallback={<p>Đang tải...</p>}>
-          <CreateEventCategoryModal
-            open={creating}
-            onClose={() => setCreating(false)}
           />
         </Suspense>
       )}

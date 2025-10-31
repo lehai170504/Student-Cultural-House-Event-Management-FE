@@ -17,4 +17,8 @@ export interface CreateEventCategory {
 
 export type UpdateEventCategory = CreateEventCategory;
 
-export type EventCategoryDetail = EventCategory;
+export interface EventCategoryDetail {
+  status: number;
+  message: string;
+  data: EventCategory;
+}
