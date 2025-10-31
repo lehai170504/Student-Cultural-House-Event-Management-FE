@@ -31,6 +31,23 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+/**
+ * Convert Date to ISO string with timezone offset +07:00 (Vietnam timezone)
+ * Format: YYYY-MM-DDTHH:mm:ss.SSS+07:00
+ */
+function toISOStringWithTimezone(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  
+  // Vietnam timezone offset: +07:00
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}+07:00`;
+}
+
 export default function PartnerEventsPage() {
   const [partnerId, setPartnerId] = useState<number | null>(null);
   const [events, setEvents] = useState<any[]>([]);
@@ -61,8 +78,15 @@ export default function PartnerEventsPage() {
         const pid = data?.id;
         setPartnerId(pid ?? null);
         if (pid) {
-          const list: any = await partnerService.getEvents(pid, { page: 0, size: 20 });
-          setEvents(Array.isArray(list) ? list : (list && (list as any).content ? (list as any).content : []));
+          const list: any = await partnerService.getEvents(pid, { 
+            page: 0, 
+            size: 20,
+            sort: ["id,asc"]
+          });
+          const eventsArray = Array.isArray(list) ? list : (list && (list as any).content ? (list as any).content : []);
+          // Sort by ID ascending as fallback
+          const sortedEvents = eventsArray.sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+          setEvents(sortedEvents);
         }
       } catch (e: any) {
         setError(e?.response?.data?.message || "Không tải được danh sách sự kiện");
@@ -141,8 +165,8 @@ export default function PartnerEventsPage() {
     if (date && editStartTime) {
       const [hours, minutes] = editStartTime.split(":");
       const combined = new Date(date);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setEditEvent({ ...editEvent, startTime: combined.toISOString() });
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setEditEvent({ ...editEvent, startTime: toISOStringWithTimezone(combined) });
     }
   };
 
@@ -151,8 +175,8 @@ export default function PartnerEventsPage() {
     if (editStartDate && time) {
       const [hours, minutes] = time.split(":");
       const combined = new Date(editStartDate);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setEditEvent({ ...editEvent, startTime: combined.toISOString() });
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setEditEvent({ ...editEvent, startTime: toISOStringWithTimezone(combined) });
     }
   };
 
@@ -161,8 +185,8 @@ export default function PartnerEventsPage() {
     if (date && editEndTime) {
       const [hours, minutes] = editEndTime.split(":");
       const combined = new Date(date);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setEditEvent({ ...editEvent, endTime: combined.toISOString() });
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setEditEvent({ ...editEvent, endTime: toISOStringWithTimezone(combined) });
     }
   };
 
@@ -171,8 +195,8 @@ export default function PartnerEventsPage() {
     if (editEndDate && time) {
       const [hours, minutes] = time.split(":");
       const combined = new Date(editEndDate);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setEditEvent({ ...editEvent, endTime: combined.toISOString() });
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setEditEvent({ ...editEvent, endTime: toISOStringWithTimezone(combined) });
     }
   };
 
@@ -638,14 +662,14 @@ function CreateEventModal({ open, onClose, onCreate }: any) {
   const setField = (k: string) => (e: any) =>
     setForm((f: any) => ({ ...f, [k]: e.target.value }));
 
-  // Combine date and time into ISO string
+  // Combine date and time into ISO string with timezone offset
   const handleStartDateChange = (date: Date | undefined) => {
     setStartDate(date);
     if (date && startTime) {
       const [hours, minutes] = startTime.split(":");
       const combined = new Date(date);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setForm((f: any) => ({ ...f, startTime: combined.toISOString() }));
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setForm((f: any) => ({ ...f, startTime: toISOStringWithTimezone(combined) }));
     }
   };
 
@@ -654,8 +678,8 @@ function CreateEventModal({ open, onClose, onCreate }: any) {
     if (startDate && time) {
       const [hours, minutes] = time.split(":");
       const combined = new Date(startDate);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setForm((f: any) => ({ ...f, startTime: combined.toISOString() }));
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setForm((f: any) => ({ ...f, startTime: toISOStringWithTimezone(combined) }));
     }
   };
 
@@ -664,8 +688,8 @@ function CreateEventModal({ open, onClose, onCreate }: any) {
     if (date && endTime) {
       const [hours, minutes] = endTime.split(":");
       const combined = new Date(date);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setForm((f: any) => ({ ...f, endTime: combined.toISOString() }));
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setForm((f: any) => ({ ...f, endTime: toISOStringWithTimezone(combined) }));
     }
   };
 
@@ -674,8 +698,8 @@ function CreateEventModal({ open, onClose, onCreate }: any) {
     if (endDate && time) {
       const [hours, minutes] = time.split(":");
       const combined = new Date(endDate);
-      combined.setHours(parseInt(hours), parseInt(minutes), 0);
-      setForm((f: any) => ({ ...f, endTime: combined.toISOString() }));
+      combined.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      setForm((f: any) => ({ ...f, endTime: toISOStringWithTimezone(combined) }));
     }
   };
 
