@@ -133,10 +133,35 @@ export default function ProfileCompletionPage() {
 
       setSuccess(true);
 
-      // Redirect to home after 1.5 seconds
-      setTimeout(() => {
-        router.push("/");
-      }, 1500);
+      // Sau khi update attributes, token hiện tại không có custom attributes mới
+      // Cần refresh token để lấy token mới có custom attributes
+      // Thử silent refresh trước, nếu không được thì redirect
+      try {
+        // Thử silent refresh token (không yêu cầu user login lại)
+        await auth.signinSilent();
+        
+        // Nếu silent refresh thành công, redirect về home
+        setTimeout(() => {
+          router.push("/");
+        }, 1500);
+      } catch (silentError) {
+        console.warn("Silent refresh failed, redirecting to login:", silentError);
+        // Nếu silent refresh không được (có thể do Cognito config), 
+        // clear token và redirect về login để user login lại và lấy token mới
+        const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY!;
+        const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!;
+        const key = `oidc.user:${authority}:${clientId}`;
+        
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(key);
+          sessionStorage.removeItem(key);
+        }
+
+        // Redirect về login để refresh token với attributes mới
+        setTimeout(() => {
+          auth.signinRedirect();
+        }, 1500);
+      }
     } catch (error) {
       console.error("Error updating profile:", error);
       setError("Có lỗi xảy ra khi cập nhật thông tin. Vui lòng thử lại.");
