@@ -92,14 +92,19 @@ const eventSlice = createSlice({
       })
       .addCase(
         fetchAllEvents.fulfilled,
-        (state, action: PayloadAction<PagedEventResponse>) => {
+        (state, action: PayloadAction<PagedEventResponse | undefined>) => {
           state.loadingList = false;
-          state.list = action.payload.content || [];
-          state.currentPage = action.payload.number;
-          state.pageSize = action.payload.size;
-          state.totalElements = action.payload.totalElements;
-          state.totalPages = action.payload.totalPages;
-          state.isLastPage = action.payload.last;
+          if (action.payload) {
+            state.list = action.payload.content || [];
+            state.currentPage = action.payload.number ?? 0;
+            state.pageSize = action.payload.size ?? 10;
+            state.totalElements = action.payload.totalElements ?? 0;
+            state.totalPages = action.payload.totalPages ?? 0;
+            state.isLastPage = action.payload.last ?? true;
+          } else {
+            // Fallback nếu payload undefined
+            state.list = [];
+          }
           state.error = null;
         }
       )

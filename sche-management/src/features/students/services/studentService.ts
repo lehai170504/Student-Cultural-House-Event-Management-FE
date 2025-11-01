@@ -23,11 +23,13 @@ export const studentService = {
     params?: FetchUniversityUsersParams
   ): Promise<UniversityUser[]> {
     try {
-      const res = await axiosInstance.get<StudentResponse>(endpoint, {
+      const res = await axiosInstance.get<any>(endpoint, {
         params,
       });
 
-      return res.data.data.content;
+      // BE giờ trả về data trực tiếp, không wrap trong { data: {...} }
+      const responseData = res.data?.data ?? res.data;
+      return responseData?.content ?? responseData ?? [];
     } catch (error) {
       console.error(
         "❌ [getAll] Error fetching university users:",
@@ -60,8 +62,27 @@ export const studentService = {
   /** 🔹 Lấy thông tin profile của student hiện tại */
   async getProfile(): Promise<StudentProfile> {
     try {
-      const res = await axiosInstance.get<{ data: StudentProfile }>("/me");
-      return res.data.data;
+      // API endpoint: /me (baseURL đã có /api/v1)
+      // Response có thể là { data: {...} } hoặc {...} trực tiếp
+      const res = await axiosInstance.get<any>("/me");
+      
+      // Xử lý cả 2 trường hợp response format
+      const apiData = res?.data?.data ?? res?.data;
+      
+      // Map response to StudentProfile type
+      const profile: StudentProfile = {
+        id: apiData.id,
+        universityId: apiData.universityId,
+        universityName: apiData.universityName,
+        fullName: apiData.fullName,
+        phoneNumber: apiData.phoneNumber,
+        email: apiData.email || null,
+        avatarUrl: apiData.avatarUrl || null,
+        status: apiData.status || "ACTIVE",
+        createdAt: apiData.createdAt || null,
+      };
+      
+      return profile;
     } catch (error) {
       console.error("❌ [getProfile] Lỗi khi lấy thông tin profile:", error);
       throw error;
@@ -71,11 +92,24 @@ export const studentService = {
   /** 🔹 Hoàn thiện thông tin profile của student */
   async completeProfile(data: CompleteProfileRequest): Promise<StudentProfile> {
     try {
-      const res = await axiosInstance.post<{ data: StudentProfile }>(
+      const res = await axiosInstance.post<any>(
         "/students/me/complete-profile",
         data
       );
-      return res.data.data;
+      // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
+      const apiData = res.data?.data ?? res.data;
+      
+      return {
+        id: apiData.id,
+        universityId: apiData.universityId,
+        universityName: apiData.universityName,
+        fullName: apiData.fullName,
+        phoneNumber: apiData.phoneNumber,
+        email: apiData.email || null,
+        avatarUrl: apiData.avatarUrl || null,
+        status: apiData.status || "ACTIVE",
+        createdAt: apiData.createdAt || null,
+      };
     } catch (error) {
       console.error("❌ [completeProfile] Lỗi khi hoàn thiện profile:", error);
       throw error;
@@ -85,11 +119,24 @@ export const studentService = {
   /** 🔹 Cập nhật thông tin profile của student */
   async updateProfile(data: UpdateProfileRequest): Promise<StudentProfile> {
     try {
-      const res = await axiosInstance.put<{ data: StudentProfile }>(
+      const res = await axiosInstance.put<any>(
         "/students/me",
         data
       );
-      return res.data.data;
+      // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
+      const apiData = res.data?.data ?? res.data;
+      
+      return {
+        id: apiData.id,
+        universityId: apiData.universityId,
+        universityName: apiData.universityName,
+        fullName: apiData.fullName,
+        phoneNumber: apiData.phoneNumber,
+        email: apiData.email || null,
+        avatarUrl: apiData.avatarUrl || null,
+        status: apiData.status || "ACTIVE",
+        createdAt: apiData.createdAt || null,
+      };
     } catch (error) {
       console.error("❌ [updateProfile] Lỗi khi cập nhật profile:", error);
       throw error;

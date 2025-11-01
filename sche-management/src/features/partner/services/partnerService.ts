@@ -14,8 +14,9 @@ export const partnerService = {
   /** 🔹 Lấy tất cả partner */
   async getAll(): Promise<Partner[]> {
     try {
-      const res = await axiosInstance.get<PartnerRepsonse>(endpoint2);
-      return res.data.data;
+      const res = await axiosInstance.get<any>(endpoint2);
+      // BE giờ trả về data trực tiếp hoặc wrap trong { data: [...] }
+      return res.data?.data ?? res.data ?? [];
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách partner:", error);
       throw error;

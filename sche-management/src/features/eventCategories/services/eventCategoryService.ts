@@ -27,10 +27,11 @@ export const eventCategoryService = {
   /** 🔹 Lấy chi tiết danh mục sự kiện theo ID */
   async getById(id: number): Promise<EventCategory> {
     try {
-      const res = await axiosInstance.get<EventCategoryDetail>(
+      const res = await axiosInstance.get<any>(
         `${endpoint}/${id}`
       );
-      return res.data.data;
+      // BE giờ trả về data trực tiếp hoặc wrap trong { data: {...} }
+      return res.data?.data ?? res.data;
     } catch (error) {
       console.error(
         `❌ [getById] Lỗi khi lấy danh mục sự kiện ID ${id}:`,

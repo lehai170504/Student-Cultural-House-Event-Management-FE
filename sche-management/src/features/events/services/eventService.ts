@@ -10,16 +10,25 @@ import {
   EventCheckinRequest,
   EventCheckinResponse,
   AttendeesResponse,
+  PagedEventResponse,
 } from "../types/events";
 
 const endpoint = "/events";
 
 export const eventService = {
   /** 🔹 Lấy tất cả events với filter tùy chọn */
-  async getAll(params?: Record<string, any>): Promise<EventResponse> {
+  async getAll(params?: Record<string, any>): Promise<PagedEventResponse> {
     try {
-      const res = await axiosInstance.get<EventResponse>(endpoint, { params });
-      return res.data;
+      const res = await axiosInstance.get<any>(endpoint, { params });
+      // BE giờ trả về PagedEventResponse trực tiếp hoặc wrap trong { data: {...} }
+      // Nếu có { status, message, data } thì lấy data, nếu không thì lấy trực tiếp
+      const responseData = res.data;
+      if (responseData?.data && responseData?.status !== undefined) {
+        // Format: { status, message, data: PagedEventResponse }
+        return responseData.data;
+      }
+      // Format: PagedEventResponse trực tiếp
+      return responseData;
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách events:", error);
       throw error;
@@ -27,12 +36,15 @@ export const eventService = {
   },
 
   /** 🔹 Lấy chi tiết event theo ID */
-  async getById(id: number): Promise<EventDetailResponse> {
+  async getById(id: number): Promise<Event> {
     try {
-      const res = await axiosInstance.get<EventDetailResponse>(
-        `${endpoint}/${id}`
-      );
-      return res.data;
+      const res = await axiosInstance.get<any>(`${endpoint}/${id}`);
+      // BE giờ trả về Event trực tiếp hoặc wrap trong { data: {...} }
+      const responseData = res.data;
+      if (responseData?.data && responseData?.status !== undefined) {
+        return responseData.data;
+      }
+      return responseData;
     } catch (error) {
       console.error(`❌ [getById] Lỗi khi lấy event ID ${id}:`, error);
       throw error;
@@ -40,10 +52,15 @@ export const eventService = {
   },
 
   /** 🔹 Tạo mới event */
-  async create(data: CreateEvent): Promise<EventDetailResponse> {
+  async create(data: CreateEvent): Promise<Event> {
     try {
-      const res = await axiosInstance.post<EventDetailResponse>(endpoint, data);
-      return res.data;
+      const res = await axiosInstance.post<any>(endpoint, data);
+      // BE giờ trả về Event trực tiếp hoặc wrap trong { data: {...} }
+      const responseData = res.data;
+      if (responseData?.data && responseData?.status !== undefined) {
+        return responseData.data;
+      }
+      return responseData;
     } catch (error) {
       console.error("❌ [create] Lỗi khi tạo event:", error);
       throw error;
@@ -51,13 +68,15 @@ export const eventService = {
   },
 
   /** 🔹 Cập nhật event theo ID */
-  async update(id: number, data: UpdateEvent): Promise<EventDetailResponse> {
+  async update(id: number, data: UpdateEvent): Promise<Event> {
     try {
-      const res = await axiosInstance.put<EventDetailResponse>(
-        `${endpoint}/${id}`,
-        data
-      );
-      return res.data;
+      const res = await axiosInstance.put<any>(`${endpoint}/${id}`, data);
+      // BE giờ trả về Event trực tiếp hoặc wrap trong { data: {...} }
+      const responseData = res.data;
+      if (responseData?.data && responseData?.status !== undefined) {
+        return responseData.data;
+      }
+      return responseData;
     } catch (error) {
       console.error(`❌ [update] Lỗi khi cập nhật event ID ${id}:`, error);
       throw error;

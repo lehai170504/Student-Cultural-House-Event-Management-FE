@@ -57,7 +57,7 @@ const getIdToken = (): string | null => {
  */
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Tăng timeout từ 10s lên 30s
   headers: {
     "Content-Type": "application/json",
   },
