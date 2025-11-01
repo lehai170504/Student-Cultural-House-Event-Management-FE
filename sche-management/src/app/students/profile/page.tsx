@@ -7,7 +7,6 @@ import { studentService } from "@/features/students/services/studentService";
 import type { StudentProfile } from "@/features/students/types/student";
 import ProfileCard from "./components/ProfileCard";
 import ProfileLoading from "./components/ProfileLoading";
-import CompleteProfileDialog from "./components/CompleteProfileDialog";
 import EditProfileDialog from "./components/EditProfileDialog";
 
 export default function StudentProfilePage() {
@@ -150,17 +149,6 @@ export default function StudentProfilePage() {
           onEditClick={handleOpenEditDialog}
         />
       )}
-
-      <CompleteProfileDialog
-        open={showCompleteDialog}
-        phoneNumber={phoneNumber}
-        avatarUrl={avatarUrl}
-        formError={formError}
-        submitting={submitting}
-        onPhoneNumberChange={setPhoneNumber}
-        onAvatarUrlChange={setAvatarUrl}
-        onSubmit={handleCompleteProfile}
-      />
 
       <EditProfileDialog
         open={showEditDialog}

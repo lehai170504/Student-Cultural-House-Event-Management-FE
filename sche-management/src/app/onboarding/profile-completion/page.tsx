@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import cognitoUserAttributesService from "@/features/auth/services/cognitoUserAttributesService";
+import { studentService } from "@/features/students/services/studentService";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useUniversities } from "@/features/universities/hooks/useUniversities";
 
@@ -23,6 +24,8 @@ export default function ProfileCompletionPage() {
 
   const [userType, setUserType] = useState<string>("");
   const [university, setUniversity] = useState<string>("");
+  const [phoneNumber, setPhoneNumber] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -42,6 +45,8 @@ export default function ProfileCompletionPage() {
     if (userType === "sinh viên" && !university) return false;
     if (userType === "sinh viên" && !validateUniversity(university))
       return false;
+    if (!phoneNumber.trim()) return false; // PhoneNumber là bắt buộc
+    // avatarUrl là optional, không cần validate
     return true;
   };
 
@@ -125,15 +130,30 @@ export default function ProfileCompletionPage() {
         }
       }
 
-      // Update attributes in Cognito
+      // Bước 1: Update attributes trong Cognito (user_type, university) - chỉ 2 cái này gửi về Cognito
       await cognitoUserAttributesService.updateUserAttributes(
         auth.user.access_token,
         attributesToUpdate
       );
 
+      // Bước 2: Gọi API complete-profile để lưu phoneNumber và avatarUrl vào BE (cho cả sinh viên và người ngoài)
+      try {
+        await studentService.completeProfile({
+          phoneNumber: phoneNumber.trim(),
+          avatarUrl: avatarUrl.trim() || "", // Avatar có thể để trống
+        });
+      } catch (apiError: any) {
+        console.error("Error completing profile on backend:", apiError);
+        // Nếu API fail nhưng Cognito đã update, vẫn tiếp tục
+        // User có thể complete profile sau ở trang profile
+        if (apiError?.response?.status !== 201) {
+          console.warn("Backend profile completion failed, but Cognito updated successfully");
+        }
+      }
+
       setSuccess(true);
 
-      // Sau khi update attributes, token hiện tại không có custom attributes mới
+      // Bước 3: Sau khi update attributes, token hiện tại không có custom attributes mới
       // Cần refresh token để lấy token mới có custom attributes
       // Thử silent refresh trước, nếu không được thì redirect
       try {
@@ -255,6 +275,43 @@ export default function ProfileCompletionPage() {
               </Select>
             </div>
           )}
+
+          {/* Phone Number (required for all users) */}
+          <div>
+            <Label
+              htmlFor="phoneNumber"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Số điện thoại <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="phoneNumber"
+              type="tel"
+              placeholder="Nhập số điện thoại (ví dụ: 0912345678)"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+              className="w-full"
+            />
+          </div>
+
+          {/* Avatar URL (optional for all users) */}
+          <div>
+            <Label
+              htmlFor="avatarUrl"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              URL Ảnh đại diện <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+            </Label>
+            <Input
+              id="avatarUrl"
+              type="url"
+              placeholder="Nhập URL ảnh đại diện (ví dụ: https://example.com/avatar.jpg) - Có thể để trống"
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              className="w-full"
+            />
+          </div>
 
           {/* Error message */}
           {error && (
