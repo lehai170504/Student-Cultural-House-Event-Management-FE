@@ -1,12 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type {
   Event,
-  PagedEventResponse,
   EventRegistration,
   EventFeedbackResponse,
   EventCheckinResponse,
   AttendeesResponse,
 } from "@/features/events/types/events";
+import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
 import {
   fetchAllEvents,
   fetchEventById,
@@ -35,6 +35,8 @@ interface EventState {
   loadingAttendees: boolean;
   attendees: AttendeesResponse | null;
 
+  pagination: PaginatedResponseMeta | null; // metadata cho pagination (format mới)
+  // Giữ lại các field cũ để backward compatibility
   currentPage: number;
   totalElements: number;
   totalPages: number;
@@ -57,6 +59,7 @@ const initialState: EventState = {
   loadingAttendees: false,
   attendees: null,
 
+  pagination: null,
   currentPage: 0,
   totalElements: 0,
   totalPages: 0,
@@ -76,6 +79,7 @@ const eventSlice = createSlice({
     },
     resetPagination: (state) => {
       state.list = [];
+      state.pagination = null;
       state.currentPage = 0;
       state.totalElements = 0;
       state.totalPages = 0;
@@ -86,24 +90,30 @@ const eventSlice = createSlice({
     builder
       // ========== CRUD ==========
 
-      // fetch all
+      // fetch all (format mới: PaginatedResponse)
       .addCase(fetchAllEvents.pending, (state) => {
         state.loadingList = true;
       })
       .addCase(
         fetchAllEvents.fulfilled,
-        (state, action: PayloadAction<PagedEventResponse | undefined>) => {
+        (state, action: PayloadAction<PaginatedResponse<Event>>) => {
           state.loadingList = false;
           if (action.payload) {
-            state.list = action.payload.content || [];
-            state.currentPage = action.payload.number ?? 0;
-            state.pageSize = action.payload.size ?? 10;
-            state.totalElements = action.payload.totalElements ?? 0;
-            state.totalPages = action.payload.totalPages ?? 0;
-            state.isLastPage = action.payload.last ?? true;
+            state.list = action.payload?.data || [];
+            state.pagination = action.payload?.meta || null;
+            
+            // Đồng bộ với các field cũ để backward compatibility
+            if (action.payload?.meta) {
+              state.currentPage = action.payload.meta.currentPage - 1; // convert 1-indexed to 0-indexed
+              state.pageSize = action.payload.meta.pageSize;
+              state.totalElements = action.payload.meta.totalItems;
+              state.totalPages = action.payload.meta.totalPages;
+              state.isLastPage = action.payload.meta.currentPage >= action.payload.meta.totalPages;
+            }
           } else {
             // Fallback nếu payload undefined
             state.list = [];
+            state.pagination = null;
           }
           state.error = null;
         }

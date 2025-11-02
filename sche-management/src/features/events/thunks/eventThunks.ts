@@ -10,22 +10,22 @@ import type {
   EventCheckinRequest,
   EventCheckinResponse,
   AttendeesResponse,
-  PagedEventResponse,
 } from "@/features/events/types/events";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
 // ============================================================
 // 🔸 EVENT CRUD
 // ============================================================
 
-// 🔹 Lấy tất cả events với filter tùy chọn
+// 🔹 Lấy tất cả events với pagination (format mới)
 export const fetchAllEvents = createAsyncThunk<
-  PagedEventResponse,
-  Record<string, any> | undefined,
+  PaginatedResponse<Event>,
+  (PaginationParams & Record<string, any>) | undefined,
   { rejectValue: string }
 >("events/fetchAll", async (params, { rejectWithValue }) => {
   try {
-    // eventService.getAll() đã trả về PagedEventResponse trực tiếp
+    // eventService.getAll() trả về PaginatedResponse<Event>
     const res = await eventService.getAll(params);
     return res;
   } catch (err: any) {

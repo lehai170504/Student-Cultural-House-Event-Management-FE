@@ -5,18 +5,47 @@ import type {
   PartnerRepsonse,
 } from "@/features/partner/types/partner";
 import type { Wallet, WalletTransaction } from "@/features/wallet/types/wallet";
+import type {
+  PaginatedResponse,
+  PaginationParams,
+} from "@/utils/apiResponse";
 
 // Partner endpoints are under /partners per Swagger
 const endpoint = "/partners";
 const endpoint2 = "/admin/partners";
 
 export const partnerService = {
-  /** 🔹 Lấy tất cả partner */
-  async getAll(): Promise<Partner[]> {
+  /** 🔹 Lấy tất cả partner với pagination (format mới: { data: [...], meta: {...} }) */
+  async getAll(
+    params?: PaginationParams
+  ): Promise<PaginatedResponse<Partner>> {
     try {
-      const res = await axiosInstance.get<any>(endpoint2);
-      // BE giờ trả về data trực tiếp hoặc wrap trong { data: [...] }
-      return res.data?.data ?? res.data ?? [];
+      // Mặc định: page=1, size=10, không có sort
+      const queryParams: Record<string, any> = {
+        page: params?.page ?? 1,
+        size: params?.size ?? 10,
+        // sort không được include theo yêu cầu
+      };
+
+      const res = await axiosInstance.get<any>(endpoint2, {
+        params: queryParams,
+      });
+      
+      // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
+      const responseData = res.data;
+      
+      // Nếu có wrap trong { status, message, data } thì lấy data
+      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+        return responseData as PaginatedResponse<Partner>;
+      }
+      
+      // Nếu trả về trực tiếp { data, meta }
+      if (responseData?.data && responseData?.meta) {
+        return responseData as PaginatedResponse<Partner>;
+      }
+      
+      // Fallback: giả sử responseData là PaginatedResponse trực tiếp
+      return responseData as PaginatedResponse<Partner>;
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách partner:", error);
       throw error;

@@ -102,9 +102,21 @@ axiosInstance.interceptors.response.use(
       const status = error.response.status;
 
       if (status === 401 && typeof window !== "undefined") {
-        console.warn("⚠️ Token expired or invalid, redirecting to login");
-        sessionStorage.clear();
-        window.location.href = "/login";
+        // Chỉ redirect nếu không phải public route (homepage, login, etc.)
+        const currentPath = window.location.pathname;
+        const publicRoutes = ["/", "/login", "/events", "/contact", "/gifts"];
+        const isPublicRoute = publicRoutes.some(route => 
+          currentPath === route || currentPath.startsWith(route + "/")
+        );
+
+        if (!isPublicRoute) {
+          console.warn("⚠️ Token expired or invalid, redirecting to login");
+          sessionStorage.clear();
+          window.location.href = "/login";
+        } else {
+          // Public route: chỉ log error, không redirect
+          console.warn("⚠️ 401 on public route, API may require authentication");
+        }
       }
 
       console.error("API Error:", error.response.data);

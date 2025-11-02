@@ -6,30 +6,59 @@ import {
   CompleteProfileRequest,
   UpdateProfileRequest
 } from "../types/student";
+import type {
+  PaginatedResponse,
+  PaginationParams,
+} from "@/utils/apiResponse";
 
 const endpoint = "/admin/students";
 
-export interface FetchUniversityUsersParams {
-  page?: number;
-  size?: number;
-  sort?: string;
+export interface FetchUniversityUsersParams extends PaginationParams {
   universityId?: number;
   search?: string;
+  // sort không được include theo yêu cầu
 }
 
 export const studentService = {
-  /** 🔹 Lấy danh sách University Users theo paging */
+  /** 🔹 Lấy danh sách University Users với pagination (format mới: { data: [...], meta: {...} }) */
   async getAll(
     params?: FetchUniversityUsersParams
-  ): Promise<UniversityUser[]> {
+  ): Promise<PaginatedResponse<UniversityUser>> {
     try {
-      const res = await axiosInstance.get<any>(endpoint, {
-        params,
-      });
+      // Mặc định: page=1, size=10, không có sort
+      const queryParams: Record<string, any> = {
+        page: params?.page ?? 1,
+        size: params?.size ?? 10,
+        // sort không được include theo yêu cầu
+      };
 
-      // BE giờ trả về data trực tiếp, không wrap trong { data: {...} }
-      const responseData = res.data?.data ?? res.data;
-      return responseData?.content ?? responseData ?? [];
+      // Thêm các filter tùy chọn
+      if (params?.universityId) {
+        queryParams.universityId = params.universityId;
+      }
+      if (params?.search) {
+        queryParams.search = params.search;
+      }
+
+      const res = await axiosInstance.get<any>(endpoint, {
+        params: queryParams,
+      });
+      
+      // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
+      const responseData = res.data;
+      
+      // Nếu có wrap trong { status, message, data } thì lấy data
+      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+        return responseData as PaginatedResponse<UniversityUser>;
+      }
+      
+      // Nếu trả về trực tiếp { data, meta }
+      if (responseData?.data && responseData?.meta) {
+        return responseData as PaginatedResponse<UniversityUser>;
+      }
+      
+      // Fallback: giả sử responseData là PaginatedResponse trực tiếp
+      return responseData as PaginatedResponse<UniversityUser>;
     } catch (error) {
       console.error(
         "❌ [getAll] Error fetching university users:",

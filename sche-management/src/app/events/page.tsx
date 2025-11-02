@@ -51,7 +51,7 @@ export default function EventsPage() {
     const keyword = e.target.value;
     setSearchTerm(keyword);
     loadAll({
-      page: 0,
+      page: 1, // Format mới: page bắt đầu từ 1
       search: keyword,
       categoryId: selectedCategory || undefined,
     });
@@ -60,7 +60,7 @@ export default function EventsPage() {
   const handleCategoryFilter = (categoryId: number | null) => {
     setSelectedCategory(categoryId);
     loadAll({
-      page: 0,
+      page: 1, // Format mới: page bắt đầu từ 1
       search: searchTerm || undefined,
       categoryId: categoryId || undefined,
     });
@@ -125,7 +125,7 @@ export default function EventsPage() {
   };
 
   useEffect(() => {
-    loadAll({ page: 0 });
+    loadAll({ page: 1 }); // Format mới: page bắt đầu từ 1
   }, [loadAll]);
 
   return (

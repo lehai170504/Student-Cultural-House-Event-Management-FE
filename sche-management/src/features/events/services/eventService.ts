@@ -11,24 +11,69 @@ import {
   EventCheckinResponse,
   AttendeesResponse,
   PagedEventResponse,
+  Event,
 } from "../types/events";
+import type {
+  PaginatedResponse,
+  PaginationParams,
+} from "@/utils/apiResponse";
 
 const endpoint = "/events";
 
 export const eventService = {
-  /** 🔹 Lấy tất cả events với filter tùy chọn */
-  async getAll(params?: Record<string, any>): Promise<PagedEventResponse> {
+  /** 🔹 Lấy tất cả events với pagination (format mới: { data: [...], meta: {...} }) */
+  async getAll(
+    params?: PaginationParams & Record<string, any>
+  ): Promise<PaginatedResponse<Event>> {
     try {
-      const res = await axiosInstance.get<any>(endpoint, { params });
-      // BE giờ trả về PagedEventResponse trực tiếp hoặc wrap trong { data: {...} }
-      // Nếu có { status, message, data } thì lấy data, nếu không thì lấy trực tiếp
-      const responseData = res.data;
-      if (responseData?.data && responseData?.status !== undefined) {
-        // Format: { status, message, data: PagedEventResponse }
-        return responseData.data;
+      // Mặc định: page=1, size=10, không có sort
+      const queryParams: Record<string, any> = {
+        page: params?.page ?? 1,
+        size: params?.size ?? 10,
+        // sort không được include theo yêu cầu
+      };
+
+      // Copy các params khác nếu có (nhưng không copy sort)
+      if (params) {
+        Object.keys(params).forEach((key) => {
+          if (key !== "sort" && key !== "page" && key !== "size") {
+            queryParams[key] = params[key];
+          }
+        });
       }
-      // Format: PagedEventResponse trực tiếp
-      return responseData;
+
+      const res = await axiosInstance.get<any>(endpoint, {
+        params: queryParams,
+      });
+      
+      // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
+      const responseData = res.data;
+      
+      // Nếu có wrap trong { status, message, data } thì lấy data
+      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+        return responseData as PaginatedResponse<Event>;
+      }
+      
+      // Nếu trả về trực tiếp { data, meta }
+      if (responseData?.data && responseData?.meta) {
+        return responseData as PaginatedResponse<Event>;
+      }
+      
+      // Fallback: nếu là format cũ PagedEventResponse, convert sang format mới
+      if (responseData?.content && Array.isArray(responseData.content)) {
+        return {
+          data: responseData.content,
+          meta: {
+            currentPage: (responseData.number ?? 0) + 1, // convert 0-indexed to 1-indexed
+            pageSize: responseData.size ?? 10,
+            totalPages: responseData.totalPages ?? 0,
+            totalItems: responseData.totalElements ?? 0,
+          },
+        };
+      }
+      
+      // Fallback cuối cùng: giả sử responseData là PaginatedResponse trực tiếp
+      return responseData as PaginatedResponse<Event>;
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách events:", error);
       throw error;

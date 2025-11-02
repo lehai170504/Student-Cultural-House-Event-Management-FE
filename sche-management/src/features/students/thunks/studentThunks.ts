@@ -4,11 +4,12 @@ import {
   FetchUniversityUsersParams,
 } from "../services/studentService";
 import { UniversityUser } from "../types/student";
+import type { PaginatedResponse } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
-/** 🔹 Lấy danh sách sinh viên / users */
+/** 🔹 Lấy danh sách sinh viên / users với pagination (format mới) */
 export const fetchStudents = createAsyncThunk<
-  UniversityUser[],
+  PaginatedResponse<UniversityUser>,
   FetchUniversityUsersParams | void,
   { rejectValue: string }
 >("university/fetchAllUsers", async (params, { rejectWithValue }) => {
