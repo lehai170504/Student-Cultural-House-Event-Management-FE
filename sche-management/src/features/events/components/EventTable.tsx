@@ -171,13 +171,18 @@ export default function EventTable() {
                             event.status === "ACTIVE"
                               ? "bg-green-100 text-green-800"
                               : event.status === "DRAFT"
+                              ? "bg-blue-100 text-blue-800"
+                              : event.status === "FINISHED"
                               ? "bg-gray-100 text-gray-800"
-                              : "bg-yellow-100 text-yellow-800"
+                              : event.status === "CANCELLED"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-gray-200 text-gray-700"
                           }`}
                         >
                           {event.status}
                         </span>
                       </TableCell>
+
                       <TableCell className="px-6 py-4 flex gap-2">
                         {/* View Button */}
                         <Button

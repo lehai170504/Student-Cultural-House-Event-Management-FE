@@ -16,12 +16,21 @@ import { useEvents } from "@/features/events/hooks/useEvents";
 import type { Event } from "@/features/events/types/events";
 import { motion } from "framer-motion";
 
+// Import Sonner Toast
+import { toast } from "sonner";
+
 export default function EventDetailPage() {
   const { id } = useParams();
   const eventId = parseInt(Array.isArray(id) ? id[0] : id || "0");
   const router = useRouter();
 
-  const { detail, loadDetail, loadingDetail } = useEvents();
+  const {
+    detail,
+    loadDetail,
+    loadingDetail,
+    registerForEventByStudent,
+    registering,
+  } = useEvents();
 
   useEffect(() => {
     if (eventId) loadDetail(eventId);
@@ -44,27 +53,45 @@ export default function EventDetailPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "UPCOMING":
+      case "DRAFT":
         return "bg-blue-100 text-blue-700";
-      case "ONGOING":
+      case "ACTIVE":
         return "bg-green-100 text-green-700";
-      case "COMPLETED":
+      case "FINISHED":
         return "bg-gray-100 text-gray-700";
+      case "CANCELLED":
+        return "bg-red-100 text-red-700";
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-200 text-gray-700";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case "UPCOMING":
-        return "SẮP DIỄN RA";
-      case "ONGOING":
+      case "DRAFT":
+        return "NHÁP";
+      case "ACTIVE":
         return "ĐANG DIỄN RA";
-      case "COMPLETED":
+      case "FINISHED":
         return "ĐÃ KẾT THÚC";
+      case "CANCELLED":
+        return "ĐÃ HỦY";
       default:
         return "KHÔNG XÁC ĐỊNH";
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!detail) return;
+
+    try {
+      const studentId = 123; // Giả sử studentId lấy từ context/session
+      await registerForEventByStudent(detail.id, studentId);
+
+      // Thông báo thành công bằng Sonner
+      toast.success("Đăng ký thành công!");
+    } catch (err: any) {
+      toast.error(err?.message || "Đăng ký thất bại!");
     }
   };
 
@@ -88,6 +115,16 @@ export default function EventDetailPage() {
         <Badge className={`${getStatusColor(event.status)} text-lg px-4 py-2`}>
           {getStatusText(event.status)}
         </Badge>
+
+        {event.status === "ACTIVE" && (
+          <Button
+            onClick={handleRegister}
+            disabled={registering}
+            className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
+          >
+            {registering ? "Đang đăng ký..." : "Đăng ký sự kiện"}
+          </Button>
+        )}
       </motion.section>
 
       {/* Event Info */}

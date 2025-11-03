@@ -99,28 +99,37 @@ export default function EventsPage() {
     return pages;
   };
 
-  // Xác định trạng thái event
   const getEventStatus = (event: (typeof events)[0]) => {
-    const now = new Date();
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-
-    if (now >= start && now <= end) return "ACTIVE";
-    if (now < start) return "UPCOMING";
-    return "ENDED";
+    return event.status || "DRAFT"; // default là DRAFT
   };
 
-  // Style badge trạng thái
-  const getStatusStyle = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
+      case "DRAFT":
+        return "bg-blue-100 text-blue-700"; // Nháp
       case "ACTIVE":
-        return "bg-gradient-to-r from-green-200 to-green-100 text-green-800 uppercase";
-      case "UPCOMING":
-        return "bg-gradient-to-r from-yellow-200 to-yellow-100 text-yellow-800 uppercase";
-      case "ENDED":
-        return "bg-gradient-to-r from-gray-200 to-gray-100 text-gray-800 uppercase";
+        return "bg-green-100 text-green-700"; // Đang diễn ra
+      case "FINISHED":
+        return "bg-gray-100 text-gray-700"; // Kết thúc
+      case "CANCELLED":
+        return "bg-red-100 text-red-700"; // Hủy
       default:
-        return "bg-gray-100 text-gray-800 uppercase";
+        return "bg-gray-200 text-gray-700"; // Không xác định
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "DRAFT":
+        return "NHÁP";
+      case "ACTIVE":
+        return "ĐANG DIỄN RA";
+      case "FINISHED":
+        return "ĐÃ KẾT THÚC";
+      case "CANCELLED":
+        return "ĐÃ HỦY";
+      default:
+        return "KHÔNG XÁC ĐỊNH";
     }
   };
 
@@ -203,8 +212,8 @@ export default function EventsPage() {
                         {new Date(event.endTime).toLocaleDateString()}
                       </p>
 
-                      <Badge className={`${getStatusStyle(status)} mt-2`}>
-                        {status}
+                      <Badge className={`${getStatusColor(status)} mt-2`}>
+                        {getStatusText(status)}
                       </Badge>
                     </div>
                   </Link>
