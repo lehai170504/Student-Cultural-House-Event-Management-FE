@@ -12,11 +12,11 @@ import {
   AttendeesResponse,
   PagedEventResponse,
   Event,
+  EventCheckinDetail,
+  EventFinalizeResponse,
+  RequestEventCheckin,
 } from "../types/events";
-import type {
-  PaginatedResponse,
-  PaginationParams,
-} from "@/utils/apiResponse";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 
 const endpoint = "/events";
 
@@ -45,20 +45,24 @@ export const eventService = {
       const res = await axiosInstance.get<any>(endpoint, {
         params: queryParams,
       });
-      
+
       // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
       const responseData = res.data;
-      
+
       // Nếu có wrap trong { status, message, data } thì lấy data
-      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+      if (
+        responseData?.data &&
+        Array.isArray(responseData.data) &&
+        responseData.meta
+      ) {
         return responseData as PaginatedResponse<Event>;
       }
-      
+
       // Nếu trả về trực tiếp { data, meta }
       if (responseData?.data && responseData?.meta) {
         return responseData as PaginatedResponse<Event>;
       }
-      
+
       // Fallback: nếu là format cũ PagedEventResponse, convert sang format mới
       if (responseData?.content && Array.isArray(responseData.content)) {
         return {
@@ -71,7 +75,7 @@ export const eventService = {
           },
         };
       }
-      
+
       // Fallback cuối cùng: giả sử responseData là PaginatedResponse trực tiếp
       return responseData as PaginatedResponse<Event>;
     } catch (error) {
@@ -210,6 +214,47 @@ export const eventService = {
     } catch (error) {
       console.error(
         `❌ [getAttendees] Lỗi khi lấy danh sách attendees cho event ID ${eventId}:`,
+        error
+      );
+      throw error;
+    }
+  },
+
+  /** 🔹 5. Finalize Event (POST /api/v1/events/{eventId}/finalize) */
+  async finalizeEvent(eventId: number): Promise<EventFinalizeResponse> {
+    try {
+      // POST request, không có body
+      const res = await axiosInstance.post<EventFinalizeResponse>(
+        `${endpoint}/${eventId}/finalize`
+      );
+
+      // Response trả về đối tượng Event đã finalized
+      return res.data;
+    } catch (error) {
+      console.error(
+        `❌ [finalizeEvent] Lỗi khi finalize event ID ${eventId}:`,
+        error
+      );
+      throw error;
+    }
+  },
+
+  /** 🔹 6. Submit Checkin/Registration Detail */
+  async checkinByPhoneNumber(
+    eventId: number,
+    data: RequestEventCheckin
+  ): Promise<EventCheckinDetail> {
+    try {
+      const res = await axiosInstance.post<EventCheckinDetail>(
+        `${endpoint}/${eventId}/checkin`,
+        data
+      );
+
+      // Trả về đối tượng EventCheckinDetail chi tiết
+      return res.data;
+    } catch (error) {
+      console.error(
+        `❌ [checkinByPhoneNumber] Lỗi khi checkin cho event ID ${eventId}:`,
         error
       );
       throw error;

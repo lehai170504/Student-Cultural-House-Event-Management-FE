@@ -181,3 +181,39 @@ export interface AttendeesResponse {
   last: boolean;
   empty: boolean;
 }
+export interface EventFinalizeResponse {
+  id: number;
+  partnerId: number;
+  partnerName: string;
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  category: {
+    id: number;
+    name: string;
+    description: string;
+  };
+  pointCostToRegister: number;
+  totalRewardPoints: number;
+  totalBudgetCoin: number;
+  status: string;
+  createdAt: string;
+  maxAttendees: number;
+}
+
+export interface RequestEventCheckin {
+  phoneNumber: string;
+}
+
+export interface EventCheckinDetail {
+  checkinId: number;
+  eventId: number;
+  eventTitle: string;
+  studentId: number;
+  studentName: string;
+  registrationTime: string;
+  verified: boolean;
+  depositPaid: number;
+}

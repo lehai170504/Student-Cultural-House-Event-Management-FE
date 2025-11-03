@@ -13,7 +13,6 @@ import { resetDetail, clearError } from "../slices/eventCategorySlice";
 import type {
   CreateEventCategory,
   UpdateEventCategory,
-  EventCategory,
 } from "../types/eventCategories";
 
 export const useEventCategories = () => {
@@ -21,7 +20,7 @@ export const useEventCategories = () => {
 
   const {
     list,
-    detailCategory, // ✅ theo slice mới
+    detailCategory,
     loadingList,
     loadingDetail,
     saving,
