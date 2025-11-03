@@ -20,7 +20,12 @@ export default function EventsPage() {
   );
 
   useEffect(() => {
-    loadAll({ page: 0 });
+    // Backend đã mở quyền public cho events, không cần check auth
+    // Format mới: page bắt đầu từ 1, không phải 0
+    loadAll({ page: 1, size: 10 }).catch((err) => {
+      // Handle error gracefully
+      console.log("Could not load events:", err);
+    });
   }, [loadAll]);
 
   useEffect(() => {

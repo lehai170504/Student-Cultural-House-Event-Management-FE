@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { EventCategory } from "@/features/eventCategories/types/eventCategories";
+import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
 import {
   fetchAllEventCategories,
   fetchEventCategoryById,
@@ -10,6 +11,7 @@ import {
 
 interface EventCategoryState {
   list: EventCategory[];
+  pagination: PaginatedResponseMeta | null; // metadata cho pagination
   detailCategory: EventCategory | null; // chi tiết
   loadingList: boolean;
   loadingDetail: boolean;
@@ -20,6 +22,7 @@ interface EventCategoryState {
 
 const initialState: EventCategoryState = {
   list: [],
+  pagination: null,
   detailCategory: null,
   loadingList: false,
   loadingDetail: false,
@@ -41,15 +44,16 @@ const eventCategorySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetch all
+      // fetch all (format mới: PaginatedResponse)
       .addCase(fetchAllEventCategories.pending, (state) => {
         state.loadingList = true;
       })
       .addCase(
         fetchAllEventCategories.fulfilled,
-        (state, action: PayloadAction<EventCategory[]>) => {
+        (state, action: PayloadAction<PaginatedResponse<EventCategory>>) => {
           state.loadingList = false;
-          state.list = action.payload || [];
+          state.list = action.payload?.data || [];
+          state.pagination = action.payload?.meta || null;
         }
       )
       .addCase(fetchAllEventCategories.rejected, (state, action) => {

@@ -79,10 +79,12 @@ export const useEventCategories = () => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /** 🔸 Tự động load danh sách khi mount */
+  /** 🔸 Tự động load danh sách khi mount (chỉ khi có token) */
   useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+    // Tạm thời comment auto-load để tránh lỗi 401 trên homepage
+    // Component có thể gọi loadAll() thủ công khi cần
+    // loadAll();
+  }, []);
 
   return {
     list,

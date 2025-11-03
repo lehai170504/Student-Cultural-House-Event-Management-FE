@@ -146,11 +146,24 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 Tự động load events + categories khi mount */
+  /** 🔸 Tự động load events + categories khi mount
+   * Backend đã mở quyền public, không cần auth để xem events
+   */
   useEffect(() => {
-    loadAll();
-    loadCategories();
-  }, [loadAll, loadCategories]);
+    // Auto-load events và categories
+    // Backend đã mở quyền public nên không cần check auth
+    loadAll({ page: 1, size: 10 }).catch((err) => {
+      // Handle error gracefully
+      console.log("Could not load events:", err);
+    });
+    // loadCategories dispatch thunk action
+    dispatch(fetchAllEventCategories())
+      .unwrap()
+      .catch((err: any) => {
+        // Handle error gracefully
+        console.log("Could not load categories:", err);
+      });
+  }, [loadAll, dispatch]);
 
   return {
     // DỮ LIỆU SỰ KIỆN

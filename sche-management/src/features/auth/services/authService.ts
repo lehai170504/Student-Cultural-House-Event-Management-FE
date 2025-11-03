@@ -51,8 +51,10 @@ class AuthService {
     | { success: false; error: any }
   > {
     try {
-      const res = await axiosInstance.get<AuthResponse>("/me");
-      return { success: true, data: res.data.data };
+      const res = await axiosInstance.get<any>("/me");
+      // BE giờ trả về data trực tiếp hoặc wrap trong { data: {...} }
+      const data = res.data?.data ?? res.data;
+      return { success: true, data };
     } catch (error: any) {
       console.error("❌ [getProfile] Lỗi khi lấy thông tin user:", error);
       return { success: false, error };

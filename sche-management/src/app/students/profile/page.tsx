@@ -2,26 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "react-oidc-context";
+import { useRouter } from "next/navigation";
 import { toast, Toaster } from "sonner";
+import { Button } from "@/components/ui/button";
 import { studentService } from "@/features/students/services/studentService";
 import type { StudentProfile } from "@/features/students/types/student";
 import ProfileCard from "./components/ProfileCard";
 import ProfileLoading from "./components/ProfileLoading";
-import CompleteProfileDialog from "./components/CompleteProfileDialog";
 import EditProfileDialog from "./components/EditProfileDialog";
 
 export default function StudentProfilePage() {
   const auth = useAuth();
+  const router = useRouter();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // Form state for complete profile
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
   
   // Form state for edit profile
   const [editFullName, setEditFullName] = useState("");
@@ -41,51 +37,23 @@ export default function StudentProfilePage() {
       } catch (err: any) {
         console.error("Profile fetch error:", err);
         console.error("Error status:", err?.response?.status);
-        // If any error getting profile, show complete profile dialog
-        setShowCompleteDialog(true);
+        // If profile not found or error, redirect to onboarding
+        if (err?.response?.status === 404 || err?.response?.status === 400) {
+          // Profile chưa được tạo, redirect về onboarding
+          router.push("/onboarding/profile-completion");
+        } else {
+          // Other errors - show error message
+          toast.error("Không thể tải thông tin hồ sơ", {
+            description: err?.response?.data?.message || "Vui lòng thử lại sau.",
+          });
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, []);
-
-  const handleCompleteProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!phoneNumber.trim() || !avatarUrl.trim()) {
-      setFormError("Vui lòng điền đầy đủ thông tin");
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setFormError(null);
-      
-      // Complete profile
-      const completedProfile = await studentService.completeProfile({
-        phoneNumber: phoneNumber.trim(),
-        avatarUrl: avatarUrl.trim(),
-      });
-      
-      setProfile(completedProfile);
-      setShowCompleteDialog(false);
-      setPhoneNumber("");
-      setAvatarUrl("");
-      toast.success("Hoàn thiện hồ sơ thành công!", {
-        description: "Chào mừng bạn đến với hệ thống.",
-      });
-    } catch (err: any) {
-      setFormError(err?.response?.data?.message || "Không thể hoàn thiện profile");
-      console.error(err);
-      toast.error("Hoàn thiện hồ sơ thất bại", {
-        description: err?.response?.data?.message || "Vui lòng thử lại.",
-      });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  }, [router]);
 
   const handleOpenEditDialog = () => {
     if (profile) {
@@ -141,6 +109,31 @@ export default function StudentProfilePage() {
     );
   }
 
+  // Nếu không loading nhưng không có profile, hiển thị thông báo
+  if (!loading && !profile) {
+    return (
+      <>
+        <div className="w-full max-w-4xl mx-auto mt-20 p-8">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+            <h2 className="text-xl font-semibold text-yellow-800 mb-2">
+              Chưa có hồ sơ
+            </h2>
+            <p className="text-yellow-700 mb-4">
+              Bạn cần hoàn thiện hồ sơ trước khi sử dụng tính năng này.
+            </p>
+            <Button 
+              onClick={() => router.push("/onboarding/profile-completion")}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Hoàn thiện hồ sơ ngay
+            </Button>
+          </div>
+        </div>
+        <Toaster position="top-right" richColors />
+      </>
+    );
+  }
+
   return (
     <>
       {profile && (
@@ -150,17 +143,6 @@ export default function StudentProfilePage() {
           onEditClick={handleOpenEditDialog}
         />
       )}
-
-      <CompleteProfileDialog
-        open={showCompleteDialog}
-        phoneNumber={phoneNumber}
-        avatarUrl={avatarUrl}
-        formError={formError}
-        submitting={submitting}
-        onPhoneNumberChange={setPhoneNumber}
-        onAvatarUrlChange={setAvatarUrl}
-        onSubmit={handleCompleteProfile}
-      />
 
       <EditProfileDialog
         open={showEditDialog}

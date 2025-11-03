@@ -2,16 +2,17 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { partnerService } from "@/features/partner/services/partnerService";
 import type { Partner, CreatePartner } from "@/features/partner/types/partner";
 import type { Wallet, WalletTransaction } from "@/features/wallet/types/wallet";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
-// 🔹 Lấy tất cả partner
+// 🔹 Lấy tất cả partner với pagination (format mới)
 export const fetchAllPartners = createAsyncThunk<
-  Partner[],
-  void,
+  PaginatedResponse<Partner>,
+  PaginationParams | void,
   { rejectValue: string }
->("partners/fetchAll", async (_, { rejectWithValue }) => {
+>("partners/fetchAll", async (params, { rejectWithValue }) => {
   try {
-    return await partnerService.getAll(); // trả về Partner[]
+    return await partnerService.getAll(params); // trả về PaginatedResponse<Partner>
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải danh sách partner")

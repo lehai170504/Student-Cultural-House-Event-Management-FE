@@ -1,10 +1,12 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { UniversityUser } from "../types/student";
+import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
 import { fetchStudents, updateStudentStatus } from "../thunks/studentThunks";
 
 interface UniversityState {
   list: UniversityUser[];
   loadingList: boolean;
+  pagination: PaginatedResponseMeta | null; // metadata cho pagination
   loadingStatus: boolean;
   error: string | null;
 }
@@ -12,6 +14,7 @@ interface UniversityState {
 const initialState: UniversityState = {
   list: [],
   loadingList: false,
+  pagination: null,
   loadingStatus: false,
   error: null,
 };
@@ -29,16 +32,17 @@ const studentSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetchStudents cases
+      // fetchStudents cases (format mới: PaginatedResponse)
       .addCase(fetchStudents.pending, (state) => {
         state.loadingList = true;
         state.error = null;
       })
       .addCase(
         fetchStudents.fulfilled,
-        (state, action: PayloadAction<UniversityUser[]>) => {
+        (state, action: PayloadAction<PaginatedResponse<UniversityUser>>) => {
           state.loadingList = false;
-          state.list = action.payload || [];
+          state.list = action.payload?.data || [];
+          state.pagination = action.payload?.meta || null;
         }
       )
       .addCase(fetchStudents.rejected, (state, action) => {

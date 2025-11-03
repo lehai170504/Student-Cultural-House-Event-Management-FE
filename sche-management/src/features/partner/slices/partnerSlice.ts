@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { Partner } from "@/features/partner/types/partner";
 import type { Wallet, WalletTransaction } from "@/features/wallet/types/wallet";
+import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
 import {
   fetchAllPartners,
   createPartner,
@@ -16,6 +17,7 @@ import {
 interface PartnerState {
   list: Partner[];
   loadingList: boolean;
+  pagination: PaginatedResponseMeta | null; // metadata cho pagination
   saving: boolean;
   error: string | null;
   partnerDetail: Partner | null;
@@ -32,6 +34,7 @@ interface PartnerState {
 const initialState: PartnerState = {
   list: [],
   loadingList: false,
+  pagination: null,
   saving: false,
   error: null,
   partnerDetail: null,
@@ -55,15 +58,16 @@ const partnerSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetch all
+      // fetch all (format mới: PaginatedResponse)
       .addCase(fetchAllPartners.pending, (state) => {
         state.loadingList = true;
       })
       .addCase(
         fetchAllPartners.fulfilled,
-        (state, action: PayloadAction<Partner[]>) => {
+        (state, action: PayloadAction<PaginatedResponse<Partner>>) => {
           state.loadingList = false;
-          state.list = action.payload || [];
+          state.list = action.payload?.data || [];
+          state.pagination = action.payload?.meta || null;
           state.error = null;
         }
       )

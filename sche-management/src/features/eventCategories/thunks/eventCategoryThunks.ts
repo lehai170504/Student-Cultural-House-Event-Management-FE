@@ -6,17 +6,18 @@ import type {
   CreateEventCategory,
   UpdateEventCategory,
 } from "@/features/eventCategories/types/eventCategories";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
-// 🔹 Lấy tất cả danh mục sự kiện
+// 🔹 Lấy tất cả danh mục sự kiện với pagination (format mới)
 export const fetchAllEventCategories = createAsyncThunk<
-  EventCategory[],
-  void,
+  PaginatedResponse<EventCategory>,
+  PaginationParams | void,
   { rejectValue: string }
->("eventCategories/fetchAll", async (_, { rejectWithValue }) => {
+>("eventCategories/fetchAll", async (params, { rejectWithValue }) => {
   try {
-    const res = await eventCategoryService.getAll();
-    return res.data;
+    const res = await eventCategoryService.getAll(params);
+    return res;
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải danh sách danh mục sự kiện")

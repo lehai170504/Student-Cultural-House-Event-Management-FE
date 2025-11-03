@@ -5,21 +5,46 @@ import {
   University,
   UpdateUniversity,
 } from "../types/universities";
+import type {
+  PaginatedResponse,
+  PaginationParams,
+} from "@/utils/apiResponse";
 
 const endpoint = "/universities";
 const endpoint2 = "/admin/universities";
 
 export const universityService = {
-  /** 🔹 Lấy tất cả universities với filter tùy chọn */
-  async getAll(params?: Record<string, any>): Promise<University[]> {
+  /** 🔹 Lấy tất cả universities với pagination (format mới: { data: [...], meta: {...} }) */
+  async getAll(
+    params?: PaginationParams
+  ): Promise<PaginatedResponse<University>> {
     try {
-      const res = await axiosInstance.get(endpoint, { params });
-      // Backend có thể trả về { status, message, data } hoặc trả thẳng mảng
-      const payload = res.data;
-      const list: University[] = Array.isArray(payload)
-        ? payload
-        : payload?.data ?? [];
-      return list;
+      // Mặc định: page=1, size=10, không có sort
+      const queryParams: Record<string, any> = {
+        page: params?.page ?? 1,
+        size: params?.size ?? 10,
+        // sort không được include theo yêu cầu
+      };
+
+      const res = await axiosInstance.get<any>(endpoint, {
+        params: queryParams,
+      });
+      
+      // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
+      const responseData = res.data;
+      
+      // Nếu có wrap trong { status, message, data } thì lấy data
+      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+        return responseData as PaginatedResponse<University>;
+      }
+      
+      // Nếu trả về trực tiếp { data, meta }
+      if (responseData?.data && responseData?.meta) {
+        return responseData as PaginatedResponse<University>;
+      }
+      
+      // Fallback: giả sử responseData là PaginatedResponse trực tiếp
+      return responseData as PaginatedResponse<University>;
     } catch (error) {
       console.error(
         "❌ [getAll] Lỗi khi lấy danh sách các trường đại học:",

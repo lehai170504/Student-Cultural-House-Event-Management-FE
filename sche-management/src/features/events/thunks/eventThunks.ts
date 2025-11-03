@@ -10,23 +10,24 @@ import type {
   EventCheckinRequest,
   EventCheckinResponse,
   AttendeesResponse,
-  PagedEventResponse,
 } from "@/features/events/types/events";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
 // ============================================================
 // 🔸 EVENT CRUD
 // ============================================================
 
-// 🔹 Lấy tất cả events với filter tùy chọn
+// 🔹 Lấy tất cả events với pagination (format mới)
 export const fetchAllEvents = createAsyncThunk<
-  PagedEventResponse,
-  Record<string, any> | undefined,
+  PaginatedResponse<Event>,
+  (PaginationParams & Record<string, any>) | undefined,
   { rejectValue: string }
 >("events/fetchAll", async (params, { rejectWithValue }) => {
   try {
+    // eventService.getAll() trả về PaginatedResponse<Event>
     const res = await eventService.getAll(params);
-    return res.data; // trả về PagedEventResponse
+    return res;
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải danh sách events")
@@ -41,8 +42,9 @@ export const fetchEventById = createAsyncThunk<
   { rejectValue: string }
 >("events/fetchById", async (id, { rejectWithValue }) => {
   try {
+    // eventService.getById() đã trả về Event trực tiếp
     const res = await eventService.getById(id);
-    return res.data;
+    return res;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi tải chi tiết event"));
   }
@@ -55,8 +57,9 @@ export const createEvent = createAsyncThunk<
   { rejectValue: string }
 >("events/create", async (data, { rejectWithValue }) => {
   try {
+    // eventService.create() đã trả về Event trực tiếp
     const res = await eventService.create(data);
-    return res.data;
+    return res;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi tạo event"));
   }
@@ -69,8 +72,9 @@ export const updateEvent = createAsyncThunk<
   { rejectValue: string }
 >("events/update", async ({ id, data }, { rejectWithValue }) => {
   try {
+    // eventService.update() đã trả về Event trực tiếp
     const res = await eventService.update(id, data);
-    return res.data;
+    return res;
   } catch (err: any) {
     return rejectWithValue(getErrorMessage(err, "Lỗi khi cập nhật event"));
   }

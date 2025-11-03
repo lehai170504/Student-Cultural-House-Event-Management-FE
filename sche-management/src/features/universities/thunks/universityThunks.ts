@@ -6,12 +6,13 @@ import type {
   University,
   UpdateUniversity,
 } from "../types/universities";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
-// 🔹 Lấy tất cả universities với filter tùy chọn
+// 🔹 Lấy tất cả universities với pagination (format mới)
 export const fetchAllUniversities = createAsyncThunk<
-  University[],
-  Record<string, any> | undefined,
+  PaginatedResponse<University>,
+  PaginationParams | void,
   { rejectValue: string }
 >("universities/fetchAll", async (params, { rejectWithValue }) => {
   try {
