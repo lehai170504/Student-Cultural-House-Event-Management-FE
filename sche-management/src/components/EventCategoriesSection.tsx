@@ -30,14 +30,18 @@ export default function EventsPage() {
   }, [events]);
 
   const getStatus = (event: (typeof events)[0]) => {
-    const now = new Date();
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-    if (now < start)
-      return { text: "Sắp diễn ra", style: "bg-yellow-100 text-yellow-800" };
-    if (now >= start && now <= end)
-      return { text: "Đang diễn ra", style: "bg-green-100 text-green-800" };
-    return { text: "Đã kết thúc", style: "bg-gray-100 text-gray-600" };
+    switch (event.status) {
+      case "DRAFT":
+        return { text: "NHÁP", style: "bg-blue-100 text-blue-700" };
+      case "ACTIVE":
+        return { text: "ĐANG DIỄN RA", style: "bg-green-100 text-green-700" };
+      case "FINISHED":
+        return { text: "ĐÃ KẾT THÚC", style: "bg-gray-100 text-gray-700" };
+      case "CANCELLED":
+        return { text: "ĐÃ HỦY", style: "bg-red-100 text-red-700" };
+      default:
+        return { text: "KHÔNG XÁC ĐỊNH", style: "bg-gray-200 text-gray-700" };
+    }
   };
 
   return (

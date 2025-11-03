@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,13 +11,16 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Calendar, MapPin, ArrowLeft, Users, Coins } from "lucide-react";
+import { Calendar, MapPin, ArrowLeft, Users, Coins, Star } from "lucide-react";
 import { useEvents } from "@/features/events/hooks/useEvents";
 import type { Event } from "@/features/events/types/events";
 import { motion } from "framer-motion";
 
 // Import Sonner Toast
 import { toast } from "sonner";
+import axiosInstance from "@/config/axiosInstance";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function EventDetailPage() {
   const { id } = useParams();
@@ -30,10 +33,38 @@ export default function EventDetailPage() {
     loadingDetail,
     registerForEventByStudent,
     registering,
+    sendFeedbackForEvent,
+    sendingFeedback,
   } = useEvents();
 
+  // Feedback form state (hooks must be before any conditional returns)
+  const [rating, setRating] = useState<string>("");
+  const [comments, setComments] = useState<string>("");
+  const [hasRegistered, setHasRegistered] = useState<boolean>(false);
+
   useEffect(() => {
-    if (eventId) loadDetail(eventId);
+    if (eventId) {
+      loadDetail(eventId);
+      // Check if current student has registered this event
+      (async () => {
+        try {
+          const res = await axiosInstance.get<any>("/students/me/events", {
+            params: { page: 1, size: 1000 },
+          });
+          const payload = res?.data;
+          const list: any[] = (payload?.data && Array.isArray(payload.data))
+            ? payload.data
+            : Array.isArray(payload)
+            ? payload
+            : [];
+          const found = list.some((e: any) => Number(e?.id) === Number(eventId));
+          setHasRegistered(found);
+        } catch (e) {
+          // ignore check error
+          setHasRegistered(false);
+        }
+      })();
+    }
   }, [eventId, loadDetail]);
 
   if (loadingDetail || !detail) {
@@ -87,11 +118,37 @@ export default function EventDetailPage() {
     try {
       const studentId = 123; // Giả sử studentId lấy từ context/session
       await registerForEventByStudent(detail.id, studentId);
+      setHasRegistered(true);
 
       // Thông báo thành công bằng Sonner
       toast.success("Đăng ký thành công!");
     } catch (err: any) {
       toast.error(err?.message || "Đăng ký thất bại!");
+    }
+  };
+  const handleGoToFeedback = () => {
+    const el = document.getElementById("feedback-section");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detail) return;
+    if (!rating) {
+      toast.error("Vui lòng chọn mức đánh giá (1-5)");
+      return;
+    }
+    try {
+      await sendFeedbackForEvent(detail.id, {
+        rating: Number(rating),
+        comments,
+      });
+      toast.success("Gửi phản hồi thành công!");
+      setRating("");
+      setComments("");
+    } catch (err: any) {
+      toast.error(err?.message || "Gửi phản hồi thất bại!");
     }
   };
 
@@ -116,15 +173,32 @@ export default function EventDetailPage() {
           {getStatusText(event.status)}
         </Badge>
 
-        {event.status === "ACTIVE" && (
+        {event.status === "ACTIVE" ? (
+          hasRegistered ? (
+            <Button
+              disabled
+              className="mt-4 bg-gray-300 text-gray-600 cursor-not-allowed"
+            >
+              Đã đăng ký
+            </Button>
+          ) : (
+            <Button
+              onClick={handleRegister}
+              disabled={registering}
+              className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              {registering ? "Đang đăng ký..." : "Đăng ký sự kiện"}
+            </Button>
+          )
+        ) : null}
+        {event.status === "FINISHED" ? (
           <Button
-            onClick={handleRegister}
-            disabled={registering}
-            className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
+            onClick={handleGoToFeedback}
+            className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"
           >
-            {registering ? "Đang đăng ký..." : "Đăng ký sự kiện"}
+            Gửi feedback
           </Button>
-        )}
+        ) : null}
       </motion.section>
 
       {/* Event Info */}
@@ -242,6 +316,68 @@ export default function EventDetailPage() {
         >
           Ngày tạo: {new Date(event.createdAt).toLocaleString()}
         </motion.p>
+
+        {/* Feedback Form - only when FINISHED */}
+        {event.status === "FINISHED" && (
+          <motion.div
+            id="feedback-section"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Gửi phản hồi sự kiện</CardTitle>
+                <CardDescription>
+                  Vui lòng đánh giá trải nghiệm của bạn sau khi tham gia sự kiện.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitFeedback} className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="rating">Mức đánh giá</Label>
+                      <div id="rating" className="flex items-center gap-1 mt-2">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            aria-label={`Đánh giá ${i} sao`}
+                            onClick={() => setRating(String(i))}
+                            className="p-1"
+                          >
+                            <Star
+                              className={
+                                Number(rating) >= i
+                                  ? "h-6 w-6 text-yellow-400 fill-yellow-400"
+                                  : "h-6 w-6 text-gray-300"
+                              }
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="comments">Nhận xét</Label>
+                      <Textarea
+                        id="comments"
+                        placeholder="Chia sẻ cảm nhận của bạn..."
+                        value={comments}
+                        onChange={(e) => setComments(e.target.value)}
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={sendingFeedback || !rating}>
+                      {sendingFeedback ? "Đang gửi..." : "Gửi phản hồi"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </section>
     </main>
   );
