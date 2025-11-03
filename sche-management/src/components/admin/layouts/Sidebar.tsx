@@ -18,6 +18,7 @@ import {
   FileSearch,
   BarChart3,
   Ticket,
+  Gift,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -32,6 +33,7 @@ const menuSections = [
       { label: "Sự kiện", href: "/admin/events", icon: Calendar },
       { label: "Người dùng", href: "/admin/users", icon: Users },
       { label: "Khuyến mãi", href: "/admin/vouchers", icon: Ticket },
+      { label: "Quà tặng", href: "/admin/product", icon: Gift },
     ],
   },
   {

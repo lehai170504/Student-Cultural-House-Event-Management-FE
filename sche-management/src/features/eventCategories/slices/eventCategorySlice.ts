@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { EventCategory } from "@/features/eventCategories/types/eventCategories";
-import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
+import type { PaginatedResponseMeta } from "@/utils/apiResponse";
 import {
   fetchAllEventCategories,
   fetchEventCategoryById,
@@ -11,8 +11,8 @@ import {
 
 interface EventCategoryState {
   list: EventCategory[];
-  pagination: PaginatedResponseMeta | null; // metadata cho pagination
-  detailCategory: EventCategory | null; // chi tiết
+  pagination: PaginatedResponseMeta | null;
+  detailCategory: EventCategory | null;
   loadingList: boolean;
   loadingDetail: boolean;
   saving: boolean;
@@ -35,6 +35,10 @@ const eventCategorySlice = createSlice({
   name: "eventCategory",
   initialState,
   reducers: {
+    resetList: (state) => {
+      state.list = [];
+      state.pagination = null;
+    },
     resetDetail: (state) => {
       state.detailCategory = null;
     },
@@ -44,16 +48,15 @@ const eventCategorySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // fetch all (format mới: PaginatedResponse)
       .addCase(fetchAllEventCategories.pending, (state) => {
         state.loadingList = true;
       })
       .addCase(
         fetchAllEventCategories.fulfilled,
-        (state, action: PayloadAction<PaginatedResponse<EventCategory>>) => {
+        (state, action: PayloadAction<EventCategory[]>) => {
           state.loadingList = false;
-          state.list = action.payload?.data || [];
-          state.pagination = action.payload?.meta || null;
+          state.list = action.payload;
+          state.pagination = null;
         }
       )
       .addCase(fetchAllEventCategories.rejected, (state, action) => {
@@ -61,7 +64,6 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // fetch by id
       .addCase(fetchEventCategoryById.pending, (state) => {
         state.loadingDetail = true;
       })
@@ -77,7 +79,6 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // create
       .addCase(createEventCategory.pending, (state) => {
         state.saving = true;
       })
@@ -85,7 +86,7 @@ const eventCategorySlice = createSlice({
         createEventCategory.fulfilled,
         (state, action: PayloadAction<EventCategory>) => {
           state.saving = false;
-          state.list = [...state.list, action.payload];
+          state.list = [action.payload, ...state.list];
         }
       )
       .addCase(createEventCategory.rejected, (state, action) => {
@@ -93,7 +94,6 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // update
       .addCase(updateEventCategory.pending, (state) => {
         state.saving = true;
       })
@@ -114,7 +114,6 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // delete
       .addCase(deleteEventCategory.pending, (state) => {
         state.deleting = true;
       })
@@ -132,5 +131,6 @@ const eventCategorySlice = createSlice({
   },
 });
 
-export const { resetDetail, clearError } = eventCategorySlice.actions;
+export const { resetList, resetDetail, clearError } =
+  eventCategorySlice.actions;
 export default eventCategorySlice.reducer;

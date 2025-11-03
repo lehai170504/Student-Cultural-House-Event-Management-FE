@@ -2,21 +2,20 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { eventCategoryService } from "@/features/eventCategories/services/eventCategoryService";
 import type {
   EventCategory,
-  EventCategoryDetail,
   CreateEventCategory,
   UpdateEventCategory,
 } from "@/features/eventCategories/types/eventCategories";
 import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
-// 🔹 Lấy tất cả danh mục sự kiện với pagination (format mới)
 export const fetchAllEventCategories = createAsyncThunk<
-  PaginatedResponse<EventCategory>,
-  PaginationParams | void,
+  EventCategory[],
+  void,
   { rejectValue: string }
->("eventCategories/fetchAll", async (params, { rejectWithValue }) => {
+>("eventCategories/fetchAll", async (_, { rejectWithValue }) => {
   try {
-    const res = await eventCategoryService.getAll(params);
+    const res = await eventCategoryService.getAll();
+
     return res;
   } catch (err: any) {
     return rejectWithValue(
@@ -24,8 +23,6 @@ export const fetchAllEventCategories = createAsyncThunk<
     );
   }
 });
-
-// 🔹 Lấy chi tiết danh mục
 export const fetchEventCategoryById = createAsyncThunk<
   EventCategory,
   number,
@@ -41,7 +38,6 @@ export const fetchEventCategoryById = createAsyncThunk<
   }
 });
 
-/** 🔹 Tạo mới danh mục sự kiện */
 export const createEventCategory = createAsyncThunk<
   EventCategory,
   CreateEventCategory,
@@ -57,7 +53,6 @@ export const createEventCategory = createAsyncThunk<
   }
 });
 
-/** 🔹 Cập nhật danh mục sự kiện theo ID */
 export const updateEventCategory = createAsyncThunk<
   EventCategory,
   { id: number; data: UpdateEventCategory },
@@ -73,7 +68,6 @@ export const updateEventCategory = createAsyncThunk<
   }
 });
 
-// 🔹 Xoá danh mục
 export const deleteEventCategory = createAsyncThunk<
   number,
   number,

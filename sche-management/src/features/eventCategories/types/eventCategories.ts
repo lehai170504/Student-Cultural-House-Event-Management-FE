@@ -3,10 +3,15 @@ export interface EventCategory {
   name: string;
   description: string;
 }
+export interface PaginationMeta {
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  totalItems: number;
+}
 
 export interface EventCategoryResponse {
-  status: number;
-  message: string;
+  meta: PaginationMeta; 
   data: EventCategory[];
 }
 
@@ -17,8 +22,4 @@ export interface CreateEventCategory {
 
 export type UpdateEventCategory = CreateEventCategory;
 
-export interface EventCategoryDetail {
-  status: number;
-  message: string;
-  data: EventCategory;
-}
+export type EventCategoryDetail = EventCategory;

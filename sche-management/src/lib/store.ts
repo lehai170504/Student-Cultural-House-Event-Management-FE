@@ -5,6 +5,8 @@ import eventReducer from "@/features/events/slices/eventSlice";
 import universityReducer from "@/features/universities/slices/universitySlice";
 import partnerReducer from "@/features/partner/slices/partnerSlice";
 import studentReducer from "@/features/students/slices/studentSlice";
+import productReducer from "@/features/products/slices/productSlice";
+import invoiceReducer from "@/features/invoices/slices/invoiceSlice";
 
 // Store singleton
 export const store = configureStore({
@@ -15,6 +17,8 @@ export const store = configureStore({
     university: universityReducer,
     partner: partnerReducer,
     student: studentReducer,
+    product: productReducer,
+    invoice: invoiceReducer,
   },
 });
 
