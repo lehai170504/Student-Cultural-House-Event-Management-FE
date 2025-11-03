@@ -1,23 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { useEvents } from "@/features/events/hooks/useEvents";
-import { Calendar, MapPin, Users, Clock } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function EventsPage() {
+  const router = useRouter();
   const { list: events = [], loadAll } = useEvents();
   const [highlightedEvents, setHighlightedEvents] = useState<typeof events>([]);
-  const [selectedEvent, setSelectedEvent] = useState<(typeof events)[0] | null>(
-    null
-  );
 
   useEffect(() => {
     // Backend đã mở quyền public cho events, không cần check auth
@@ -62,7 +55,7 @@ export default function EventsPage() {
                 <div
                   key={event.id}
                   className="bg-white rounded-2xl shadow-md hover:shadow-xl transition-transform transform hover:-translate-y-1 cursor-pointer overflow-hidden p-5 flex flex-col justify-between"
-                  onClick={() => setSelectedEvent(event)}
+                  onClick={() => router.push(`/events/${event.id}`)}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3">
@@ -83,8 +76,8 @@ export default function EventsPage() {
                       {new Date(event.endTime).toLocaleDateString()}
                     </p>
                   </div>
-                  <Button className="mt-4 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-md">
-                    Xem chi tiết
+                  <Button asChild className="mt-4 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-md">
+                    <Link href={`/events/${event.id}`}>Xem chi tiết</Link>
                   </Button>
                 </div>
               );
@@ -92,54 +85,6 @@ export default function EventsPage() {
           </div>
         </div>
       </section>
-
-      {/* Dialog chi tiết sự kiện */}
-      {selectedEvent && (
-        <Dialog
-          open={!!selectedEvent}
-          onOpenChange={() => setSelectedEvent(null)}
-        >
-          <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl lg:max-w-4xl max-h-[85vh] overflow-y-auto p-6 rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold text-gray-800 mb-4">
-                {selectedEvent.title}
-              </DialogTitle>
-            </DialogHeader>
-
-            <div className="flex flex-col gap-4">
-              <p className="text-gray-700 leading-relaxed">
-                {selectedEvent.description}
-              </p>
-
-              <div className="grid grid-cols-1 gap-2 text-gray-600 text-sm">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span>
-                    {new Date(selectedEvent.startTime).toLocaleDateString()} -{" "}
-                    {new Date(selectedEvent.endTime).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-400" />
-                  <span>{selectedEvent.location}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <span>{selectedEvent.maxAttendees || 0} người tham gia</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <span>Đăng ký mở</span>
-                </div>
-              </div>
-
-              <Button className="mt-4 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-md">
-                Tham gia ngay
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </main>
   );
 }
