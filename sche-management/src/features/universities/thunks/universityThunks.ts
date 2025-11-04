@@ -12,7 +12,7 @@ import { getErrorMessage } from "@/utils/errorHandler";
 // 🔹 Lấy tất cả universities với pagination (format mới)
 export const fetchAllUniversities = createAsyncThunk<
   PaginatedResponse<University>,
-  PaginationParams | void,
+  PaginationParams | undefined,
   { rejectValue: string }
 >("universities/fetchAll", async (params, { rejectWithValue }) => {
   try {
