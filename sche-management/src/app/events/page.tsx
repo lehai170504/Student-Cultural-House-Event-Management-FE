@@ -17,6 +17,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { motion } from "framer-motion";
+import type { Event } from "@/features/events/types/events";
 
 export default function EventsPage() {
   const {
@@ -26,44 +27,107 @@ export default function EventsPage() {
     totalPages,
     isLastPage,
     loadAll,
+    eventCategories: allCategories = [],
   } = useEvents();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<null | "ACTIVE" | "FINISHED">(null);
+  const [overrideEvents, setOverrideEvents] = useState<Event[] | null>(null);
 
-  // Lấy danh sách category duy nhất
-  const eventCategories = Array.from(
-    new Map(events.map((e) => [e.category.id, e.category])).values()
-  );
+  // Chọn nguồn hiển thị: override (khi xem 'Tất cả trạng thái') hoặc từ store
+  const baseEvents = overrideEvents ?? events;
+
+  // Chỉ hiển thị các danh mục có ít nhất 1 event trong danh sách hiện tại
+  const categoryIdToCount = baseEvents.reduce<Record<number, number>>((acc, ev) => {
+    const id = ev.category?.id;
+    if (typeof id === "number") acc[id] = (acc[id] || 0) + 1;
+    return acc;
+  }, {});
+  const eventCategories = allCategories.filter((cat) => (categoryIdToCount[cat.id] || 0) > 0);
 
   // Filter events theo search + category
-  const filteredEvents = events.filter((event) => {
+  const filteredEvents = baseEvents.filter((event) => {
     const matchSearch =
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCategory = selectedCategory
       ? event.category.id === selectedCategory
       : true;
-    return matchSearch && matchCategory;
+    const matchStatus = selectedStatus ? event.status === selectedStatus : true;
+    return matchSearch && matchCategory && matchStatus;
   });
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const keyword = e.target.value;
     setSearchTerm(keyword);
-    loadAll({
-      page: 1, // Format mới: page bắt đầu từ 1
-      search: keyword,
-      categoryId: selectedCategory || undefined,
-    });
+    if (selectedStatus === null) {
+      // Fetch cả ACTIVE + FINISHED và gộp kết quả
+      const [a, f] = await Promise.all([
+        loadAll({ page: 1, search: keyword, status: "ACTIVE" as const }),
+        loadAll({ page: 1, search: keyword, status: "FINISHED" as const }),
+      ]);
+      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
+      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
+      const merged = [...arrA, ...arrF].filter(
+        (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+      );
+      setOverrideEvents(merged as Event[]);
+    } else {
+      setOverrideEvents(null);
+      loadAll({
+        page: 1,
+        search: keyword,
+        status: selectedStatus || undefined,
+      });
+    }
   };
 
-  const handleCategoryFilter = (categoryId: number | null) => {
+  const handleCategoryFilter = async (categoryId: number | null) => {
     setSelectedCategory(categoryId);
-    loadAll({
-      page: 1, // Format mới: page bắt đầu từ 1
-      search: searchTerm || undefined,
-      categoryId: categoryId || undefined,
-    });
+    if (selectedStatus === null) {
+      const [a, f] = await Promise.all([
+        loadAll({ page: 1, search: searchTerm || undefined, status: "ACTIVE" as const }),
+        loadAll({ page: 1, search: searchTerm || undefined, status: "FINISHED" as const }),
+      ]);
+      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
+      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
+      const merged = [...arrA, ...arrF].filter(
+        (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+      );
+      setOverrideEvents(merged as Event[]);
+    } else {
+      setOverrideEvents(null);
+      loadAll({
+        page: 1, // Format mới: page bắt đầu từ 1
+        search: searchTerm || undefined,
+        status: selectedStatus || undefined,
+      });
+    }
+  };
+
+  const handleStatusFilter = async (status: null | "ACTIVE" | "FINISHED") => {
+    setSelectedStatus(status);
+    if (status === null) {
+      const [a, f] = await Promise.all([
+        loadAll({ page: 1, search: searchTerm || undefined, categoryId: selectedCategory || undefined, status: "ACTIVE" as const }),
+        loadAll({ page: 1, search: searchTerm || undefined, categoryId: selectedCategory || undefined, status: "FINISHED" as const }),
+      ]);
+      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
+      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
+      const merged = [...arrA, ...arrF].filter(
+        (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+      );
+      setOverrideEvents(merged as Event[]);
+    } else {
+      setOverrideEvents(null);
+      loadAll({
+        page: 1,
+        search: searchTerm || undefined,
+        categoryId: selectedCategory || undefined,
+        status,
+      });
+    }
   };
 
   const handlePageChange = (page: number) => {
@@ -72,6 +136,7 @@ export default function EventsPage() {
       page,
       search: searchTerm || undefined,
       categoryId: selectedCategory || undefined,
+      status: selectedStatus || undefined,
     });
   };
 
@@ -99,33 +164,54 @@ export default function EventsPage() {
     return pages;
   };
 
-  // Xác định trạng thái event
   const getEventStatus = (event: (typeof events)[0]) => {
-    const now = new Date();
-    const start = new Date(event.startTime);
-    const end = new Date(event.endTime);
-
-    if (now >= start && now <= end) return "ACTIVE";
-    if (now < start) return "UPCOMING";
-    return "ENDED";
+    return event.status || "DRAFT"; // default là DRAFT
   };
 
-  // Style badge trạng thái
-  const getStatusStyle = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
+      case "DRAFT":
+        return "bg-blue-100 text-blue-700"; // Nháp
       case "ACTIVE":
-        return "bg-gradient-to-r from-green-200 to-green-100 text-green-800 uppercase";
-      case "UPCOMING":
-        return "bg-gradient-to-r from-yellow-200 to-yellow-100 text-yellow-800 uppercase";
-      case "ENDED":
-        return "bg-gradient-to-r from-gray-200 to-gray-100 text-gray-800 uppercase";
+        return "bg-green-100 text-green-700"; // Đang diễn ra
+      case "FINISHED":
+        return "bg-gray-100 text-gray-700"; // Kết thúc
+      case "CANCELLED":
+        return "bg-red-100 text-red-700"; // Hủy
       default:
-        return "bg-gray-100 text-gray-800 uppercase";
+        return "bg-gray-200 text-gray-700"; // Không xác định
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "DRAFT":
+        return "NHÁP";
+      case "ACTIVE":
+        return "ĐANG DIỄN RA";
+      case "FINISHED":
+        return "ĐÃ KẾT THÚC";
+      case "CANCELLED":
+        return "ĐÃ HỦY";
+      default:
+        return "KHÔNG XÁC ĐỊNH";
     }
   };
 
   useEffect(() => {
-    loadAll({ page: 1 }); // Format mới: page bắt đầu từ 1
+    // Mặc định hiển thị tất cả trạng thái: gộp ACTIVE + FINISHED
+    (async () => {
+      const [a, f] = await Promise.all([
+        loadAll({ page: 1, status: "ACTIVE" }),
+        loadAll({ page: 1, status: "FINISHED" }),
+      ]);
+      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
+      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
+      const merged = [...arrA, ...arrF].filter(
+        (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+      );
+      setOverrideEvents(merged as Event[]);
+    })();
   }, [loadAll]);
 
   return (
@@ -152,7 +238,7 @@ export default function EventsPage() {
                 variant={selectedCategory === null ? "default" : "outline"}
                 onClick={() => handleCategoryFilter(null)}
               >
-                Tất cả ({events.length})
+                Tất cả ({baseEvents.length})
               </Button>
             </motion.div>
 
@@ -162,11 +248,32 @@ export default function EventsPage() {
                   variant={selectedCategory === cat.id ? "default" : "outline"}
                   onClick={() => handleCategoryFilter(cat.id)}
                 >
-                  {cat.name} (
-                  {events.filter((e) => e.category.id === cat.id).length})
+                  {cat.name} ({categoryIdToCount[cat.id] || 0})
                 </Button>
               </motion.div>
             ))}
+          </div>
+          
+          {/* Status Filters */}
+          <div className="flex gap-2 mt-4 md:mt-0">
+            <Button
+              variant={selectedStatus === null ? "default" : "outline"}
+              onClick={() => handleStatusFilter(null)}
+            >
+              Tất cả trạng thái
+            </Button>
+            <Button
+              variant={selectedStatus === "ACTIVE" ? "default" : "outline"}
+              onClick={() => handleStatusFilter("ACTIVE")}
+            >
+              Đang diễn ra
+            </Button>
+            <Button
+              variant={selectedStatus === "FINISHED" ? "default" : "outline"}
+              onClick={() => handleStatusFilter("FINISHED")}
+            >
+              Đã kết thúc
+            </Button>
           </div>
         </div>
       </section>
@@ -203,8 +310,8 @@ export default function EventsPage() {
                         {new Date(event.endTime).toLocaleDateString()}
                       </p>
 
-                      <Badge className={`${getStatusStyle(status)} mt-2`}>
-                        {status}
+                      <Badge className={`${getStatusColor(status)} mt-2`}>
+                        {getStatusText(status)}
                       </Badge>
                     </div>
                   </Link>

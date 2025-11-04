@@ -2,7 +2,6 @@
 
 import { useAuth } from "react-oidc-context";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { User as UserIcon, CreditCard, LogOut } from "lucide-react";
+import { User as UserIcon, CreditCard, LogOut, CalendarDays } from "lucide-react";
 
 export function UserProfile() {
   const auth = useAuth();
@@ -90,9 +89,15 @@ export function UserProfile() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/card/virtual" className="flex items-center gap-2">
+              <Link href="/card" className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4" />
                 <span>Thẻ ảo</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/students/my-events" className="flex items-center gap-2">
+                <CalendarDays className="h-4 w-4" />
+                <span>Lịch sử sự kiện</span>
               </Link>
             </DropdownMenuItem>
           </>

@@ -12,11 +12,18 @@ import {
   sendEventFeedback,
   checkinEvent,
   fetchEventAttendees,
+  finalizeEvent,
+  checkinByPhoneNumber,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
 import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
 
-import type { CreateEvent, UpdateEvent } from "../types/events";
+import type {
+  CreateEvent,
+  UpdateEvent,
+  EventCheckinDetail,
+  EventCheckinRequest,
+} from "../types/events";
 
 export const useEvents = () => {
   const dispatch = useAppDispatch();
@@ -35,27 +42,28 @@ export const useEvents = () => {
     pageSize,
     isLastPage,
 
-    // EXTENDED STATE
     registering,
     sendingFeedback,
     checkingIn,
     loadingAttendees,
     attendees,
+    finalizing,
+    submittingCheckin,
   } = useAppSelector((state) => state.event);
 
   const { list: categories = [], loadingList: loadingCategories } =
     useAppSelector((state) => state.eventCategory);
 
-  /** 🔸 Lấy danh sách tất cả events */
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
-      const res = await dispatch(fetchAllEvents(params)).unwrap();
+      const validParams =
+        params && Object.keys(params).length > 0 ? params : undefined;
+      const res = await dispatch(fetchAllEvents(validParams)).unwrap();
       return res;
     },
     [dispatch]
   );
 
-  /** 🔸 Lấy chi tiết event */
   const loadDetail = useCallback(
     async (id: number) => {
       await dispatch(fetchEventById(id));
@@ -63,7 +71,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 Tạo mới event */
   const createNewEvent = useCallback(
     async (data: CreateEvent) => {
       const result = await dispatch(createEvent(data));
@@ -72,7 +79,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 Cập nhật event */
   const updateExistingEvent = useCallback(
     async (id: number, data: UpdateEvent) => {
       const result = await dispatch(updateEvent({ id, data }));
@@ -81,7 +87,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 Xoá event */
   const deleteEventById = useCallback(
     async (id: number) => {
       const result = await dispatch(deleteEvent(id));
@@ -90,27 +95,22 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 Reset chi tiết */
   const resetEventDetail = useCallback(() => {
     dispatch(resetDetail());
   }, [dispatch]);
 
-  /** 🔸 Reset Pagination */
   const resetEventPagination = useCallback(() => {
     dispatch(resetPagination());
   }, [dispatch]);
 
-  /** 🔸 Xoá lỗi */
   const clearEventError = useCallback(() => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /** 🔸 Load danh mục */
   const loadCategories = useCallback(async () => {
     await dispatch(fetchAllEventCategories());
   }, [dispatch]);
 
-  /** 🔸 1️⃣ Đăng ký sự kiện */
   const registerForEventByStudent = useCallback(
     async (eventId: number, studentId: number) => {
       const result = await dispatch(registerForEvent({ eventId, studentId }));
@@ -119,7 +119,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 2️⃣ Gửi feedback */
   const sendFeedbackForEvent = useCallback(
     async (eventId: number, data: { rating: number; comments: string }) => {
       const result = await dispatch(sendEventFeedback({ eventId, data }));
@@ -128,7 +127,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 3️⃣ Check-in sự kiện */
   const checkinForEvent = useCallback(
     async (data: { eventId: number; phoneNumber: string }) => {
       const result = await dispatch(checkinEvent(data));
@@ -137,7 +135,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 4️⃣ Lấy danh sách người tham dự */
   const loadEventAttendees = useCallback(
     async (eventId: number, params?: Record<string, any>) => {
       const result = await dispatch(fetchEventAttendees({ eventId, params }));
@@ -146,34 +143,45 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  /** 🔸 Tự động load events + categories khi mount
-   * Backend đã mở quyền public, không cần auth để xem events
-   */
+  const finalizeEventById = useCallback(
+    async (eventId: number) => {
+      const result = await dispatch(finalizeEvent(eventId));
+      return result;
+    },
+    [dispatch]
+  );
+
+  const submitCheckinDetailData = useCallback(
+    async (data: EventCheckinDetail) => {
+      const checkinPayload = {
+        eventId: data.eventId,
+        phoneNumber: (data as any).phoneNumber,
+      };
+
+      // Gọi thunk checkinEvent
+      const result = await dispatch(checkinEvent(checkinPayload));
+      return result;
+    },
+    [dispatch]
+  );
   useEffect(() => {
-    // Auto-load events và categories
-    // Backend đã mở quyền public nên không cần check auth
     loadAll({ page: 1, size: 10 }).catch((err) => {
-      // Handle error gracefully
       console.log("Could not load events:", err);
     });
-    // loadCategories dispatch thunk action
     dispatch(fetchAllEventCategories())
       .unwrap()
       .catch((err: any) => {
-        // Handle error gracefully
         console.log("Could not load categories:", err);
       });
   }, [loadAll, dispatch]);
 
   return {
-    // DỮ LIỆU SỰ KIỆN
     list,
     detail,
     attendees,
     error,
     eventCategories: categories,
 
-    // TRẠNG THÁI LOADING
     loadingList,
     loadingDetail,
     saving,
@@ -183,15 +191,15 @@ export const useEvents = () => {
     sendingFeedback,
     checkingIn,
     loadingAttendees,
+    finalizing,
+    submittingCheckin,
 
-    // TRẠNG THÁI PHÂN TRANG
     currentPage,
     totalElements,
     totalPages,
     pageSize,
     isLastPage,
 
-    // ACTIONS
     loadAll,
     loadDetail,
     createNewEvent,
@@ -201,10 +209,11 @@ export const useEvents = () => {
     resetEventPagination,
     clearEventError,
 
-    // EXTENDED ACTIONS
     registerForEventByStudent,
     sendFeedbackForEvent,
     checkinForEvent,
     loadEventAttendees,
+    finalizeEventById,
+    submitCheckinDetailData,
   };
 };

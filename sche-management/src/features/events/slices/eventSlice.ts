@@ -5,8 +5,13 @@ import type {
   EventFeedbackResponse,
   EventCheckinResponse,
   AttendeesResponse,
+  EventFinalizeResponse,
+  EventCheckinDetail,
 } from "@/features/events/types/events";
-import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
+import type {
+  PaginatedResponseMeta,
+  PaginatedResponse,
+} from "@/utils/apiResponse";
 import {
   fetchAllEvents,
   fetchEventById,
@@ -17,6 +22,8 @@ import {
   sendEventFeedback,
   checkinEvent,
   fetchEventAttendees,
+  finalizeEvent,
+  checkinByPhoneNumber,
 } from "../thunks/eventThunks";
 
 interface EventState {
@@ -28,15 +35,16 @@ interface EventState {
   deleting: boolean;
   error: string | null;
 
-  // extended actions state
   registering: boolean;
   sendingFeedback: boolean;
   checkingIn: boolean;
   loadingAttendees: boolean;
   attendees: AttendeesResponse | null;
 
-  pagination: PaginatedResponseMeta | null; // metadata cho pagination (format mới)
-  // Giữ lại các field cũ để backward compatibility
+  finalizing: boolean;
+  submittingCheckin: boolean;
+
+  pagination: PaginatedResponseMeta | null;
   currentPage: number;
   totalElements: number;
   totalPages: number;
@@ -58,6 +66,9 @@ const initialState: EventState = {
   checkingIn: false,
   loadingAttendees: false,
   attendees: null,
+
+  finalizing: false,
+  submittingCheckin: false,
 
   pagination: null,
   currentPage: 0,
@@ -85,12 +96,14 @@ const eventSlice = createSlice({
       state.totalPages = 0;
       state.isLastPage = true;
     },
+    updateEventDetail: (state, action: PayloadAction<Event>) => {
+      if (state.detail?.id === action.payload.id) {
+        state.detail = action.payload;
+      }
+    },
   },
   extraReducers: (builder) => {
     builder
-      // ========== CRUD ==========
-
-      // fetch all (format mới: PaginatedResponse)
       .addCase(fetchAllEvents.pending, (state) => {
         state.loadingList = true;
       })
@@ -101,17 +114,17 @@ const eventSlice = createSlice({
           if (action.payload) {
             state.list = action.payload?.data || [];
             state.pagination = action.payload?.meta || null;
-            
-            // Đồng bộ với các field cũ để backward compatibility
+
             if (action.payload?.meta) {
-              state.currentPage = action.payload.meta.currentPage - 1; // convert 1-indexed to 0-indexed
+              state.currentPage = action.payload.meta.currentPage - 1;
               state.pageSize = action.payload.meta.pageSize;
               state.totalElements = action.payload.meta.totalItems;
               state.totalPages = action.payload.meta.totalPages;
-              state.isLastPage = action.payload.meta.currentPage >= action.payload.meta.totalPages;
+              state.isLastPage =
+                action.payload.meta.currentPage >=
+                action.payload.meta.totalPages;
             }
           } else {
-            // Fallback nếu payload undefined
             state.list = [];
             state.pagination = null;
           }
@@ -123,7 +136,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // fetch by id
       .addCase(fetchEventById.pending, (state) => {
         state.loadingDetail = true;
       })
@@ -140,7 +152,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // create
       .addCase(createEvent.pending, (state) => {
         state.saving = true;
       })
@@ -154,7 +165,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // update
       .addCase(updateEvent.pending, (state) => {
         state.saving = true;
       })
@@ -171,7 +181,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // delete
       .addCase(deleteEvent.pending, (state) => {
         state.deleting = true;
       })
@@ -188,9 +197,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // ========== EXTENDED ACTIONS ==========
-
-      // register
       .addCase(registerForEvent.pending, (state) => {
         state.registering = true;
       })
@@ -203,7 +209,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // send feedback
       .addCase(sendEventFeedback.pending, (state) => {
         state.sendingFeedback = true;
       })
@@ -216,7 +221,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // check-in
       .addCase(checkinEvent.pending, (state) => {
         state.checkingIn = true;
       })
@@ -229,7 +233,6 @@ const eventSlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
-      // fetch attendees
       .addCase(fetchEventAttendees.pending, (state) => {
         state.loadingAttendees = true;
       })
@@ -244,9 +247,52 @@ const eventSlice = createSlice({
       .addCase(fetchEventAttendees.rejected, (state, action) => {
         state.loadingAttendees = false;
         state.error = (action.payload as string) || null;
+      })
+
+      .addCase(finalizeEvent.pending, (state) => {
+        state.finalizing = true;
+        state.error = null;
+      })
+      .addCase(
+        finalizeEvent.fulfilled,
+        (state, action: PayloadAction<EventFinalizeResponse>) => {
+          state.finalizing = false;
+          const finalizedEvent = action.payload;
+
+          const idx = state.list.findIndex((e) => e.id === finalizedEvent.id);
+          if (idx !== -1) {
+            state.list[idx] = finalizedEvent;
+          }
+
+          if (state.detail?.id === finalizedEvent.id) {
+            state.detail = finalizedEvent;
+          }
+          state.error = null;
+        }
+      )
+      .addCase(finalizeEvent.rejected, (state, action) => {
+        state.finalizing = false;
+        state.error = (action.payload as string) || null;
+      })
+
+      .addCase(checkinByPhoneNumber.pending, (state) => {
+        state.submittingCheckin = true;
+        state.error = null;
+      })
+      .addCase(
+        checkinByPhoneNumber.fulfilled,
+        (state, action: PayloadAction<EventCheckinDetail>) => {
+          state.submittingCheckin = false;
+          state.error = null;
+        }
+      )
+      .addCase(checkinByPhoneNumber.rejected, (state, action) => {
+        state.submittingCheckin = false;
+        state.error = (action.payload as string) || null;
       });
   },
 });
 
-export const { resetDetail, clearError, resetPagination } = eventSlice.actions;
+export const { resetDetail, clearError, resetPagination, updateEventDetail } =
+  eventSlice.actions;
 export default eventSlice.reducer;

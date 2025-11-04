@@ -59,7 +59,6 @@ export default function PublicNavbar() {
     { label: "Trang chủ", href: "/" },
     { label: "Sự kiện", href: "/events" },
     { label: "Đổi quà", href: "/gifts" },
-    { label: "Đăng ký thẻ", href: "/#membership" },
     { label: "Liên hệ", href: "/contact" },
   ];
 

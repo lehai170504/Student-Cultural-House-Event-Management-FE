@@ -4,6 +4,7 @@ import PublicNavbar from "@/components/PublicNavbar";
 import HeroSection from "@/components/HeroSection";
 import RewardsSection from "@/components/RewardsSection";
 import EventCategoriesSection from "@/components/EventCategoriesSection";
+import RecommendedEventsModal from "@/components/RecommendedEventsModal";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 
@@ -14,6 +15,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50">
       <PublicNavbar />
+      <RecommendedEventsModal />
       <HeroSection />
 
       {/* --- Rewards Section --- */}

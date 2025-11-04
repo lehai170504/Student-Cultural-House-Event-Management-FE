@@ -10,9 +10,18 @@ import type {
   EventCheckinRequest,
   EventCheckinResponse,
   AttendeesResponse,
+  // 🌟 Import các type mới
+  EventFinalizeResponse,
+  EventCheckinDetail,
+  RequestEventCheckin,
 } from "@/features/events/types/events";
 import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
+
+export interface CheckinPayload {
+  eventId: number;
+  data: RequestEventCheckin;
+}
 
 // ============================================================
 // 🔸 EVENT CRUD
@@ -25,7 +34,6 @@ export const fetchAllEvents = createAsyncThunk<
   { rejectValue: string }
 >("events/fetchAll", async (params, { rejectWithValue }) => {
   try {
-    // eventService.getAll() trả về PaginatedResponse<Event>
     const res = await eventService.getAll(params);
     return res;
   } catch (err: any) {
@@ -37,12 +45,11 @@ export const fetchAllEvents = createAsyncThunk<
 
 // 🔹 Lấy chi tiết event theo ID
 export const fetchEventById = createAsyncThunk<
-  Event, // trả về thẳng Event
+  Event,
   number,
   { rejectValue: string }
 >("events/fetchById", async (id, { rejectWithValue }) => {
   try {
-    // eventService.getById() đã trả về Event trực tiếp
     const res = await eventService.getById(id);
     return res;
   } catch (err: any) {
@@ -57,7 +64,6 @@ export const createEvent = createAsyncThunk<
   { rejectValue: string }
 >("events/create", async (data, { rejectWithValue }) => {
   try {
-    // eventService.create() đã trả về Event trực tiếp
     const res = await eventService.create(data);
     return res;
   } catch (err: any) {
@@ -72,7 +78,6 @@ export const updateEvent = createAsyncThunk<
   { rejectValue: string }
 >("events/update", async ({ id, data }, { rejectWithValue }) => {
   try {
-    // eventService.update() đã trả về Event trực tiếp
     const res = await eventService.update(id, data);
     return res;
   } catch (err: any) {
@@ -153,3 +158,38 @@ export const fetchEventAttendees = createAsyncThunk<
     );
   }
 });
+
+// 🌟 5️⃣ Finalize Event (Kết thúc và phân phối phần thưởng)
+export const finalizeEvent = createAsyncThunk<
+  EventFinalizeResponse, // Trả về đối tượng Event đã được finalize
+  number, // Tham số là eventId
+  { rejectValue: string }
+>("events/finalize", async (eventId, { rejectWithValue }) => {
+  try {
+    return await eventService.finalizeEvent(eventId);
+  } catch (err: any) {
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi kết thúc và phân phối phần thưởng sự kiện")
+    );
+  }
+});
+
+// 🌟 6️⃣ Gửi chi tiết Checkin/Đăng ký
+export const checkinByPhoneNumber = createAsyncThunk<
+  EventCheckinDetail, // Kiểu dữ liệu trả về (Response)
+  CheckinPayload, // Kiểu tham số đầu vào (Argument)
+  { rejectValue: string }
+>(
+  // Đổi tên action type cho khớp với chức năng
+  "events/checkinByPhoneNumber",
+  async ({ eventId, data }, { rejectWithValue }) => {
+    try {
+      // Gọi hàm service mới, truyền eventId và data request
+      return await eventService.checkinByPhoneNumber(eventId, data);
+    } catch (err: any) {
+      return rejectWithValue(
+        getErrorMessage(err, "Lỗi khi thực hiện check-in")
+      );
+    }
+  }
+);

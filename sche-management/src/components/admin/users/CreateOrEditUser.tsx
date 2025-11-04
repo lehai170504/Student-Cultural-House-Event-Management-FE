@@ -10,19 +10,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { User } from "@/features/auth/types/auth";
+
+import type { AuthResponse } from "@/features/auth/types/auth";
 
 interface CreateOrEditUserProps {
   open: boolean;
   onClose: () => void;
-  user?: User;
+  user?: AuthResponse;
+}
+
+interface FormData {
+  fullName: string;
+  email: string;
 }
 
 export default function CreateOrEditUser({
@@ -30,43 +29,24 @@ export default function CreateOrEditUser({
   onClose,
   user,
 }: CreateOrEditUserProps) {
-  const [formData, setFormData] = useState<User>({
-    username: "",
-    name: "",
+  const [formData, setFormData] = useState<FormData>({
+    fullName: "",
     email: "",
-    phone_number: "",
-    role: "student",
-    status: "active",
   });
 
   useEffect(() => {
     if (user) {
       setFormData({
-        username: user.username || "",
-        name: user.name || "",
-        email: user.email || "",
-        phone_number: user.phone_number || "",
-        role: user.role || "student",
-        status: user.status || "active",
+        fullName: user.data.fullName || "",
+        email: user.data.email || "",
       });
     } else {
-      setFormData({
-        username: "",
-        name: "",
-        email: "",
-        phone_number: "",
-        role: "student",
-        status: "active",
-      });
+      setFormData({ fullName: "", email: "" });
     }
   }, [user]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSelectChange = (field: keyof User, value: string) => {
-    setFormData({ ...formData, [field]: value as any });
   };
 
   const handleSubmit = () => {
@@ -89,22 +69,11 @@ export default function CreateOrEditUser({
 
         <div className="space-y-4 mt-4">
           <div>
-            <Label htmlFor="username">Tên đăng nhập</Label>
+            <Label htmlFor="fullName">Họ tên</Label>
             <Input
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder="Nhập tên đăng nhập"
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="name">Họ tên</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
+              id="fullName"
+              name="fullName"
+              value={formData.fullName}
               onChange={handleChange}
               placeholder="Nhập họ tên"
             />
@@ -120,50 +89,6 @@ export default function CreateOrEditUser({
               onChange={handleChange}
               placeholder="Nhập email"
             />
-          </div>
-
-          <div>
-            <Label htmlFor="phone_number">Số điện thoại</Label>
-            <Input
-              id="phone_number"
-              name="phone_number"
-              value={formData.phone_number}
-              onChange={handleChange}
-              placeholder="Nhập số điện thoại"
-            />
-          </div>
-
-          <div>
-            <Label>Vai trò</Label>
-            <Select
-              value={formData.role}
-              onValueChange={(val) => handleSelectChange("role", val)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Chọn vai trò" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="student">Sinh viên</SelectItem>
-                <SelectItem value="org">Ban tổ chức</SelectItem>
-                <SelectItem value="booth">Gian hàng</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Trạng thái</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(val) => handleSelectChange("status", val)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Chọn trạng thái" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Hoạt động</SelectItem>
-                <SelectItem value="inactive">Khóa</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
 
