@@ -1,0 +1,992 @@
+import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'package:amplify_flutter/amplify_flutter.dart';
+import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+import '../../services/auth_service.dart';
+import '../../services/api_client.dart';
+import '../../config/api_config.dart' as app_config;
+import '../wallet/wallet_page.dart';
+import '../history/event_history_page.dart';
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+// University model
+class University {
+  final int id;
+  final String name;
+
+  University({required this.id, required this.name});
+
+  factory University.fromJson(Map<String, dynamic> json) {
+    return University(id: json['id'] as int, name: json['name'] as String);
+  }
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final AuthService _authService = AuthService();
+  final ApiClient _apiClient = ApiClient();
+  bool _isLoading = false;
+
+  // User info - lấy từ backend API
+  String _userName = '';
+  String _userEmail = '';
+  String _phoneNumber = '';
+  String? _avatarUrl;
+  String? _universityName;
+  int _totalPoints = 0;
+
+  // Onboarding form fields
+  String? _selectedUserType;
+  String? _selectedUniversity;
+  List<University> _universities = [];
+  bool _loadingUniversities = false;
+
+  // Edit form fields
+  final TextEditingController _editNameController = TextEditingController();
+  final TextEditingController _editPhoneController = TextEditingController();
+  final TextEditingController _editAvatarController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserInfo();
+  }
+
+  @override
+  void dispose() {
+    _editNameController.dispose();
+    _editPhoneController.dispose();
+    _editAvatarController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadUserInfo() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Lấy thông tin từ backend API
+      final response = await _apiClient.get(app_config.ApiConfig.profile);
+      safePrint('🔍 Profile response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = json['data'] ?? json;
+
+        if (mounted) {
+          setState(() {
+            _userName = data['fullName'] as String? ?? '';
+            _userEmail = data['email'] as String? ?? '';
+            _phoneNumber = data['phoneNumber'] as String? ?? '';
+            _avatarUrl = data['avatarUrl'] as String?;
+            _universityName = data['universityName'] as String?;
+            _totalPoints = (data['balance'] as num?)?.toInt() ?? 0;
+            _isLoading = false;
+          });
+        }
+      } else if (response.statusCode == 404) {
+        // Profile chưa tồn tại, cần redirect về onboarding
+        safePrint('⚠️ Profile chưa tồn tại (404), hiển thị onboarding');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+          // Có thể hiển thị dialog hoặc navigate
+          _showOnboardingDialog();
+        }
+      } else {
+        safePrint('❌ Lỗi không mong đợi: ${response.statusCode}');
+        throw Exception('Failed to load profile: ${response.statusCode}');
+      }
+    } catch (e) {
+      safePrint('❌ Lỗi khi load user info: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showOnboardingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Hoàn thiện hồ sơ'),
+        content: const Text(
+          'Bạn cần hoàn thiện thông tin hồ sơ trước khi sử dụng tính năng này.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showOnboardingForm();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFB923C),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Bắt đầu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _loadUniversities() async {
+    if (_universities.isNotEmpty) return;
+
+    setState(() {
+      _loadingUniversities = true;
+    });
+
+    try {
+      final response = await _apiClient.get(app_config.ApiConfig.universities);
+      safePrint('🔍 Universities response: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        safePrint('🔍 Universities data: $json');
+        final data = json['data'] ?? [];
+
+        if (mounted) {
+          setState(() {
+            _universities = (data as List)
+                .map((item) => University.fromJson(item))
+                .toList();
+            _loadingUniversities = false;
+          });
+          safePrint('🔍 Loaded ${_universities.length} universities');
+        }
+      }
+    } catch (e) {
+      safePrint('Lỗi khi load universities: $e');
+      if (mounted) {
+        setState(() {
+          _loadingUniversities = false;
+        });
+      }
+    }
+  }
+
+  void _showOnboardingForm() {
+    // Reset form
+    _selectedUserType = null;
+    _selectedUniversity = null;
+    _editPhoneController.text = '';
+    _editAvatarController.text = '';
+    _loadUniversities();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Hoàn tất hồ sơ'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // User Type
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    labelText: 'Loại người dùng *',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _selectedUserType,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'sinh viên',
+                      child: Text('Sinh viên'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'người ngoài',
+                      child: Text('Người ngoài'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedUserType = value;
+                      if (value != 'sinh viên') {
+                        _selectedUniversity = null;
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // University (only for students)
+                if (_selectedUserType == 'sinh viên') ...[
+                  DropdownButtonFormField<String>(
+                    decoration: InputDecoration(
+                      labelText: 'Tên trường Đại học *',
+                      border: const OutlineInputBorder(),
+                      suffixIcon: _loadingUniversities
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : null,
+                    ),
+                    value: _selectedUniversity,
+                    items: _universities
+                        .map(
+                          (u) => DropdownMenuItem(
+                            value: u.name,
+                            child: Text(
+                              u.name,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: _loadingUniversities
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _selectedUniversity = value;
+                            });
+                          },
+                    isExpanded: true,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                // Phone Number
+                TextField(
+                  controller: _editPhoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Số điện thoại *',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+                const SizedBox(height: 16),
+                // Avatar URL
+                TextField(
+                  controller: _editAvatarController,
+                  decoration: const InputDecoration(
+                    labelText: 'URL Avatar (tùy chọn)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _completeProfile();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFB923C),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Hoàn tất'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _completeProfile() async {
+    safePrint('🔍 Starting complete profile...');
+    safePrint('🔍 User type: $_selectedUserType');
+    safePrint('🔍 University: $_selectedUniversity');
+    safePrint('🔍 Phone: ${_editPhoneController.text.trim()}');
+
+    // Validate required fields
+    if (_selectedUserType == null || _selectedUserType!.isEmpty) {
+      safePrint('❌ User type is null or empty');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng chọn loại người dùng'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_selectedUserType == 'sinh viên' &&
+        (_selectedUniversity == null || _selectedUniversity!.isEmpty)) {
+      safePrint('❌ University is null or empty');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng chọn trường đại học'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (_editPhoneController.text.trim().isEmpty) {
+      safePrint('❌ Phone is empty');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Vui lòng nhập số điện thoại'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
+      }
+      return;
+    }
+
+    try {
+      // Bước 1: Update Cognito attributes (user_type, university)
+      safePrint('📝 Cập nhật Cognito attributes...');
+
+      // Update user_type
+      final userTypeResult = await Amplify.Auth.updateUserAttribute(
+        userAttributeKey: const CognitoUserAttributeKey.custom('user_type'),
+        value: _selectedUserType!,
+      );
+      safePrint(
+        '✅ Updated user_type: ${userTypeResult.nextStep.updateAttributeStep}',
+      );
+
+      if (_selectedUserType == 'sinh viên' && _selectedUniversity != null) {
+        // Ensure university starts with "Trường"
+        var universityValue = _selectedUniversity!.trim();
+        if (!universityValue.toLowerCase().startsWith('trường')) {
+          universityValue = 'Trường $universityValue';
+        }
+
+        final universityResult = await Amplify.Auth.updateUserAttribute(
+          userAttributeKey: const CognitoUserAttributeKey.custom('university'),
+          value: universityValue,
+        );
+        safePrint(
+          '✅ Updated university: ${universityResult.nextStep.updateAttributeStep}',
+        );
+      }
+
+      safePrint('✅ Cognito attributes updated');
+
+      // Refresh tokens để lấy ID token mới có custom attributes
+      await _authService.refreshTokens();
+
+      // Bước 2: Gọi API complete-profile để lưu phoneNumber và avatarUrl vào BE
+      safePrint('📝 Gọi API complete profile...');
+      safePrint(
+        '📝 Request body: {phoneNumber: ${_editPhoneController.text.trim()}, avatarUrl: ${_editAvatarController.text.trim()}}',
+      );
+      final response = await _apiClient.post(
+        app_config.ApiConfig.completeProfile,
+        body: {
+          'phoneNumber': _editPhoneController.text.trim(),
+          'avatarUrl': _editAvatarController.text.trim(),
+        },
+      );
+      safePrint('✅ Complete profile response: ${response.statusCode}');
+      safePrint('✅ Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Hoàn thiện hồ sơ thành công'),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
+        await _loadUserInfo();
+      } else {
+        safePrint('⚠️ Complete profile status code: ${response.statusCode}');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi: Status code ${response.statusCode}'),
+              backgroundColor: const Color(0xFFDC2626),
+            ),
+          );
+        }
+      }
+    } on AuthException catch (e) {
+      safePrint('❌ Lỗi khi update Cognito: ${e.message}');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi cập nhật Cognito: ${e.message}'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    } catch (e) {
+      safePrint('❌ Lỗi khi complete profile: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  void _openEditDialog() {
+    _editNameController.text = _userName;
+    _editPhoneController.text = _phoneNumber;
+    _editAvatarController.text = _avatarUrl ?? '';
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Chỉnh sửa thông tin'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _editNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Họ tên',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _editPhoneController,
+                decoration: const InputDecoration(
+                  labelText: 'Số điện thoại',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _editAvatarController,
+                decoration: const InputDecoration(
+                  labelText: 'URL Avatar',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _updateProfile();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFB923C),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Lưu'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateProfile() async {
+    try {
+      final response = await _apiClient.put(
+        '${app_config.ApiConfig.students}/me',
+        body: {
+          'fullName': _editNameController.text,
+          'phoneNumber': _editPhoneController.text,
+          'avatarUrl': _editAvatarController.text,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await _loadUserInfo();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Cập nhật thông tin thành công'),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      safePrint('Lỗi khi update profile: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Thông tin cá nhân'),
+        backgroundColor: const Color(0xFFFB923C),
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => _openEditDialog(),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Profile Header
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFFB923C), Color(0xFFF97316)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFB923C).withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Avatar
+                  Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 60,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        child: CircleAvatar(
+                          radius: 55,
+                          backgroundColor: Colors.white,
+                          backgroundImage: null,
+                          child: Text(
+                            _userName.isNotEmpty
+                                ? _userName[0].toUpperCase()
+                                : 'S',
+                            style: const TextStyle(
+                              fontSize: 48,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFFB923C),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 20,
+                            color: Color(0xFFFB923C),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _userName,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  if (_universityName != null &&
+                      _universityName!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _universityName!,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                  const SizedBox(height: 4),
+                  Text(
+                    _userEmail,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Points Card
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.stars,
+                          size: 32,
+                          color: Color(0xFFF59E0B),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Coin của bạn',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                          Text(
+                            '$_totalPoints coin',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const WalletPage(),
+                        ),
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFB923C),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Xem lịch sử coin',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Menu Items
+            _buildMenuItem(
+              icon: Icons.history_outlined,
+              title: 'Lịch sử đăng ký',
+              subtitle: 'Xem các sự kiện đã tham gia',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const EventHistoryPage(),
+                  ),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.card_giftcard_outlined,
+              title: 'Quà đã đổi',
+              subtitle: 'Chưa có quà nào',
+              onTap: () {
+                // TODO: Coming soon
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.help_outline,
+              title: 'Trợ giúp & FAQ',
+              subtitle: 'Câu hỏi thường gặp',
+              onTap: () {
+                _showHelpDialog();
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.info_outline,
+              title: 'Về ứng dụng',
+              subtitle: 'Phiên bản 1.0.0',
+              onTap: () {
+                _showAboutDialog();
+              },
+            ),
+
+            const SizedBox(height: 16),
+
+            // Logout Button
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              child: ElevatedButton.icon(
+                onPressed: _handleLogout,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Icon(Icons.logout),
+                label: Text(
+                  _isLoading ? 'Đang đăng xuất...' : 'Đăng xuất',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuItem({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F4F6),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: const Color(0xFF111827)),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF111827),
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF)),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        tileColor: Colors.white,
+      ),
+    );
+  }
+
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Đăng xuất'),
+        content: const Text('Bạn có chắc muốn đăng xuất?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Đăng xuất'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        await _authService.signOut();
+        if (mounted) {
+          Navigator.of(
+            context,
+          ).pushNamedAndRemoveUntil('/welcome', (route) => false);
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi đăng xuất: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Trợ giúp & FAQ'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Câu hỏi thường gặp',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '1. Làm thế nào để đăng ký sự kiện?',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'Vào mục "Sự kiện", chọn sự kiện muốn tham gia và nhấn "Đăng ký tham gia".',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '2. Cách tích coin?',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text(
+                'Tham gia các sự kiện để tích coin. Coin sẽ được cộng vào ví của bạn.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '3. Làm sao để đổi quà?',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              Text('Vào mục "Đổi quà" và chọn quà bạn muốn đổi bằng coin.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAboutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Về ứng dụng'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'NVH Sinh Viên',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text('Phiên bản: 1.0.0'),
+            SizedBox(height: 16),
+            Text(
+              'Ứng dụng quản lý sự kiện và tích điểm cho sinh viên.',
+              style: TextStyle(fontStyle: FontStyle.italic),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Đóng'),
+          ),
+        ],
+      ),
+    );
+  }
+}
