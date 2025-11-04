@@ -8,7 +8,7 @@ import { getErrorMessage } from "@/utils/errorHandler";
 // 🔹 Lấy tất cả partner với pagination (format mới)
 export const fetchAllPartners = createAsyncThunk<
   PaginatedResponse<Partner>,
-  PaginationParams | void,
+  PaginationParams | undefined,
   { rejectValue: string }
 >("partners/fetchAll", async (params, { rejectWithValue }) => {
   try {
