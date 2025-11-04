@@ -20,16 +20,12 @@ export default function Home() {
 
       {/* --- Rewards Section --- */}
       <section className="py-16">
-        <div className="container mx-auto px-6">
           <RewardsSection />
-        </div>
       </section>
 
       {/* --- Event Categories --- */}
       <section className="py-16 bg-gray-50">
-        <div className="container mx-auto px-6">
           <EventCategoriesSection />
-        </div>
       </section>
     </main>
   );
