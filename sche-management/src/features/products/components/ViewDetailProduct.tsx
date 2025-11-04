@@ -99,6 +99,7 @@ export default function ViewDetailProduct({
                   width={200}
                   height={200}
                   className="rounded-lg shadow-sm object-cover"
+                  unoptimized
                 />
               </div>
             ) : (
