@@ -65,29 +65,30 @@ export default function PublicNavbar() {
   return (
     <header
       className={clsx(
-        "w-full bg-white border-b px-4 md:px-6 shadow-sm flex items-center justify-between transition-colors duration-300 sticky top-0 z-50 h-16 md:h-20"
+        "fixed top-0 left-0 w-full z-50 transition-all duration-500 backdrop-blur-md border-b border-orange-100",
+        isScrolled
+          ? "bg-white/90 shadow-lg scale-[0.99]"
+          : "bg-gradient-to-r from-orange-50/80 via-amber-50/70 to-white/60"
       )}
     >
-      <div
-        className={clsx(
-          "relative w-full flex items-center justify-between origin-top will-change-transform transform-gpu transition-transform duration-300",
-          isScrolled ? "scale-95" : "scale-100"
-        )}
-      >
-        {/* Logo bên trái */}
-        <Link href="/" className="flex items-center gap-2">
+      <div className="container mx-auto px-4 sm:px-6 md:px-10 flex items-center justify-between h-16 md:h-20 transition-transform duration-300">
+        {/* Logo */}
+        <Link
+          href="/"
+          className="flex items-center gap-2 group transition-transform duration-300 hover:scale-[1.03]"
+        >
           <img
             src="/LogoRMBG.png"
             alt="Student Cultural House Logo"
             className="h-10 md:h-12 object-contain"
           />
-          <span className="font-bold text-orange-600 text-xl md:text-2xl">
+          <span className="font-bold bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent text-lg md:text-xl group-hover:brightness-110">
             Student Cultural House
           </span>
         </Link>
 
-        {/* Menu giữa */}
-        <nav className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center gap-1">
+        {/* Navigation (Desktop) */}
+        <nav className="hidden md:flex items-center gap-2">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -95,10 +96,10 @@ export default function PublicNavbar() {
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  "rounded-lg font-medium transition-colors duration-200 px-4 py-2 text-sm",
+                  "px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300",
                   isActive
-                    ? "bg-orange-500 text-white shadow"
-                    : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                    ? "bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md"
+                    : "text-gray-700 hover:text-orange-600 hover:bg-orange-50/80"
                 )}
               >
                 {item.label}
@@ -107,34 +108,40 @@ export default function PublicNavbar() {
           })}
         </nav>
 
-        {/* Actions bên phải */}
-        <div className="hidden md:flex items-center gap-2">
+        {/* Actions (Desktop) */}
+        <div className="hidden md:flex items-center gap-3">
           {mounted && auth?.isAuthenticated ? (
             <UserProfile />
           ) : (
             <Button
               asChild
-              variant="ghost"
-              className={clsx(
-                "hover:bg-orange-600 bg-orange-400 text-white hover:text-white transition-colors duration-200 h-10 px-4 text-sm"
-              )}
+              className="bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl px-5"
             >
               <Link href="/login">Đăng nhập</Link>
             </Button>
           )}
         </div>
 
-        {/* Mobile menu */}
+        {/* Mobile Menu */}
         <div className="md:hidden">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-orange-600 hover:bg-orange-100 transition-colors"
+              >
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[85vw] xs:w-[320px] p-0">
-              <SheetHeader className="p-4 border-b">
-                <SheetTitle className="text-orange-600">Menu</SheetTitle>
+            <SheetContent
+              side="left"
+              className="w-[80vw] xs:w-[300px] p-0 bg-gradient-to-b from-orange-50 via-white to-amber-50 border-r border-orange-100"
+            >
+              <SheetHeader className="p-4 border-b border-orange-100">
+                <SheetTitle className="text-orange-600 font-semibold">
+                  Menu
+                </SheetTitle>
               </SheetHeader>
               <div className="p-4 space-y-2">
                 {navItems.map((item) => {
@@ -144,10 +151,10 @@ export default function PublicNavbar() {
                       <Link
                         href={item.href}
                         className={clsx(
-                          "block rounded-lg font-medium px-4 py-3",
+                          "block px-4 py-3 rounded-lg font-medium transition-all duration-200",
                           isActive
-                            ? "bg-orange-500 text-white"
-                            : "text-gray-700 hover:bg-orange-50 hover:text-orange-600"
+                            ? "bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow"
+                            : "text-gray-700 hover:text-orange-600 hover:bg-orange-50"
                         )}
                       >
                         {item.label}
@@ -155,7 +162,9 @@ export default function PublicNavbar() {
                     </SheetClose>
                   );
                 })}
-                <div className="pt-2">
+
+                {/* Auth (Mobile) */}
+                <div className="pt-3 border-t border-orange-100">
                   {mounted && auth?.isAuthenticated ? (
                     <div className="px-2 py-2">
                       <UserProfile />
@@ -163,7 +172,7 @@ export default function PublicNavbar() {
                   ) : (
                     <SheetClose asChild>
                       <Link href="/login">
-                        <Button variant="outline" className="w-full">
+                        <Button className="w-full bg-gradient-to-r from-orange-500 to-amber-400 text-white hover:scale-[1.02] transition-all duration-200">
                           Đăng nhập
                         </Button>
                       </Link>

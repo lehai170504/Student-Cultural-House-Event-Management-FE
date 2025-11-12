@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  MapPin,
+  Sparkles,
+} from "lucide-react";
 
 interface HeroSlide {
   id: number;
@@ -19,7 +26,7 @@ const heroSlides: HeroSlide[] = [
     title: "Chào mừng đến với Nhà Văn Hóa Sinh Viên",
     subtitle: "Nơi tổ chức sự kiện, giao lưu văn hóa",
     description:
-      "Tham gia các hoạt động văn hóa, nghệ thuật và giao lưu với cộng đồng sinh viên",
+      "Tham gia các hoạt động văn hóa, nghệ thuật và giao lưu cùng cộng đồng sinh viên năng động.",
     image:
       "https://baobinhduong.vn/image/fckeditor/upload/2023/20230515/images/mua%20tdm.jpg",
     buttonText: "Khám phá sự kiện",
@@ -30,7 +37,7 @@ const heroSlides: HeroSlide[] = [
     title: "Đêm nhạc Sinh Viên 2025",
     subtitle: "Trải nghiệm âm nhạc đỉnh cao",
     description:
-      "Cùng thưởng thức những giai điệu tuyệt vời từ các nghệ sĩ sinh viên tài năng",
+      "Cùng thưởng thức những giai điệu tuyệt vời từ các nghệ sĩ sinh viên tài năng.",
     image:
       "https://cdn2.tuoitre.vn/thumb_w/480/471584752817336320/2024/1/28/nhac-cu-dan-toc-1706407688401234836648.jpg",
     buttonText: "Tham gia ngay",
@@ -41,7 +48,7 @@ const heroSlides: HeroSlide[] = [
     title: "Lễ hội Văn Hóa Quốc Tế",
     subtitle: "Khám phá đa dạng văn hóa thế giới",
     description:
-      "Trải nghiệm ẩm thực, trang phục và truyền thống từ khắp nơi trên thế giới",
+      "Trải nghiệm ẩm thực, trang phục và truyền thống độc đáo từ khắp nơi trên thế giới.",
     image: "https://kientrucvietnam.org.vn/wp-content/uploads/2021/06/0707.jpg",
     buttonText: "Xem chi tiết",
     buttonLink: "/events",
@@ -51,40 +58,59 @@ const heroSlides: HeroSlide[] = [
     title: "Workshop Khởi Nghiệp",
     subtitle: "Học hỏi từ các chuyên gia",
     description:
-      "Phát triển kỹ năng kinh doanh và tư duy khởi nghiệp từ những người thành công",
+      "Phát triển kỹ năng kinh doanh và tư duy khởi nghiệp từ những người thành công.",
     image: "https://kientrucvietnam.org.vn/wp-content/uploads/2021/06/0707.jpg",
-    buttonText: "Đăng ký",
+    buttonText: "Đăng ký ngay",
     buttonLink: "/events",
   },
 ];
 
 export default function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 3000);
+    const interval = setInterval(() => handleNext(), 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentSlide]);
 
-  const goToSlide = (index: number) => setCurrentSlide(index);
-  const goToPrevious = () =>
-    setCurrentSlide(
-      (prev) => (prev - 1 + heroSlides.length) % heroSlides.length
-    );
-  const goToNext = () =>
-    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+  const handleNext = () => {
+    if (!isAnimating) {
+      setIsAnimating(true);
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+      setTimeout(() => setIsAnimating(false), 700);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (!isAnimating) {
+      setIsAnimating(true);
+      setCurrentSlide(
+        (prev) => (prev - 1 + heroSlides.length) % heroSlides.length
+      );
+      setTimeout(() => setIsAnimating(false), 700);
+    }
+  };
+
+  const goToSlide = (index: number) => {
+    if (!isAnimating && index !== currentSlide) {
+      setIsAnimating(true);
+      setCurrentSlide(index);
+      setTimeout(() => setIsAnimating(false), 700);
+    }
+  };
 
   return (
-    <section className="relative h-[70vh] md:h-screen overflow-hidden">
-      {/* Background */}
+    <section className="relative h-[620px] md:h-[720px] overflow-hidden bg-gradient-to-br from-orange-100 via-orange-50 to-pink-50">
+      {/* Background Images */}
       <div className="absolute inset-0">
         {heroSlides.map((slide, index) => (
           <div
             key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ${
-              index === currentSlide ? "opacity-100" : "opacity-0"
+            className={`absolute inset-0 transition-all duration-[1200ms] ease-in-out ${
+              index === currentSlide
+                ? "opacity-100 scale-100"
+                : "opacity-0 scale-105"
             }`}
           >
             <img
@@ -92,60 +118,100 @@ export default function HeroSection() {
               alt={slide.title}
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-transparent" />
           </div>
         ))}
       </div>
 
+      {/* Floating decorative circles */}
+      <div className="absolute top-16 right-10 w-36 h-36 bg-orange-300/20 rounded-full blur-3xl animate-float" />
+      <div
+        className="absolute bottom-20 left-10 w-48 h-48 bg-rose-400/20 rounded-full blur-3xl animate-float"
+        style={{ animationDelay: "1s" }}
+      />
+
       {/* Content */}
       <div className="relative z-10 h-full flex items-center">
-        <div className="container mx-auto px-4 sm:px-6 text-center text-white">
-          <div className="max-w-4xl mx-auto px-2">
-            <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold mb-3 sm:mb-4">
-              {heroSlides[currentSlide].title}
-            </h1>
-            <h2 className="text-lg sm:text-xl md:text-2xl mb-3 sm:mb-4 text-orange-300">
-              {heroSlides[currentSlide].subtitle}
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 max-w-2xl mx-auto">
-              {heroSlides[currentSlide].description}
-            </p>
-            <Button
-              size="lg"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={() =>
-                (window.location.href = heroSlides[currentSlide].buttonLink)
-              }
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-3xl">
+            <div
+              className={`transition-all duration-700 ${
+                isAnimating
+                  ? "opacity-0 translate-y-4"
+                  : "opacity-100 translate-y-0"
+              }`}
             >
-              {heroSlides[currentSlide].buttonText}
-            </Button>
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-6 h-6 text-orange-400" />
+                <span className="text-orange-200 font-semibold text-lg">
+                  {heroSlides[currentSlide].subtitle}
+                </span>
+              </div>
+
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 text-white leading-tight drop-shadow-lg">
+                {heroSlides[currentSlide].title}
+              </h1>
+
+              <p className="text-lg md:text-xl mb-8 text-white/90 max-w-2xl leading-relaxed">
+                {heroSlides[currentSlide].description}
+              </p>
+
+              <div className="flex flex-wrap gap-4">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 text-white px-8 py-6 text-lg rounded-2xl shadow-lg hover:shadow-orange-500/40 transition-all duration-300 hover:scale-105"
+                  onClick={() =>
+                    (window.location.href = heroSlides[currentSlide].buttonLink)
+                  }
+                >
+                  <Calendar className="w-5 h-5 mr-2" />
+                  {heroSlides[currentSlide].buttonText}
+                </Button>
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:border-white/40 px-8 py-6 text-lg rounded-2xl transition-all duration-300"
+                  onClick={() => (window.location.href = "/events")}
+                >
+                  <MapPin className="w-5 h-5 mr-2" />
+                  Xem tất cả
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Navigation Arrows */}
-      <div className="absolute top-1/2 left-4 transform -translate-y-1/2 z-20">
-        <Button variant="outline" size="icon" onClick={goToPrevious}>
-          &#8592;
-        </Button>
-      </div>
-      <div className="absolute top-1/2 right-4 transform -translate-y-1/2 z-20">
-        <Button variant="outline" size="icon" onClick={goToNext}>
-          &#8594;
-        </Button>
-      </div>
+      <Button
+        onClick={handlePrevious}
+        className="absolute left-5 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-3 rounded-full transition-all duration-300 hover:scale-110 group"
+        aria-label="Previous slide"
+      >
+        <ChevronLeft className="w-6 h-6 group-hover:-translate-x-1 transition-transform" />
+      </Button>
 
-      {/* Dots */}
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+      <Button
+        onClick={handleNext}
+        className="absolute right-5 top-1/2 -translate-y-1/2 z-20 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white p-3 rounded-full transition-all duration-300 hover:scale-110 group"
+        aria-label="Next slide"
+      >
+        <ChevronRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+      </Button>
+
+      {/* Dots Indicator */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-3 z-20">
         {heroSlides.map((_, index) => (
           <Button
             key={index}
-            variant={index === currentSlide ? "default" : "outline"}
-            size="icon"
-            className={`w-3 h-3 rounded-full p-0 ${
-              index === currentSlide ? "bg-orange-500" : "bg-white/50"
-            }`}
             onClick={() => goToSlide(index)}
+            className={`transition-all duration-300 rounded-full ${
+              index === currentSlide
+                ? "w-10 h-3 bg-gradient-to-r from-orange-500 to-pink-500 shadow-lg"
+                : "w-3 h-3 bg-white/50 hover:bg-white/70"
+            }`}
+            aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>
