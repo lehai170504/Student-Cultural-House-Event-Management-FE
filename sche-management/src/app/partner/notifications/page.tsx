@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 
 export default function PartnerNotificationsPage() {
-  const [partnerId, setPartnerId] = useState<number | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [selected, setSelected] = useState<string>("");
   const [message, setMessage] = useState<string>("");
@@ -32,10 +32,13 @@ export default function PartnerNotificationsPage() {
       try {
         const me = await axiosInstance.get("/me");
         const data = me?.data?.data ?? me?.data;
-        const pid = data?.id;
-        setPartnerId(pid ?? null);
-        if (pid) {
-          const list: any = await partnerService.getEvents(pid, { page: 0, size: 50 });
+        // Backend đã đổi sang UUID (string), lấy id hoặc uuid
+        const pid = data?.id || data?.uuid || data?.sub;
+        // Đảm bảo pid là string (UUID)
+        const partnerIdStr = pid ? String(pid) : null;
+        setPartnerId(partnerIdStr);
+        if (partnerIdStr) {
+          const list: any = await partnerService.getEvents(partnerIdStr, { page: 0, size: 50 });
           setEvents(Array.isArray(list) ? list : (list?.content ?? []));
         }
       } catch (e: any) {
@@ -49,7 +52,7 @@ export default function PartnerNotificationsPage() {
 
   const handleSend = async () => {
     if (!partnerId) return;
-    const eventId = Number(selected);
+    const eventId = selected; // Giữ nguyên string vì có thể là UUID
     if (!eventId) {
       toast.warning("Vui lòng chọn sự kiện");
       return;

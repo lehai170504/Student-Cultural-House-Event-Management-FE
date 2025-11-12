@@ -49,18 +49,18 @@ function toISOStringWithTimezone(date: Date): string {
 }
 
 export default function PartnerEventsPage() {
-  const [partnerId, setPartnerId] = useState<number | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [fundMap, setFundMap] = useState<Record<number, string | number>>({});
-  const [sending, setSending] = useState<Record<number, boolean>>({});
+  const [fundMap, setFundMap] = useState<Record<string | number, string | number>>({});
+  const [sending, setSending] = useState<Record<string | number, boolean>>({});
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailEvent, setDetailEvent] = useState<any>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editEvent, setEditEvent] = useState<any>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<number | string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
   const [editStartDate, setEditStartDate] = useState<Date>();
@@ -73,22 +73,45 @@ export default function PartnerEventsPage() {
       setLoading(true);
       setError(null);
       try {
+        // Gọi /me endpoint để lấy ID từ database (không phải từ Cognito token)
         const me = await axiosInstance.get("/me");
+        console.log("📥 [load] /me full response:", me);
+        
         const data = me?.data?.data ?? me?.data;
-        const pid = data?.id;
-        setPartnerId(pid ?? null);
-        if (pid) {
-          const list: any = await partnerService.getEvents(pid, { 
-            page: 0, 
-            size: 20,
-            sort: ["id,asc"]
-          });
-          const eventsArray = Array.isArray(list) ? list : (list && (list as any).content ? (list as any).content : []);
-          // Sort by ID ascending as fallback
-          const sortedEvents = eventsArray.sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
-          setEvents(sortedEvents);
+        console.log("📥 [load] /me data:", data);
+        
+        // Lấy ID từ database (backend trả về UUID)
+        // KHÔNG dùng data?.sub (đó là từ Cognito token)
+        const pid = data?.id || data?.uuid;
+        
+        console.log("📥 [load] Extracted partnerId:", pid);
+        console.log("📥 [load] Available fields:", Object.keys(data || {}));
+        
+        if (!pid) {
+          console.error("❌ [load] No ID found in /me response!");
+          console.error("❌ [load] Full data object:", data);
+          setError("Không tìm thấy ID partner trong response từ server");
+          return;
         }
+        
+        // Đảm bảo pid là string (UUID)
+        const partnerIdStr = String(pid);
+        console.log("✅ [load] Final partnerId:", partnerIdStr);
+        setPartnerId(partnerIdStr);
+        
+        // Load events
+        const list: any = await partnerService.getEvents(partnerIdStr, { 
+          page: 0, 
+          size: 20,
+          sort: ["id,asc"]
+        });
+        const eventsArray = Array.isArray(list) ? list : (list && (list as any).content ? (list as any).content : []);
+        // Sort by ID ascending as fallback
+        const sortedEvents = eventsArray.sort((a: any, b: any) => (a.id || 0) - (b.id || 0));
+        setEvents(sortedEvents);
       } catch (e: any) {
+        console.error("❌ [load] Error loading partner data:", e);
+        console.error("❌ [load] Error response:", e?.response?.data);
         setError(e?.response?.data?.message || "Không tải được danh sách sự kiện");
       } finally {
         setLoading(false);
@@ -103,10 +126,18 @@ export default function PartnerEventsPage() {
       setLoadingCats(true);
       try {
         const res = await axiosInstance.get("/event-categories");
+        console.log("📥 [loadCategories] Full response:", res);
         const data = res?.data?.data ?? res?.data ?? [];
-        setCategories(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error("Không tải được categories:", e);
+        const categoriesArray = Array.isArray(data) ? data : (data?.content ?? []);
+        console.log("📥 [loadCategories] Categories loaded:", categoriesArray);
+        console.log("📥 [loadCategories] Categories count:", categoriesArray.length);
+        if (categoriesArray.length > 0) {
+          console.log("📥 [loadCategories] First category:", categoriesArray[0]);
+        }
+        setCategories(categoriesArray);
+      } catch (e: any) {
+        console.error("❌ [loadCategories] Error loading categories:", e);
+        console.error("❌ [loadCategories] Error response:", e?.response?.data);
         setCategories([]);
       } finally {
         setLoadingCats(false);
@@ -115,7 +146,7 @@ export default function PartnerEventsPage() {
     load();
   }, []);
 
-  const handleFund = async (eventId: number) => {
+  const handleFund = async (eventId: number | string) => {
     if (!partnerId) return;
     const amount = Number(fundMap[eventId]);
     if (!amount || amount <= 0) {
@@ -134,7 +165,7 @@ export default function PartnerEventsPage() {
     }
   };
 
-  const fetchDetail = async (id: number) => {
+  const fetchDetail = async (id: number | string) => {
     try {
       const res = await axiosInstance.get(`/events/${id}`);
       const event = res?.data?.data ?? res?.data;
@@ -224,36 +255,271 @@ export default function PartnerEventsPage() {
   };
 
   const handleCreate = async (form: any) => {
-    if (!partnerId) return;
     try {
-      await axiosInstance.post("/events", {
-        partnerId,
-        title: form.title,
-        description: form.description,
+      // Validate required fields
+      if (!form.title || !form.title.trim()) {
+        toast.error("Vui lòng nhập tiêu đề sự kiện");
+        return;
+      }
+      if (!form.startTime || !form.endTime) {
+        toast.error("Vui lòng chọn thời gian bắt đầu và kết thúc");
+        return;
+      }
+      if (!form.location || !form.location.trim()) {
+        toast.error("Vui lòng nhập địa điểm");
+        return;
+      }
+      // Lấy partnerId từ /me endpoint (bắt buộc phải có)
+      let currentPartnerId = partnerId;
+      
+      // Nếu partnerId chưa có, gọi lại /me để lấy
+      if (!currentPartnerId) {
+        console.log("⚠️ [handleCreate] partnerId is null, fetching from /me...");
+        try {
+          const meResponse = await axiosInstance.get("/me");
+          const meData = meResponse?.data?.data ?? meResponse?.data;
+          console.log("📥 [handleCreate] /me response:", meData);
+          
+          // Lấy ID từ database (không phải từ Cognito token)
+          currentPartnerId = meData?.id || meData?.uuid;
+          
+          if (!currentPartnerId) {
+            console.error("❌ [handleCreate] No ID found in /me response:", meData);
+            toast.error("Không tìm thấy ID partner. Vui lòng đăng nhập lại.");
+            return;
+          }
+          
+          // Đảm bảo là string (UUID)
+          currentPartnerId = String(currentPartnerId);
+          console.log("✅ [handleCreate] Got partnerId from /me:", currentPartnerId);
+          
+          // Update state
+          setPartnerId(currentPartnerId);
+        } catch (meError: any) {
+          console.error("❌ [handleCreate] Error fetching /me:", meError);
+          toast.error("Không thể lấy thông tin partner. Vui lòng thử lại.");
+          return;
+        }
+      }
+
+      // Validate categoryId - Backend yêu cầu UUID string (không phải number!)
+      console.log("🔍 [handleCreate] Full form object:", form);
+      console.log("🔍 [handleCreate] form.categoryId:", form.categoryId);
+      console.log("🔍 [handleCreate] form.categoryId type:", typeof form.categoryId);
+      console.log("🔍 [handleCreate] Available categories:", categories);
+      
+      // Check if categoryId exists and is not empty
+      if (!form.categoryId || form.categoryId === "" || form.categoryId === null || form.categoryId === undefined) {
+        console.error("❌ [handleCreate] categoryId is empty or null");
+        toast.error("Vui lòng chọn danh mục sự kiện");
+        return;
+      }
+
+      // Backend yêu cầu categoryId là UUID string, KHÔNG convert sang number!
+      const categoryIdStr = String(form.categoryId);
+      
+      console.log("🔍 [handleCreate] categoryIdStr (UUID):", categoryIdStr);
+      
+      // Verify category exists in the list (so sánh string với string)
+      const categoryExists = categories.some((cat: any) => {
+        const catIdStr = String(cat.id);
+        return catIdStr === categoryIdStr;
+      });
+      
+      if (!categoryExists) {
+        console.error("❌ [handleCreate] categoryId not found in categories list:", categoryIdStr);
+        console.error("❌ [handleCreate] Available category IDs:", categories.map((c: any) => String(c.id)));
+        toast.error("Danh mục sự kiện không tồn tại. Vui lòng chọn lại.");
+        return;
+      }
+      
+      console.log("✅ [handleCreate] categoryId validation passed:", categoryIdStr);
+
+      // Prepare payload - Backend yêu cầu cả partnerId và categoryId đều là UUID string
+      const payload = {
+        partnerId: currentPartnerId, // UUID string từ database (lấy từ /me)
+        title: form.title.trim(),
+        description: form.description?.trim() || "",
         startTime: form.startTime,
         endTime: form.endTime,
-        location: form.location,
-        categoryId: Number(form.categoryId) || undefined,
+        location: form.location.trim(),
+        categoryId: categoryIdStr, // UUID string (KHÔNG phải number!)
         pointCostToRegister: Number(form.pointCostToRegister) || 0,
         totalRewardPoints: Number(form.totalRewardPoints) || 0,
         totalBudgetCoin: Number(form.totalBudgetCoin) || 0,
-      });
+      };
+
+      console.log("📤 [handleCreate] Sending payload:", JSON.stringify(payload, null, 2));
+      console.log("📤 [handleCreate] partnerId:", currentPartnerId);
+      console.log("📤 [handleCreate] partnerId type:", typeof currentPartnerId);
+
+      const response = await axiosInstance.post("/events", payload);
+      console.log("✅ [handleCreate] Success response:", response.data);
+      
       toast.success("Tạo sự kiện thành công");
       setCreateOpen(false);
       window.location.reload();
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Tạo thất bại");
+      console.error("❌ [handleCreate] Error:", e);
+      console.error("❌ [handleCreate] Error response:", e?.response?.data);
+      const errorMessage = e?.response?.data?.message || e?.message || "Tạo thất bại";
+      toast.error(`Lỗi: ${errorMessage}`);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number | string) => {
+    if (!partnerId) {
+      console.error("❌ [handleDelete] partnerId is null, cannot reload events");
+      toast.error("Không tìm thấy thông tin partner. Vui lòng đăng nhập lại.");
+      return;
+    }
+
     try {
-      await axiosInstance.delete(`/events/${id}`);
-      toast.success("Đã xóa sự kiện");
+      // Đảm bảo id là string (UUID) để gửi đúng format
+      const eventIdStr = String(id);
+      console.log("🗑️ [handleDelete] ========================================");
+      console.log("🗑️ [handleDelete] Soft deleting event ID:", eventIdStr);
+      console.log("🗑️ [handleDelete] Event ID type:", typeof eventIdStr);
+      console.log("🗑️ [handleDelete] Full event ID:", eventIdStr);
+      console.log("🗑️ [handleDelete] Current partnerId:", partnerId);
+      console.log("🗑️ [handleDelete] Note: This is a SOFT DELETE - updating status to CANCELLED");
+      
+      // Tìm event trong danh sách để lấy thông tin hiện tại
+      let eventToDelete = events.find((ev: any) => String(ev.id) === eventIdStr);
+      
+      // Nếu không tìm thấy trong danh sách, fetch event detail từ API
+      if (!eventToDelete) {
+        console.log("⚠️ [handleDelete] Event not found in current list, fetching from API...");
+        try {
+          const eventDetail = await axiosInstance.get(`/events/${eventIdStr}`);
+          eventToDelete = eventDetail?.data?.data ?? eventDetail?.data;
+          console.log("📥 [handleDelete] Event fetched from API:", eventToDelete);
+        } catch (fetchError: any) {
+          console.error("❌ [handleDelete] Error fetching event detail:", fetchError);
+          toast.error("Không tìm thấy sự kiện trong danh sách");
+          setDeleteTarget(null);
+          return;
+        }
+      }
+      
+      if (!eventToDelete) {
+        console.error("❌ [handleDelete] Event not found after fetch:", eventIdStr);
+        toast.error("Không tìm thấy sự kiện");
+        setDeleteTarget(null);
+        return;
+      }
+      
+      console.log("📋 [handleDelete] Event to delete:", eventToDelete);
+      console.log("📋 [handleDelete] Current status:", eventToDelete.status);
+      
+      // Soft delete: Update status thành "CANCELLED" thay vì DELETE
+      // Sử dụng PUT để update event (tương tự handleSaveEdit)
+      // Chỉ update status, giữ nguyên các trường khác
+      const updatePayload: any = {
+        status: "CANCELLED", // Set status thành CANCELLED để soft delete
+      };
+      
+      // Chỉ thêm các trường bắt buộc nếu có trong event
+      if (eventToDelete.title || eventToDelete.name) {
+        updatePayload.title = eventToDelete.title || eventToDelete.name;
+      }
+      if (eventToDelete.description) {
+        updatePayload.description = eventToDelete.description;
+      }
+      if (eventToDelete.startTime) {
+        updatePayload.startTime = eventToDelete.startTime;
+      }
+      if (eventToDelete.endTime) {
+        updatePayload.endTime = eventToDelete.endTime;
+      }
+      if (eventToDelete.location) {
+        updatePayload.location = eventToDelete.location;
+      }
+      if (eventToDelete.categoryId || eventToDelete.category?.id) {
+        updatePayload.categoryId = eventToDelete.categoryId || eventToDelete.category?.id;
+      }
+      if (eventToDelete.pointCostToRegister !== undefined) {
+        updatePayload.pointCostToRegister = Number(eventToDelete.pointCostToRegister) || 0;
+      }
+      if (eventToDelete.totalRewardPoints !== undefined) {
+        updatePayload.totalRewardPoints = Number(eventToDelete.totalRewardPoints) || 0;
+      }
+      if (eventToDelete.totalBudgetCoin !== undefined) {
+        updatePayload.totalBudgetCoin = Number(eventToDelete.totalBudgetCoin) || 0;
+      }
+      
+      console.log("📤 [handleDelete] Update payload:", JSON.stringify(updatePayload, null, 2));
+      console.log("📤 [handleDelete] PUT URL:", `/events/${eventIdStr}`);
+      
+      // Gọi API PUT để update status thành CANCELLED (soft delete)
+      const response = await axiosInstance.put(`/events/${eventIdStr}`, updatePayload);
+      console.log("✅ [handleDelete] Soft delete successful:", response.data);
+      console.log("✅ [handleDelete] Response status:", response.status);
+      
+      // Thông báo thành công (xóa mềm - event đã bị ẩn khỏi hệ thống)
+      toast.success("Đã ẩn sự kiện khỏi hệ thống (xóa mềm)");
       setDeleteTarget(null);
-      window.location.reload();
+      
+      // Reload events list - event đã bị soft delete (status = CANCELLED) sẽ không còn trong danh sách
+      try {
+        console.log("🔄 [handleDelete] Reloading events list (CANCELLED events will be hidden)...");
+        const list: any = await partnerService.getEvents(partnerId, { 
+          page: 0, 
+          size: 20,
+          sort: ["id,asc"]
+        });
+        const eventsArray = Array.isArray(list) ? list : (list && (list as any).content ? (list as any).content : []);
+        
+        // Filter out CANCELLED events (soft deleted events)
+        // Backend có thể đã filter, nhưng để an toàn, ta filter thêm ở frontend
+        const activeEvents = eventsArray.filter((ev: any) => {
+          // Chỉ hiển thị các event không bị soft delete (status không phải CANCELLED)
+          return ev.status !== "CANCELLED" && ev.status !== "DELETED";
+        });
+        
+        const sortedEvents = activeEvents.sort((a: any, b: any) => {
+          // Sort by string ID if UUID, or number ID
+          if (typeof a.id === 'string' && typeof b.id === 'string') {
+            return a.id.localeCompare(b.id);
+          }
+          return (a.id || 0) - (b.id || 0);
+        });
+        
+        setEvents(sortedEvents);
+        console.log("✅ [handleDelete] Events list reloaded");
+        console.log("✅ [handleDelete] Total events before filter:", eventsArray.length);
+        console.log("✅ [handleDelete] Active events after filter:", sortedEvents.length);
+        console.log("✅ [handleDelete] CANCELLED events are now hidden from the list");
+      } catch (reloadError: any) {
+        console.error("❌ [handleDelete] Error reloading events:", reloadError);
+        console.error("❌ [handleDelete] Reload error response:", reloadError?.response?.data);
+        // Event đã được soft delete thành công, reload trang để hiển thị danh sách mới
+        // (Event đã bị ẩn sẽ không còn hiển thị)
+        window.location.reload();
+      }
     } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Xóa thất bại");
+      console.error("❌ [handleDelete] ========================================");
+      console.error("❌ [handleDelete] Error:", e);
+      console.error("❌ [handleDelete] Error response:", e?.response?.data);
+      console.error("❌ [handleDelete] Error status:", e?.response?.status);
+      console.error("❌ [handleDelete] Error config:", e?.config);
+      console.error("❌ [handleDelete] Event ID attempted:", id);
+      console.error("❌ [handleDelete] Event ID type:", typeof id);
+      
+      // More detailed error message
+      let errorMessage = "Không thể ẩn sự kiện khỏi hệ thống";
+      if (e?.response?.data?.message) {
+        errorMessage = e.response.data.message;
+      } else if (e?.response?.data?.error) {
+        errorMessage = e.response.data.error;
+      } else if (e?.message) {
+        errorMessage = e.message;
+      }
+      
+      toast.error(`Lỗi: ${errorMessage}`);
+      
+      // Don't close dialog on error, let user see the error
+      // setDeleteTarget(null);
     }
   };
 
@@ -348,22 +614,22 @@ export default function PartnerEventsPage() {
                           <Input
                             type="number"
                             placeholder="Số coin"
-                            value={(fundMap[ev.id] as any) || ""}
+                            value={(fundMap[ev.id as string | number] as any) || ""}
                             onChange={(e) => setFundMap((m) => ({ ...m, [ev.id]: e.target.value }))}
                             className="w-32 h-9"
                           />
                           <Button 
                             onClick={() => handleFund(ev.id)} 
-                            disabled={!!sending[ev.id]}
+                            disabled={!!sending[ev.id as string | number]}
                             size="sm"
                             className="flex items-center gap-1"
                           >
-                            {sending[ev.id] ? (
+                            {sending[ev.id as string | number] ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <DollarSign className="h-4 w-4" />
                             )}
-                            {sending[ev.id] ? "Đang nạp..." : "Nạp"}
+                            {sending[ev.id as string | number] ? "Đang nạp..." : "Nạp"}
                           </Button>
                         </div>
                       </td>
@@ -393,7 +659,11 @@ export default function PartnerEventsPage() {
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => setDeleteTarget(ev.id)}
+                            onClick={() => {
+                              console.log("🗑️ [onClick] Setting deleteTarget to event ID:", ev.id);
+                              console.log("🗑️ [onClick] Event ID type:", typeof ev.id);
+                              setDeleteTarget(ev.id);
+                            }}
                             className="flex items-center gap-1"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -595,24 +865,55 @@ export default function PartnerEventsPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={handleCreate}
+        categories={categories}
+        loadingCats={loadingCats}
       />
 
-      {/* Delete Confirmation */}
-      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+      {/* Delete Confirmation (Soft Delete) */}
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => {
+        if (!open) {
+          setDeleteTarget(null);
+        }
+      }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Xóa sự kiện?</DialogTitle>
+            <DialogTitle>Ẩn sự kiện khỏi hệ thống?</DialogTitle>
           </DialogHeader>
-          <p className="text-gray-600">Bạn có chắc muốn xóa sự kiện này?</p>
+          <div className="space-y-3">
+            <p className="text-gray-600">
+              Bạn có chắc muốn ẩn sự kiện này khỏi hệ thống? 
+              Sự kiện sẽ bị ẩn (xóa mềm) và không còn hiển thị trong danh sách.
+            </p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Lưu ý:</strong> Đây là thao tác xóa mềm (soft delete). 
+                Sự kiện sẽ bị ẩn khỏi hệ thống nhưng vẫn được lưu trong cơ sở dữ liệu.
+              </p>
+            </div>
+            {deleteTarget && (
+              <p className="text-sm text-gray-500 mt-2">
+                Event ID: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs font-mono">{String(deleteTarget)}</code>
+              </p>
+            )}
+          </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
               Hủy
             </Button>
             <Button
               variant="destructive"
-              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+              onClick={() => {
+                if (deleteTarget) {
+                  console.log("🗑️ [Dialog] Soft delete button clicked");
+                  console.log("🗑️ [Dialog] deleteTarget value:", deleteTarget);
+                  console.log("🗑️ [Dialog] deleteTarget type:", typeof deleteTarget);
+                  handleDelete(deleteTarget);
+                } else {
+                  console.error("❌ [Dialog] deleteTarget is null/undefined");
+                }
+              }}
             >
-              Xóa
+              Ẩn khỏi hệ thống
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -621,7 +922,7 @@ export default function PartnerEventsPage() {
   );
 }
 
-function CreateEventModal({ open, onClose, onCreate }: any) {
+function CreateEventModal({ open, onClose, onCreate, categories = [], loadingCats = false }: any) {
   const [form, setForm] = useState<any>({
     title: "",
     description: "",
@@ -634,29 +935,30 @@ function CreateEventModal({ open, onClose, onCreate }: any) {
     totalBudgetCoin: "",
   });
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loadingCats, setLoadingCats] = useState(false);
   const [startDate, setStartDate] = useState<Date>();
   const [startTime, setStartTime] = useState<string>("");
   const [endDate, setEndDate] = useState<Date>();
   const [endTime, setEndTime] = useState<string>("");
 
+  // Reset form when modal closes
   useEffect(() => {
-    const load = async () => {
-      if (!open) return;
-      setLoadingCats(true);
-      try {
-        const res = await axiosInstance.get("/event-categories");
-        const data = res?.data?.data ?? res?.data ?? [];
-        setCategories(Array.isArray(data) ? data : []);
-      } catch (e) {
-        console.error("Không tải được categories:", e);
-        setCategories([]);
-      } finally {
-        setLoadingCats(false);
-      }
-    };
-    load();
+    if (!open) {
+      setForm({
+        title: "",
+        description: "",
+        startTime: "",
+        endTime: "",
+        location: "",
+        categoryId: "",
+        pointCostToRegister: "",
+        totalRewardPoints: "",
+        totalBudgetCoin: "",
+      });
+      setStartDate(undefined);
+      setStartTime("");
+      setEndDate(undefined);
+      setEndTime("");
+    }
   }, [open]);
 
   const setField = (k: string) => (e: any) =>
@@ -792,19 +1094,31 @@ function CreateEventModal({ open, onClose, onCreate }: any) {
             onChange={setField("location")}
           />
           <Select
-            value={form.categoryId ? String(form.categoryId) : undefined}
-            onValueChange={(val) => setForm((f: any) => ({ ...f, categoryId: val }))}
+            value={form.categoryId ? String(form.categoryId) : ""}
+            onValueChange={(val) => {
+              console.log("📝 [CreateEventModal] Selected category:", val);
+              setForm((f: any) => ({ ...f, categoryId: val }));
+            }}
             disabled={loadingCats}
           >
             <SelectTrigger>
               <SelectValue placeholder={loadingCats ? "Đang tải..." : "Chọn danh mục"} />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((cat: any) => (
-                <SelectItem key={cat.id} value={String(cat.id)}>
-                  {cat.name}
+              {categories.length === 0 ? (
+                <SelectItem value="" disabled>
+                  {loadingCats ? "Đang tải..." : "Không có danh mục"}
                 </SelectItem>
-              ))}
+              ) : (
+                categories.map((cat: any) => {
+                  console.log("📋 [CreateEventModal] Category:", cat.id, cat.name);
+                  return (
+                    <SelectItem key={cat.id} value={String(cat.id)}>
+                      {cat.name}
+                    </SelectItem>
+                  );
+                })
+              )}
             </SelectContent>
           </Select>
           <Input
