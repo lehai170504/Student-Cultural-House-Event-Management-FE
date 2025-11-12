@@ -89,6 +89,11 @@ axiosInstance.interceptors.request.use(
       // Headers để xử lý ngrok và CORS
       config.headers["ngrok-skip-browser-warning"] = "true";
       config.headers["Accept"] = "application/json";
+
+      // Nếu body là FormData, để browser tự set boundary
+      if (config.data instanceof FormData) {
+        delete (config.headers as Record<string, any>)["Content-Type"];
+      }
       
       // Chỉ log request nếu không phải preflight
       if (config.method?.toLowerCase() !== "options") {

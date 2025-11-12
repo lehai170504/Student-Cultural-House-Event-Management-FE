@@ -36,7 +36,23 @@ export default function ProfileCompletionPage() {
   // Validate university format
   const validateUniversity = (value: string): boolean => {
     if (!value) return true; // Empty is ok if user_type is not student
-    return value.toLowerCase().startsWith("trường");
+    // Chỉ cần kiểm tra có giá trị (không cần kiểm tra "trường" vì submit sẽ tự thêm)
+    return value.trim().length > 0;
+  };
+
+  // Normalize phone number: remove spaces, dashes, and other non-digit characters
+  const normalizePhoneNumber = (phone: string): string => {
+    return phone.replace(/\D/g, ""); // Remove all non-digit characters
+  };
+
+  // Validate phone number format: must start with 03, 05, 07, 08, or 09
+  const validatePhoneNumber = (phone: string): boolean => {
+    if (!phone || !phone.trim()) return false;
+    const normalized = normalizePhoneNumber(phone);
+    // Phone number must start with 03, 05, 07, 08, or 09
+    // And should be 10 digits (Vietnamese phone number format)
+    const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
+    return phoneRegex.test(normalized);
   };
 
   // Form validation
@@ -46,6 +62,7 @@ export default function ProfileCompletionPage() {
     if (userType === "sinh viên" && !validateUniversity(university))
       return false;
     if (!phoneNumber.trim()) return false; // PhoneNumber là bắt buộc
+    if (!validatePhoneNumber(phoneNumber)) return false; // PhoneNumber phải đúng format
     // avatarUrl là optional, không cần validate
     return true;
   };
@@ -99,6 +116,23 @@ export default function ProfileCompletionPage() {
     setError(null);
 
     if (!isFormValid()) {
+      // Hiển thị error message chi tiết hơn
+      if (!userType) {
+        setError("Vui lòng chọn loại người dùng");
+        return;
+      }
+      if (userType === "sinh viên" && !university) {
+        setError("Vui lòng chọn trường Đại học");
+        return;
+      }
+      if (!phoneNumber.trim()) {
+        setError("Vui lòng nhập số điện thoại");
+        return;
+      }
+      if (!validatePhoneNumber(phoneNumber)) {
+        setError("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại bắt đầu bằng 03, 05, 07, 08, hoặc 09 và có 10 chữ số");
+        return;
+      }
       setError("Vui lòng điền đầy đủ thông tin");
       return;
     }
@@ -118,16 +152,7 @@ export default function ProfileCompletionPage() {
 
       // Add university if user is a student
       if (userType === "sinh viên") {
-        // Ensure university starts with "Trường" (capitalized)
-        const universityValue = university.trim();
-        if (!universityValue.toLowerCase().startsWith("trường")) {
-          attributesToUpdate["custom:university"] = `Trường ${universityValue}`;
-        } else {
-          // Capitalize the T in "Trường"
-          attributesToUpdate[
-            "custom:university"
-          ] = `Trường ${universityValue.substring(7)}`;
-        }
+        attributesToUpdate["custom:university"] = university.trim();
       }
 
       // Bước 1: Update attributes trong Cognito (user_type, university) - chỉ 2 cái này gửi về Cognito
@@ -138,17 +163,53 @@ export default function ProfileCompletionPage() {
 
       // Bước 2: Gọi API complete-profile để lưu phoneNumber và avatarUrl vào BE (cho cả sinh viên và người ngoài)
       try {
-        await studentService.completeProfile({
-          phoneNumber: phoneNumber.trim(),
-          avatarUrl: avatarUrl.trim() || "", // Avatar có thể để trống
-        });
-      } catch (apiError: any) {
-        console.error("Error completing profile on backend:", apiError);
-        // Nếu API fail nhưng Cognito đã update, vẫn tiếp tục
-        // User có thể complete profile sau ở trang profile
-        if (apiError?.response?.status !== 201) {
-          console.warn("Backend profile completion failed, but Cognito updated successfully");
+        // Normalize phone number trước khi gửi (loại bỏ khoảng trắng, dấu gạch ngang, v.v.)
+        const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
+        console.log("📞 [handleSubmit] Original phone:", phoneNumber);
+        console.log("📞 [handleSubmit] Normalized phone:", normalizedPhoneNumber);
+        
+        // Validate phone number một lần nữa trước khi gửi
+        if (!validatePhoneNumber(normalizedPhoneNumber)) {
+          throw new Error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại bắt đầu bằng 03, 05, 07, 08, hoặc 09.");
         }
+        
+        await studentService.completeProfile({
+          phoneNumber: normalizedPhoneNumber, // Gửi normalized phone number
+          avatarUrl: avatarUrl.trim() || undefined, // Avatar có thể để trống
+        });
+        console.log("✅ [handleSubmit] Profile completed successfully");
+      } catch (apiError: any) {
+        console.error("❌ [handleSubmit] Error completing profile on backend:", apiError);
+        console.error("❌ [handleSubmit] Error response:", apiError?.response?.data);
+        
+        // Hiển thị error message chi tiết hơn
+        let errorMessage = "Có lỗi xảy ra khi hoàn thiện profile";
+        const responseData = apiError?.response?.data;
+        const responseMessage =
+          (typeof responseData === "string"
+            ? responseData
+            : responseData?.message ||
+              responseData?.error ||
+              responseData?.detail) ?? null;
+
+        if (responseMessage) {
+          errorMessage = responseMessage;
+        } else if (apiError?.message) {
+          errorMessage = apiError.message;
+        }
+
+        const normalizedMessage = responseMessage?.toLowerCase() || "";
+        if (
+          normalizedMessage.includes("duplicate key value") ||
+          normalizedMessage.includes("student_phone_number_key")
+        ) {
+          errorMessage =
+            "Số điện thoại này đã được sử dụng. Vui lòng nhập số khác.";
+        }
+        
+        setError(errorMessage);
+        setIsLoading(false);
+        return; // Stop execution nếu API fail
       }
 
       setSuccess(true);
@@ -262,15 +323,19 @@ export default function ProfileCompletionPage() {
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {universitiesFromRedux.map((u: any) => {
-                    const name = (u?.name ?? "").toString();
-                    const id = Number(u?.id ?? 0);
-                    return (
-                      <SelectItem key={id} value={name}>
-                        {name}
-                      </SelectItem>
-                    );
-                  })}
+                  {universitiesFromRedux
+                    .filter((u: any) => u?.name) // Filter ra các university không có name
+                    .map((u: any, index: number) => {
+                      const name = String(u.name).trim();
+                      // Sử dụng name làm key (vì name thường là unique)
+                      // Nếu name trùng, sử dụng index để đảm bảo uniqueness
+                      const key = `university-${name}-${index}`;
+                      return (
+                        <SelectItem key={key} value={name}>
+                          {name}
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
@@ -287,12 +352,23 @@ export default function ProfileCompletionPage() {
             <Input
               id="phoneNumber"
               type="tel"
-              placeholder="Nhập số điện thoại (ví dụ: 0912345678)"
+              placeholder="Nhập số điện thoại (ví dụ: 0912345678, 0387654321)"
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
               required
               className="w-full"
+              maxLength={11} // Giới hạn độ dài tối đa
             />
+            {phoneNumber && !validatePhoneNumber(phoneNumber) && (
+              <p className="mt-1 text-sm text-red-600">
+                Số điện thoại phải bắt đầu bằng 03, 05, 07, 08, hoặc 09 và có 10 chữ số
+              </p>
+            )}
+            {phoneNumber && validatePhoneNumber(phoneNumber) && (
+              <p className="mt-1 text-sm text-green-600">
+                ✓ Số điện thoại hợp lệ
+              </p>
+            )}
           </div>
 
           {/* Avatar URL (optional for all users) */}
