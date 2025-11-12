@@ -5,10 +5,7 @@ import {
   University,
   UpdateUniversity,
 } from "../types/universities";
-import type {
-  PaginatedResponse,
-  PaginationParams,
-} from "@/utils/apiResponse";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 
 const endpoint = "/universities";
 const endpoint2 = "/admin/universities";
@@ -28,8 +25,12 @@ export const universityService = {
         params: queryParams,
       });
       const responseData = res.data;
-    
-      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+
+      if (
+        responseData?.data &&
+        Array.isArray(responseData.data) &&
+        responseData.meta
+      ) {
         return responseData as PaginatedResponse<University>;
       }
       if (responseData?.data && responseData?.meta) {
@@ -57,7 +58,7 @@ export const universityService = {
   },
 
   /** 🔹 Cập nhật university theo ID */
-  async update(id: number, data: UpdateUniversity): Promise<University> {
+  async update(id: string, data: UpdateUniversity): Promise<University> {
     try {
       const res = await axiosInstance.put<University>(
         `${endpoint2}/${id}`,
@@ -71,7 +72,7 @@ export const universityService = {
   },
 
   /** 🔹 Xoá university theo ID */
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     try {
       await axiosInstance.delete(`${endpoint2}/${id}`);
     } catch (error) {

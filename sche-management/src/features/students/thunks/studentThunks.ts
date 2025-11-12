@@ -23,7 +23,7 @@ export const fetchStudents = createAsyncThunk<
 /** 🔹 Cập nhật trạng thái sinh viên / users */
 export const updateStudentStatus = createAsyncThunk<
   UniversityUser,
-  { id: number; status: "ACTIVE" | "INACTIVE" },
+  { id: string; status: "ACTIVE" | "INACTIVE" },
   { rejectValue: string }
 >("university/updateStudentStatus", async (data, { rejectWithValue }) => {
   try {

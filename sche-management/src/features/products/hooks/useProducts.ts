@@ -64,7 +64,7 @@ export const useProducts = () => {
 
   /** 🔹 Fetch chi tiết sản phẩm */
   const loadDetail = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       await dispatch(fetchProductById(id));
     },
     [dispatch]
@@ -81,7 +81,7 @@ export const useProducts = () => {
 
   /** 🔹 Cập nhật sản phẩm */
   const editProduct = useCallback(
-    async (id: number, data: UpdateProduct): Promise<boolean> => {
+    async (id: string, data: UpdateProduct): Promise<boolean> => {
       const result = await dispatch(updateProduct({ id, data }));
       return updateProduct.fulfilled.match(result);
     },
@@ -90,7 +90,7 @@ export const useProducts = () => {
 
   /** 🔹 Xóa sản phẩm */
   const removeProduct = useCallback(
-    async (id: number): Promise<boolean> => {
+    async (id: string): Promise<boolean> => {
       const result = await dispatch(deleteProduct(id));
       return deleteProduct.fulfilled.match(result);
     },

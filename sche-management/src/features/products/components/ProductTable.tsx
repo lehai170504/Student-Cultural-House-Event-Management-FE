@@ -13,6 +13,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+// 🛠️ IMPORTS SHADCN/UI CHO MODAL XÁC NHẬN
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+// 💡 IMPORTS LUCIDE
 import {
   Eye,
   Trash2,
@@ -20,13 +32,11 @@ import {
   TrendingUp,
   AlertTriangle,
   List,
+  Loader2, // Icon cho trạng thái tải/đang xử lý
 } from "lucide-react";
 import { useProducts } from "../hooks/useProducts";
 import type { Product } from "../types/product";
-import { SimpleProductTable } from "./SimpleProductTable"; // Component bảng đơn giản
-
-// Giả định bạn có component Tabs từ thư viện UI (ví dụ: shadcn/ui)
-// import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { SimpleProductTable } from "./SimpleProductTable";
 
 const ViewDetailProduct = lazy(() => import("./ViewDetailProduct"));
 const CreateProductModal = lazy(() => import("./CreateProductModal"));
@@ -50,12 +60,15 @@ export default function ProductTable() {
   } = useProducts();
 
   const [search, setSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<string | null>(null);
   const [openCreate, setOpenCreate] = useState(false);
-  // Trạng thái cho Tabs
   const [activeTab, setActiveTab] = useState<ProductTabView>("main");
 
-  // 🔍 Lọc danh sách theo tiêu đề sản phẩm (chỉ áp dụng cho tab chính)
+  // 💥 TRẠNG THÁI MỚI cho Xác nhận Xóa
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [productToDeleteId, setProductToDeleteId] = useState<string | null>(
+    null
+  );
   const filteredProducts = Array.isArray(list)
     ? list.filter((p: Product) =>
         p.title?.toLowerCase().includes(search.toLowerCase())
@@ -66,7 +79,7 @@ export default function ProductTable() {
   useEffect(() => {
     switch (activeTab) {
       case "main":
-        loadAll(); // Load danh sách chính khi vào tab Main
+        loadAll();
         break;
       case "top":
         loadTopRedeemed();
@@ -76,6 +89,25 @@ export default function ProductTable() {
         break;
     }
   }, [activeTab, loadAll, loadTopRedeemed, loadLowStock]);
+
+  // 💥 HÀM MỚI: Mở modal xác nhận xóa
+  const handleConfirmDelete = (productId: string) => {
+    setProductToDeleteId(productId);
+    setOpenDeleteConfirm(true);
+  };
+
+  // 💥 HÀM MỚI: Thực hiện xóa sau khi xác nhận
+  const handleDeleteProduct = () => {
+    if (productToDeleteId) {
+      removeProduct(productToDeleteId);
+      setOpenDeleteConfirm(false);
+      setProductToDeleteId(null);
+    }
+  };
+
+  // Lấy tiêu đề sản phẩm đang chờ xóa để hiển thị trong modal
+  const productTitleToDelete =
+    list.find((p) => p.id === productToDeleteId)?.title || "Sản phẩm này";
 
   // Hàm hiển thị nội dung bảng chính (để giữ logic Actions)
   const renderMainTable = () => (
@@ -95,7 +127,8 @@ export default function ProductTable() {
           {loadingList ? (
             <TableRow>
               <TableCell colSpan={6} className="text-center py-6">
-                Đang tải...
+                <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                Đang tải danh sách...
               </TableCell>
             </TableRow>
           ) : filteredProducts.length === 0 ? (
@@ -137,12 +170,13 @@ export default function ProductTable() {
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
+                  {/* 💥 CẬP NHẬT: Gọi hàm xác nhận thay vì xóa trực tiếp */}
                   <Button
                     variant="destructive"
                     size="sm"
                     className="flex items-center gap-1 px-2 py-1 rounded-md bg-red-500 text-white font-medium transition-all duration-200 hover:bg-red-600 hover:scale-105 active:scale-95 shadow-sm"
                     disabled={saving}
-                    onClick={() => removeProduct(product.id)}
+                    onClick={() => handleConfirmDelete(product.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -170,7 +204,7 @@ export default function ProductTable() {
               </p>
             </div>
             <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
-              {/* Thêm Input tìm kiếm chỉ hiển thị ở tab chính */}
+              {/* Input tìm kiếm chỉ hiển thị ở tab chính */}
               {activeTab === "main" && (
                 <Input
                   placeholder="Tìm kiếm sản phẩm..."
@@ -189,7 +223,7 @@ export default function ProductTable() {
             </div>
           </div>
 
-          {/* 🚀 KHUNG TABS (Giả định cấu trúc UI) */}
+          {/* 🚀 KHUNG TABS */}
           <div className="w-full">
             <div className="flex border-b border-gray-200 mb-4">
               <button
@@ -244,7 +278,7 @@ export default function ProductTable() {
         </div>
       </section>
 
-      {/* 🔹 Modal chi tiết sản phẩm */}
+      {/* 🔹 Modal chi tiết sản phẩm (Lazy Load) */}
       {selectedProduct && (
         <Suspense
           fallback={<p className="text-center py-4">Đang tải chi tiết...</p>}
@@ -257,7 +291,7 @@ export default function ProductTable() {
         </Suspense>
       )}
 
-      {/* 🔹 Modal tạo mới sản phẩm */}
+      {/* 🔹 Modal tạo mới sản phẩm (Lazy Load) */}
       {openCreate && (
         <Suspense
           fallback={<p className="text-center py-4">Đang mở form tạo mới...</p>}
@@ -268,6 +302,46 @@ export default function ProductTable() {
           />
         </Suspense>
       )}
+
+      {/* 💥 MODAL XÁC NHẬN XÓA SẢN PHẨM (SỬ DỤNG SHADCN/UI ALERTDIALOG) */}
+      <AlertDialog open={openDeleteConfirm} onOpenChange={setOpenDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600 flex items-center gap-2">
+              <AlertTriangle className="h-6 w-6" /> Xác nhận Xóa Sản phẩm
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa **{productTitleToDelete}**? Hành động
+              này{" "}
+              <span className="font-bold text-red-600">không thể hoàn tác</span>{" "}
+              và sản phẩm sẽ bị loại bỏ khỏi hệ thống.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            {/* Nút Hủy */}
+            <AlertDialogCancel
+              disabled={saving}
+              onClick={() => setProductToDeleteId(null)}
+            >
+              Hủy bỏ
+            </AlertDialogCancel>
+            {/* Nút Xác nhận Xóa (thực hiện hành động) */}
+            <AlertDialogAction
+              onClick={handleDeleteProduct}
+              disabled={saving}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              {saving ? "Đang Xóa..." : "Xác nhận Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* 💥 END MODAL XÁC NHẬN XÓA SẢN PHẨM */}
     </main>
   );
 }

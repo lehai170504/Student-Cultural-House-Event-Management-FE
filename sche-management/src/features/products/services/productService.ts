@@ -62,7 +62,7 @@ export const productService = {
   },
 
   /** 🔹 Lấy chi tiết sản phẩm theo ID */
-  async getById(id: number): Promise<Product> {
+  async getById(id: string): Promise<Product> {
     try {
       const res = await axiosInstance.get<any>(`${endpoint}/${id}`);
       const apiData = res?.data?.data ?? res?.data;
@@ -86,7 +86,7 @@ export const productService = {
   },
 
   /** 🔹 Cập nhật thông tin sản phẩm (Admin) */
-  async update(id: number, data: UpdateProduct): Promise<Product> {
+  async update(id: string, data: UpdateProduct): Promise<Product> {
     try {
       const res = await axiosInstance.put<any>(`${endpoint}/${id}`, data);
       const apiData = res?.data?.data ?? res?.data;
@@ -98,7 +98,7 @@ export const productService = {
   },
 
   /** 🔹 Xoá mềm sản phẩm (Admin) */
-  async softDelete(id: number): Promise<{ success: boolean }> {
+  async softDelete(id: string): Promise<{ success: boolean }> {
     try {
       const res = await axiosInstance.delete<any>(`${endpoint}/${id}`);
       const apiData = res?.data?.data ?? res?.data;

@@ -34,7 +34,7 @@ export const useUniversityUsers = () => {
 
   /** 🔸 Update status (ACTIVE/INACTIVE) of a student */
   const changeStudentStatus = useCallback(
-    async (id: number, status: "ACTIVE" | "INACTIVE"): Promise<boolean> => {
+    async (id: string, status: "ACTIVE" | "INACTIVE"): Promise<boolean> => {
       try {
         const result = await dispatch(updateStudentStatus({ id, status }));
         return updateStudentStatus.fulfilled.match(result);

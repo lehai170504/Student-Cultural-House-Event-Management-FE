@@ -1,15 +1,12 @@
 import axiosInstance from "@/config/axiosInstance";
-import { 
-  UniversityUser, 
+import {
+  UniversityUser,
   StudentResponse,
   StudentProfile,
   CompleteProfileRequest,
-  UpdateProfileRequest
+  UpdateProfileRequest,
 } from "../types/student";
-import type {
-  PaginatedResponse,
-  PaginationParams,
-} from "@/utils/apiResponse";
+import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 
 const endpoint = "/admin/students";
 
@@ -43,34 +40,35 @@ export const studentService = {
       const res = await axiosInstance.get<any>(endpoint, {
         params: queryParams,
       });
-      
+
       // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
       const responseData = res.data;
-      
+
       // Nếu có wrap trong { status, message, data } thì lấy data
-      if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
+      if (
+        responseData?.data &&
+        Array.isArray(responseData.data) &&
+        responseData.meta
+      ) {
         return responseData as PaginatedResponse<UniversityUser>;
       }
-      
+
       // Nếu trả về trực tiếp { data, meta }
       if (responseData?.data && responseData?.meta) {
         return responseData as PaginatedResponse<UniversityUser>;
       }
-      
+
       // Fallback: giả sử responseData là PaginatedResponse trực tiếp
       return responseData as PaginatedResponse<UniversityUser>;
     } catch (error) {
-      console.error(
-        "❌ [getAll] Error fetching university users:",
-        error
-      );
+      console.error("❌ [getAll] Error fetching university users:", error);
       throw error;
     }
   },
 
   /** 🔹 Cập nhật trạng thái University User (Sinh viên) */
   async updateStatus(
-    id: number,
+    id: string,
     status: "ACTIVE" | "INACTIVE"
   ): Promise<UniversityUser> {
     try {
@@ -94,10 +92,10 @@ export const studentService = {
       // API endpoint: /me (baseURL đã có /api/v1)
       // Response có thể là { data: {...} } hoặc {...} trực tiếp
       const res = await axiosInstance.get<any>("/me");
-      
+
       // Xử lý cả 2 trường hợp response format
       const apiData = res?.data?.data ?? res?.data;
-      
+
       // Map response to StudentProfile type
       const profile: StudentProfile = {
         id: apiData.id,
@@ -110,7 +108,7 @@ export const studentService = {
         status: apiData.status || "ACTIVE",
         createdAt: apiData.createdAt || null,
       };
-      
+
       return profile;
     } catch (error) {
       console.error("❌ [getProfile] Lỗi khi lấy thông tin profile:", error);
@@ -134,7 +132,7 @@ export const studentService = {
       );
       // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
       const apiData = res.data?.data ?? res.data;
-      
+
       return {
         id: apiData.id,
         universityId: apiData.universityId,
@@ -155,13 +153,10 @@ export const studentService = {
   /** 🔹 Cập nhật thông tin profile của student */
   async updateProfile(data: UpdateProfileRequest): Promise<StudentProfile> {
     try {
-      const res = await axiosInstance.put<any>(
-        "/students/me",
-        data
-      );
+      const res = await axiosInstance.put<any>("/students/me", data);
       // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
       const apiData = res.data?.data ?? res.data;
-      
+
       return {
         id: apiData.id,
         universityId: apiData.universityId,

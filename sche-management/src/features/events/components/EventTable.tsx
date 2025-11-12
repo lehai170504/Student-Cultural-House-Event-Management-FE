@@ -163,7 +163,7 @@ export default function EventTable() {
 
       try {
         const fullPayload: EventCheckinDetail & { phoneNumber: string } = {
-          checkinId: "", 
+          checkinId: "",
           eventId,
           eventTitle: currentCheckinEvent.title,
           studentId: Number(currentCheckinEvent.studentId),

@@ -13,22 +13,12 @@ import {
 } from "@/components/ui/table";
 import { Plus, CheckCircle, XCircle, DollarSign } from "lucide-react";
 import { usePartners } from "../hooks/usePartners";
+import { Partner } from "../types/partner";
 // @ts-ignore
 import { toast, Toaster } from "sonner";
 
 const CreatePartnerModal = lazy(() => import("./CreatePartnerModal"));
 const TopUpPartnerModal = lazy(() => import("./TopUpPartnerModal"));
-
-interface Partner {
-  id: number;
-  name: string;
-  organizationType: string;
-  contactEmail: string;
-  contactPhone: string;
-  walletId: number;
-  createdAt: string;
-  status: "ACTIVE" | "INACTIVE";
-}
 
 export default function PartnerTable() {
   const {
@@ -51,12 +41,12 @@ export default function PartnerTable() {
     : [];
 
   const toggleStatus = async (
-    id: number,
+    id: string,
     currentStatus: "ACTIVE" | "INACTIVE"
   ) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";
     const partnerName =
-      filteredPartners.find((p) => p.id === id)?.name || "Đối tác";
+      filteredPartners.find((p) => String(p.id) === id)?.name || "Đối tác";
 
     const success = await changePartnerStatus(id, newStatus);
 
@@ -248,11 +238,9 @@ export default function PartnerTable() {
         <Suspense fallback={<p>Đang tải...</p>}>
           <TopUpPartnerModal
             open={!!topUp}
-            onClose={() => {
-              setTopUp(null);
-            }}
+            onClose={() => setTopUp(null)}
             onTopUpSuccess={handleTopUpSuccess}
-            partnerId={topUp.walletId.toString()}
+            partnerId={topUp.id.toString()}
             partnerName={topUp.name}
           />
         </Suspense>

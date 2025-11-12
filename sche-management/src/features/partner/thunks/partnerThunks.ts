@@ -35,7 +35,7 @@ export const createPartner = createAsyncThunk<
 
 export const updatePartnerStatus = createAsyncThunk<
   Partner,
-  { id: number; status: "ACTIVE" | "INACTIVE" },
+  { id: string; status: "ACTIVE" | "INACTIVE" },
   { rejectValue: string }
 >("partners/updateStatus", async ({ id, status }, { rejectWithValue }) => {
   try {

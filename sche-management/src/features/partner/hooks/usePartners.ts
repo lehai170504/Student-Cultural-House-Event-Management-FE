@@ -43,7 +43,7 @@ export const usePartners = () => {
 
   /** 🔸 Cập nhật trạng thái partner */
   const changePartnerStatus = useCallback(
-    async (id: number, status: "ACTIVE" | "INACTIVE") => {
+    async (id: string, status: "ACTIVE" | "INACTIVE") => {
       const result = await dispatch(updatePartnerStatus({ id, status }));
       return result;
     },

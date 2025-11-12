@@ -1,7 +1,7 @@
 export type ProductType = "VOUCHER" | "MERCH" | "SERVICE" | "GIFT";
 
 export interface Product {
-  id: number;
+  id: string;
   type: ProductType;
   title: string;
   description: string;
