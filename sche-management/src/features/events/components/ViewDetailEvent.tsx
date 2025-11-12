@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/select";
 import { useEvents } from "../hooks/useEvents";
 import { Button } from "@/components/ui/button";
-import { EventDetailResponse, Event } from "../types/events";
+import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
+import { toast } from "sonner";
 
 interface ViewDetailEventProps {
   eventId: string | null;
@@ -31,12 +32,33 @@ export default function ViewDetailEvent({
   open,
   onClose,
 }: ViewDetailEventProps) {
+  const { user } = useUserProfile();
+
+  // 🌟 Check role Cognito
+  function useUserRole(user: any) {
+    return useMemo(() => {
+      const groups = user?.groups || []; // fix từ user.profile
+      if (Array.isArray(groups)) {
+        if (groups.includes("ADMINS") || groups.includes("Admin"))
+          return "ADMIN";
+        if (groups.includes("PARTNERS") || groups.includes("Partner"))
+          return "PARTNER";
+      }
+      return null;
+    }, [user]);
+  }
+
+  const role = useUserRole(user);
+  const isPartner = role === "PARTNER";
+  const isAdmin = role === "ADMIN";
+
   const {
     detail,
     loadingDetail,
     loadDetail,
     eventCategories,
     loadingCategories,
+    updateExistingEvent,
   } = useEvents();
 
   const [title, setTitle] = useState("");
@@ -86,6 +108,28 @@ export default function ViewDetailEvent({
     }
   }, [detail, eventId]);
 
+  const handleUpdate = async () => {
+    if (!eventId) return;
+
+    try {
+      await updateExistingEvent(eventId, {
+        title,
+        description,
+        location,
+        startTime: new Date(startTime).toISOString(),
+        endTime: new Date(endTime).toISOString(),
+        categoryId: categoryId!,
+        pointCostToRegister: Number(pointCostToRegister),
+        totalRewardPoints: Number(totalRewardPoints),
+        totalBudgetCoin: Number(totalBudgetCoin),
+      });
+      toast.success("Cập nhật sự kiện thành công!");
+      onClose();
+    } catch {
+      toast.error("Cập nhật thất bại!");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-lg w-full rounded-xl p-6">
@@ -105,8 +149,11 @@ export default function ViewDetailEvent({
               </label>
               <Input
                 value={title}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                onChange={(e) => setTitle(e.target.value)}
+                readOnly={!isPartner}
+                className={`bg-gray-100 ${
+                  !isPartner ? "cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -116,8 +163,11 @@ export default function ViewDetailEvent({
               </label>
               <Input
                 value={description}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                onChange={(e) => setDescription(e.target.value)}
+                readOnly={!isPartner}
+                className={`bg-gray-100 ${
+                  !isPartner ? "cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -127,8 +177,11 @@ export default function ViewDetailEvent({
               </label>
               <Input
                 value={location}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                onChange={(e) => setLocation(e.target.value)}
+                readOnly={!isPartner}
+                className={`bg-gray-100 ${
+                  !isPartner ? "cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -139,8 +192,11 @@ export default function ViewDetailEvent({
                 </label>
                 <Input
                   value={startTime}
-                  readOnly
-                  className="bg-gray-100 cursor-not-allowed"
+                  onChange={(e) => setStartTime(e.target.value)}
+                  readOnly={!isPartner}
+                  className={`bg-gray-100 ${
+                    !isPartner ? "cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
               <div>
@@ -149,8 +205,11 @@ export default function ViewDetailEvent({
                 </label>
                 <Input
                   value={endTime}
-                  readOnly
-                  className="bg-gray-100 cursor-not-allowed"
+                  onChange={(e) => setEndTime(e.target.value)}
+                  readOnly={!isPartner}
+                  className={`bg-gray-100 ${
+                    !isPartner ? "cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
             </div>
@@ -159,7 +218,10 @@ export default function ViewDetailEvent({
               <label className="block text-gray-700 font-medium mb-1">
                 Danh mục sự kiện
               </label>
-              <Select value={categoryId ?? undefined}>
+              <Select
+                value={categoryId ?? undefined}
+                onValueChange={(v) => isPartner && setCategoryId(v)}
+              >
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
@@ -183,8 +245,11 @@ export default function ViewDetailEvent({
               </label>
               <Input
                 value={pointCostToRegister}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                onChange={(e) => setPointCostToRegister(e.target.value)}
+                readOnly={!isPartner}
+                className={`bg-gray-100 ${
+                  !isPartner ? "cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -194,8 +259,11 @@ export default function ViewDetailEvent({
               </label>
               <Input
                 value={totalRewardPoints}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                onChange={(e) => setTotalRewardPoints(e.target.value)}
+                readOnly={!isPartner}
+                className={`bg-gray-100 ${
+                  !isPartner ? "cursor-not-allowed" : ""
+                }`}
               />
             </div>
 
@@ -205,17 +273,21 @@ export default function ViewDetailEvent({
               </label>
               <Input
                 value={totalBudgetCoin}
-                readOnly
-                className="bg-gray-100 cursor-not-allowed"
+                onChange={(e) => setTotalBudgetCoin(e.target.value)}
+                readOnly={!isPartner}
+                className={`bg-gray-100 ${
+                  !isPartner ? "cursor-not-allowed" : ""
+                }`}
               />
             </div>
           </div>
         )}
 
-        <DialogFooter className="mt-6 flex justify-end">
+        <DialogFooter className="mt-6 flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose}>
             Đóng
           </Button>
+          {isPartner && <Button onClick={handleUpdate}>Cập nhật</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

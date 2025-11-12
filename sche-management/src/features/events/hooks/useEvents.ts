@@ -199,7 +199,7 @@ export const useEvents = () => {
     resetEventDetail,
     resetEventPagination,
     clearEventError,
-
+    loadCategories,
     registerForEventByStudent,
     sendFeedbackForEvent,
     checkinForEvent,

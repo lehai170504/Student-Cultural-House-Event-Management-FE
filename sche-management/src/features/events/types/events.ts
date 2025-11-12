@@ -25,7 +25,7 @@ export interface CreateEvent {
   startTime: string;
   endTime: string;
   location: string;
-  categoryId: number;
+  categoryId: string;
   pointCostToRegister: number;
   totalRewardPoints: number;
   totalBudgetCoin: number;
@@ -41,7 +41,7 @@ export interface UpdateEvent {
   pointCostToRegister: number;
   totalRewardPoints: number;
   totalBudgetCoin: number;
-  status: string;
+  status?: string;
 }
 
 export interface EventMeta {

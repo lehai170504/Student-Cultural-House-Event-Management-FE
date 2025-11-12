@@ -24,7 +24,7 @@ export default function AdminLayout({
       if (!json) return false;
       const user = JSON.parse(json);
       const groups = user?.profile?.["cognito:groups"];
-      return Array.isArray(groups) && groups.includes("ADMINS");
+      return Array.isArray(groups) && groups.includes("ADMIN");
     } catch {
       return false;
     }

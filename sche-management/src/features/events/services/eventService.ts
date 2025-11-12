@@ -210,7 +210,7 @@ export const eventService = {
   /** ✅ 🔹 Duyệt sự kiện (approve) */
   async approveEvent(eventId: string): Promise<EventApproveResponse> {
     try {
-      const res = await axiosInstance.post<{ data: EventApproveResponse }>(
+      const res = await axiosInstance.patch<{ data: EventApproveResponse }>(
         `${endpoint2}/${eventId}/approve`
       );
       return res.data.data;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Clock, Loader2 } from "lucide-react";
-import Swal from "sweetalert2";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,10 +28,16 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { CreateEvent } from "../types/events";
+import { useEvents } from "../hooks/useEvents";
 
-/**
- * Convert Date to ISO string with timezone offset +07:00 (Vietnam timezone)
- */
+interface CreateEventModalProps {
+  open: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  partnerId: string;
+}
+
 function toISOStringWithTimezone(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -43,139 +49,117 @@ function toISOStringWithTimezone(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}+07:00`;
 }
 
-interface Category {
-  id: string | number;
-  name: string;
-}
-
-interface CreateEventModalProps {
-  open: boolean;
-  onClose: () => void;
-  onSuccess: () => void; // gọi lại khi tạo thành công
-}
-
 export default function CreateEventModal({
   open,
   onClose,
   onSuccess,
+  partnerId,
 }: CreateEventModalProps) {
-  const [form, setForm] = useState<any>({
+  const {
+    createNewEvent,
+    eventCategories,
+    loadingCategories,
+    saving,
+    loadCategories,
+  } = useEvents();
+
+  const [form, setForm] = useState<CreateEvent>({
+    partnerId: partnerId || "",
     title: "",
     description: "",
     startTime: "",
     endTime: "",
     location: "",
     categoryId: "",
-    pointCostToRegister: "",
-    totalRewardPoints: "",
-    totalBudgetCoin: "",
+    pointCostToRegister: 0,
+    totalRewardPoints: 0,
+    totalBudgetCoin: 0,
   });
 
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCats, setLoadingCats] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [startDate, setStartDate] = useState<Date>();
-  const [startTime, setStartTime] = useState<string>("");
+  const [startTimeStr, setStartTimeStr] = useState<string>("");
   const [endDate, setEndDate] = useState<Date>();
-  const [endTime, setEndTime] = useState<string>("");
+  const [endTimeStr, setEndTimeStr] = useState<string>("");
 
-  // 🌀 Tải danh mục sự kiện khi mở modal
+  // Load categories khi mở modal
   useEffect(() => {
-    if (open) {
-      const fetchCats = async () => {
-        try {
-          setLoadingCats(true);
-          const res = await fetch("/api/event-categories"); // hoặc API bạn đang dùng
-          const data = await res.json();
-          setCategories(data);
-        } catch (err) {
-          console.error("Lỗi tải danh mục:", err);
-        } finally {
-          setLoadingCats(false);
-        }
-      };
-      fetchCats();
-    }
-  }, [open]);
+    if (open) loadCategories().catch(console.error);
+  }, [open, loadCategories]);
 
-  // Reset form khi đóng modal
+  // Cập nhật partnerId khi prop thay đổi
+  useEffect(() => {
+    setForm((f) => ({ ...f, partnerId: partnerId || "" }));
+  }, [partnerId]);
+
+  // Reset form khi modal đóng
   useEffect(() => {
     if (!open) {
       setForm({
+        partnerId: partnerId || "",
         title: "",
         description: "",
         startTime: "",
         endTime: "",
         location: "",
         categoryId: "",
-        pointCostToRegister: "",
-        totalRewardPoints: "",
-        totalBudgetCoin: "",
+        pointCostToRegister: 0,
+        totalRewardPoints: 0,
+        totalBudgetCoin: 0,
       });
       setStartDate(undefined);
-      setStartTime("");
+      setStartTimeStr("");
       setEndDate(undefined);
-      setEndTime("");
+      setEndTimeStr("");
     }
-  }, [open]);
+  }, [open, partnerId]);
 
-  const setField = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f: any) => ({ ...f, [k]: e.target.value }));
+  const setField =
+    (k: keyof CreateEvent) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value =
+        e.target.type === "number" ? Number(e.target.value) : e.target.value;
+      setForm((f) => ({ ...f, [k]: value }));
+    };
 
-  // ====== Date/Time handlers ======
   const handleStartDateChange = (date: Date | undefined) => {
     setStartDate(date);
-    if (date && startTime) {
-      const [h, m] = startTime.split(":");
+    if (date && startTimeStr) {
+      const [h, m] = startTimeStr.split(":");
       const combined = new Date(date);
       combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f: any) => ({
-        ...f,
-        startTime: toISOStringWithTimezone(combined),
-      }));
-    } else setForm((f: any) => ({ ...f, startTime: "" }));
+      setForm((f) => ({ ...f, startTime: toISOStringWithTimezone(combined) }));
+    } else setForm((f) => ({ ...f, startTime: "" }));
   };
 
   const handleStartTimeChange = (time: string) => {
-    setStartTime(time);
+    setStartTimeStr(time);
     if (startDate && time) {
       const [h, m] = time.split(":");
       const combined = new Date(startDate);
       combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f: any) => ({
-        ...f,
-        startTime: toISOStringWithTimezone(combined),
-      }));
-    } else setForm((f: any) => ({ ...f, startTime: "" }));
+      setForm((f) => ({ ...f, startTime: toISOStringWithTimezone(combined) }));
+    } else setForm((f) => ({ ...f, startTime: "" }));
   };
 
   const handleEndDateChange = (date: Date | undefined) => {
     setEndDate(date);
-    if (date && endTime) {
-      const [h, m] = endTime.split(":");
+    if (date && endTimeStr) {
+      const [h, m] = endTimeStr.split(":");
       const combined = new Date(date);
       combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f: any) => ({
-        ...f,
-        endTime: toISOStringWithTimezone(combined),
-      }));
-    } else setForm((f: any) => ({ ...f, endTime: "" }));
+      setForm((f) => ({ ...f, endTime: toISOStringWithTimezone(combined) }));
+    } else setForm((f) => ({ ...f, endTime: "" }));
   };
 
   const handleEndTimeChange = (time: string) => {
-    setEndTime(time);
+    setEndTimeStr(time);
     if (endDate && time) {
       const [h, m] = time.split(":");
       const combined = new Date(endDate);
       combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f: any) => ({
-        ...f,
-        endTime: toISOStringWithTimezone(combined),
-      }));
-    } else setForm((f: any) => ({ ...f, endTime: "" }));
+      setForm((f) => ({ ...f, endTime: toISOStringWithTimezone(combined) }));
+    } else setForm((f) => ({ ...f, endTime: "" }));
   };
 
-  // ====== Submit ======
   const handleSubmit = async () => {
     if (
       !form.title ||
@@ -184,32 +168,21 @@ export default function CreateEventModal({
       !form.location ||
       !form.categoryId
     ) {
-      Swal.fire(
-        "Thiếu thông tin",
-        "Vui lòng điền đầy đủ các trường bắt buộc.",
-        "warning"
-      );
+      toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
       return;
     }
 
-    setSaving(true);
     try {
-      const res = await fetch("/api/events", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+      await createNewEvent({
+        ...form,
+        categoryId: String(form.categoryId),
       });
-
-      if (!res.ok) throw new Error("Tạo sự kiện thất bại");
-
-      Swal.fire("Thành công", "Sự kiện đã được tạo!", "success");
-      onSuccess(); // callback reload danh sách
+      toast.success("Sự kiện đã được tạo!");
+      onSuccess();
       onClose();
     } catch (err) {
-      Swal.fire("Lỗi", "Không thể tạo sự kiện.", "error");
       console.error(err);
-    } finally {
-      setSaving(false);
+      toast.error("Không thể tạo sự kiện.");
     }
   };
 
@@ -218,7 +191,7 @@ export default function CreateEventModal({
       <DialogContent className="max-w-2xl bg-white rounded-lg shadow-xl">
         <DialogHeader className="border-b pb-4">
           <DialogTitle className="text-2xl font-bold text-gray-800">
-            Tạo sự kiện mới 🚀
+            Tạo sự kiện mới
           </DialogTitle>
         </DialogHeader>
 
@@ -263,7 +236,7 @@ export default function CreateEventModal({
             <div className="relative">
               <Input
                 type="time"
-                value={startTime}
+                value={startTimeStr}
                 onChange={(e) => handleStartTimeChange(e.target.value)}
               />
               <Clock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -299,7 +272,7 @@ export default function CreateEventModal({
             <div className="relative">
               <Input
                 type="time"
-                value={endTime}
+                value={endTimeStr}
                 onChange={(e) => handleEndTimeChange(e.target.value)}
               />
               <Clock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -313,24 +286,24 @@ export default function CreateEventModal({
           />
 
           <Select
-            value={form.categoryId ? String(form.categoryId) : ""}
-            onValueChange={(val) =>
-              setForm((f: any) => ({ ...f, categoryId: val }))
-            }
-            disabled={loadingCats}
+            value={form.categoryId}
+            onValueChange={(val) => setForm((f) => ({ ...f, categoryId: val }))}
+            disabled={loadingCategories}
           >
             <SelectTrigger>
               <SelectValue
-                placeholder={loadingCats ? "Đang tải..." : "Chọn danh mục (*)"}
+                placeholder={
+                  loadingCategories ? "Đang tải..." : "Chọn danh mục (*)"
+                }
               />
             </SelectTrigger>
             <SelectContent>
-              {categories.length === 0 ? (
+              {eventCategories.length === 0 ? (
                 <SelectItem value="" disabled>
-                  {loadingCats ? "Đang tải..." : "Không có danh mục"}
+                  {loadingCategories ? "Đang tải..." : "Không có danh mục"}
                 </SelectItem>
               ) : (
-                categories.map((cat) => (
+                eventCategories.map((cat) => (
                   <SelectItem key={cat.id} value={String(cat.id)}>
                     {cat.name}
                   </SelectItem>
@@ -340,19 +313,19 @@ export default function CreateEventModal({
           </Select>
 
           <Input
-            placeholder="Điểm phí đăng ký (Mặc định: 0)"
+            placeholder="Điểm phí đăng ký"
             type="number"
             value={form.pointCostToRegister}
             onChange={setField("pointCostToRegister")}
           />
           <Input
-            placeholder="Tổng điểm thưởng (Mặc định: 0)"
+            placeholder="Tổng điểm thưởng"
             type="number"
             value={form.totalRewardPoints}
             onChange={setField("totalRewardPoints")}
           />
           <Input
-            placeholder="Tổng ngân sách (coin) (Mặc định: 0)"
+            placeholder="Tổng ngân sách (coin)"
             type="number"
             value={form.totalBudgetCoin}
             onChange={setField("totalBudgetCoin")}
