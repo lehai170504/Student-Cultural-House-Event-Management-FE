@@ -83,8 +83,8 @@ export default function StudentMyEventsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-6 py-10">
+    <main className="min-h-screen">
+      <div className="mt-15 mx-auto px-6 py-10">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-800">Sự kiện của tôi</h1>
           <p className="text-gray-500">Lịch sử các sự kiện bạn đã tham gia</p>

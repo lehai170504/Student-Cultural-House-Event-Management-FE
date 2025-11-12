@@ -88,19 +88,16 @@ export default function EventsPage() {
                   style={{ animationDelay: `${index * 100}ms` }}
                   onClick={() => router.push(`/events/${event.id}`)}
                 >
-                  {/* Image section */}
-                  <div className="relative h-60 overflow-hidden">
-                    {/* <img
-                      src={event.image || "/images/default-event.jpg"}
-                      alt={event.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    /> */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
-
+                  {/* Header section with badges */}
+                  <div className="relative">
                     {/* Category Badge */}
-                    <Badge className="absolute top-4 left-4 bg-orange-500 text-white backdrop-blur-sm border-0 shadow-md">
-                      {String(event.category)}
-                    </Badge>
+                    {event.category && (
+                      <Badge className="absolute top-4 left-4 bg-orange-500 text-white backdrop-blur-sm border-0 shadow-md">
+                        {typeof event.category === 'object' && event.category.name
+                          ? event.category.name
+                          : String(event.category)}
+                      </Badge>
+                    )}
 
                     {/* Status Badge */}
                     <Badge
@@ -112,7 +109,7 @@ export default function EventsPage() {
 
                   {/* Content section */}
                   <div className="p-6">
-                    <h3 className="text-xl font-bold mb-3 text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2">
+                    <h3 className="text-xl mt-8 font-bold mb-3 text-gray-900 group-hover:text-orange-600 transition-colors line-clamp-2">
                       {event.title}
                     </h3>
 
@@ -136,9 +133,9 @@ export default function EventsPage() {
                       </div>
                     </div>
 
-                    <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center gap-2 transition-transform duration-300 group-hover:scale-[1.02] shadow-md">
+                    <Button className="w-full cursor-pointer bg-orange-500 hover:bg-orange-600 text-white rounded-xl flex items-center justify-center gap-2 transition-transform duration-300 group-hover:scale-[1.02] shadow-md">
                       Xem chi tiết
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      <ArrowRight className="w-4 h-4 cursor-pointer group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </div>
                 </div>

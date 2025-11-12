@@ -1,48 +1,55 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
 import { useEvents } from "@/features/events/hooks/useEvents";
 import PublicNavbar from "@/components/PublicNavbar";
-import { Badge } from "@/components/ui/badge";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { motion } from "framer-motion";
 import type { Event } from "@/features/events/types/events";
+import EventsSearchBar from "./components/EventsSearchBar";
+import CategoryFilters from "./components/CategoryFilters";
+import EventsGrid from "./components/EventsGrid";
+import EventsPagination from "./components/EventsPagination";
 
 export default function EventsPage() {
   const {
     list: events = [],
     loadingList,
-    currentPage,
-    totalPages,
-    isLastPage,
+    pagination,
     loadAll,
     eventCategories: allCategories = [],
   } = useEvents();
 
+  const currentPage = pagination?.currentPage ?? 0;
+  const totalPages = pagination?.totalPages ?? 0;
+  const isLastPage = pagination?.isLastPage ?? true;
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<
     null | "ACTIVE" | "FINISHED"
   >(null);
   const [overrideEvents, setOverrideEvents] = useState<Event[] | null>(null);
+  // Store all events without category filter for category count calculation
+  const [allEventsForCount, setAllEventsForCount] = useState<Event[]>([]);
+  // Track when async filter operations are running
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const baseEvents = overrideEvents ?? events;
+  const skeletonItems = Array.from({ length: 6 });
+  // Show skeleton when loading (either from Redux or local async operations)
+  const showSkeleton = loadingList || isFiltering;
 
-  const categoryIdToCount = baseEvents.reduce<Record<number, number>>(
+  // Calculate category count from allEventsForCount (without category filter)
+  // Use allEventsForCount if available, otherwise use baseEvents only if no category is selected
+  const eventsForCategoryCount = 
+    allEventsForCount.length > 0 
+      ? allEventsForCount 
+      : selectedCategory === null 
+        ? baseEvents 
+        : allEventsForCount; // If category is selected but allEventsForCount is empty, wait for it to be loaded
+  const categoryIdToCount = eventsForCategoryCount.reduce<Record<string, number>>(
     (acc, ev) => {
       const id = ev.category?.id;
-      if (typeof id === "number") acc[id] = (acc[id] || 0) + 1;
+      if (typeof id === "string" && id) acc[id] = (acc[id] || 0) + 1;
       return acc;
     },
     {}
@@ -56,7 +63,7 @@ export default function EventsPage() {
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchCategory = selectedCategory
-      ? event.category.id === selectedCategory
+      ? event.category?.id === selectedCategory
       : true;
 
     const matchStatus = selectedStatus ? event.status === selectedStatus : true;
@@ -73,72 +80,188 @@ export default function EventsPage() {
     setSearchTerm(keyword);
 
     setOverrideEvents(null);
+    setIsFiltering(true);
 
-    if (selectedStatus === null) {
-      const [a, f] = await Promise.all([
+    try {
+      if (selectedStatus === null) {
+      // Load all events without category filter for category count
+      const [aAll, fAll] = await Promise.all([
         loadAll({
           page: 0,
           search: keyword,
           status: "ACTIVE" as const,
-          categoryId: selectedCategory || undefined,
         }),
         loadAll({
           page: 0,
           search: keyword,
           status: "FINISHED" as const,
-          categoryId: selectedCategory || undefined,
         }),
       ]);
-      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
-      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
-      const merged = [...arrA, ...arrF].filter(
+      const arrAAll: Event[] = Array.isArray(aAll)
+        ? (aAll as Event[])
+        : ((aAll as any)?.data ?? (aAll as any)?.content ?? []);
+      const arrFAll: Event[] = Array.isArray(fAll)
+        ? (fAll as Event[])
+        : ((fAll as any)?.data ?? (fAll as any)?.content ?? []);
+      const mergedAll = [...arrAAll, ...arrFAll].filter(
         (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
       );
-      setOverrideEvents(merged as Event[]);
+      setAllEventsForCount(mergedAll as Event[]);
+
+      // Load events with category filter for display
+      if (selectedCategory) {
+        const [a, f] = await Promise.all([
+          loadAll({
+            page: 0,
+            search: keyword,
+            status: "ACTIVE" as const,
+            categoryId: selectedCategory,
+          }),
+          loadAll({
+            page: 0,
+            search: keyword,
+            status: "FINISHED" as const,
+            categoryId: selectedCategory,
+          }),
+        ]);
+        const arrA: Event[] = Array.isArray(a)
+          ? (a as Event[])
+          : ((a as any)?.data ?? (a as any)?.content ?? []);
+        const arrF: Event[] = Array.isArray(f)
+          ? (f as Event[])
+          : ((f as any)?.data ?? (f as any)?.content ?? []);
+        const merged = [...arrA, ...arrF].filter(
+          (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+        );
+        setOverrideEvents(merged as Event[]);
+      } else {
+        setOverrideEvents(mergedAll as Event[]);
+      }
     } else {
-      loadAll({
+      // Load all events without category filter for category count
+      const allEventsResult = await loadAll({
         page: 0,
         search: keyword,
         status: selectedStatus || undefined,
-        categoryId: selectedCategory || undefined,
       });
+      const arrAll: Event[] = Array.isArray(allEventsResult)
+        ? (allEventsResult as Event[])
+        : ((allEventsResult as any)?.data ?? (allEventsResult as any)?.content ?? []);
+      setAllEventsForCount(arrAll);
+
+      // Load events with category filter for display
+      if (selectedCategory) {
+        loadAll({
+          page: 0,
+          search: keyword,
+          status: selectedStatus || undefined,
+          categoryId: selectedCategory,
+        });
+      } else {
+        setOverrideEvents(null);
+      }
+    }
+    } finally {
+      setIsFiltering(false);
     }
   };
 
-  const handleCategoryFilter = async (categoryId: number | null) => {
+  const handleCategoryFilter = async (categoryId: string | null) => {
     setSelectedCategory(categoryId);
 
-    setOverrideEvents(null);
+    // Don't update allEventsForCount here - it should remain unchanged
+    // Only update display events (overrideEvents or loadAll with category filter)
+    setIsFiltering(true);
 
-    if (selectedStatus === null) {
-      const [a, f] = await Promise.all([
-        loadAll({
-          page: 0,
-          search: searchTerm || undefined,
-          categoryId: categoryId || undefined,
-          status: "ACTIVE" as const,
-        }),
-        loadAll({
-          page: 0,
-          search: searchTerm || undefined,
-          categoryId: categoryId || undefined,
-          status: "FINISHED" as const,
-        }),
-      ]);
-      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
-      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
-      const merged = [...arrA, ...arrF].filter(
-        (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
-      );
-      setOverrideEvents(merged as Event[]);
+    try {
+      if (selectedStatus === null) {
+      if (categoryId) {
+        // Load events with category filter for display
+        const [a, f] = await Promise.all([
+          loadAll({
+            page: 0,
+            search: searchTerm || undefined,
+            categoryId: categoryId,
+            status: "ACTIVE" as const,
+          }),
+          loadAll({
+            page: 0,
+            search: searchTerm || undefined,
+            categoryId: categoryId,
+            status: "FINISHED" as const,
+          }),
+        ]);
+        const arrA: Event[] = Array.isArray(a)
+          ? (a as Event[])
+          : ((a as any)?.data ?? (a as any)?.content ?? []);
+        const arrF: Event[] = Array.isArray(f)
+          ? (f as Event[])
+          : ((f as any)?.data ?? (f as any)?.content ?? []);
+        const merged = [...arrA, ...arrF].filter(
+          (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+        );
+        setOverrideEvents(merged as Event[]);
+      } else {
+        // Show all events (use allEventsForCount if available, otherwise load)
+        if (allEventsForCount.length > 0) {
+          setOverrideEvents(allEventsForCount);
+        } else {
+          // Load all events
+          const [a, f] = await Promise.all([
+            loadAll({
+              page: 0,
+              search: searchTerm || undefined,
+              status: "ACTIVE" as const,
+            }),
+            loadAll({
+              page: 0,
+              search: searchTerm || undefined,
+              status: "FINISHED" as const,
+            }),
+          ]);
+          const arrA: Event[] = Array.isArray(a)
+            ? (a as Event[])
+            : ((a as any)?.data ?? (a as any)?.content ?? []);
+          const arrF: Event[] = Array.isArray(f)
+            ? (f as Event[])
+            : ((f as any)?.data ?? (f as any)?.content ?? []);
+          const merged = [...arrA, ...arrF].filter(
+            (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+          );
+          setOverrideEvents(merged as Event[]);
+          setAllEventsForCount(merged as Event[]);
+        }
+      }
     } else {
-      setOverrideEvents(null);
-      loadAll({
-        page: 0,
-        search: searchTerm || undefined,
-        categoryId: categoryId || undefined,
-        status: selectedStatus || undefined,
-      });
+      if (categoryId) {
+        // Load events with category filter for display
+        setOverrideEvents(null);
+        loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: categoryId,
+          status: selectedStatus || undefined,
+        });
+      } else {
+        // Show all events (use allEventsForCount if available)
+        if (allEventsForCount.length > 0) {
+          // Filter allEventsForCount by status for display
+          const filtered = allEventsForCount.filter(
+            (ev) => ev.status === selectedStatus
+          );
+          setOverrideEvents(filtered);
+        } else {
+          setOverrideEvents(null);
+          loadAll({
+            page: 0,
+            search: searchTerm || undefined,
+            status: selectedStatus || undefined,
+          });
+        }
+      }
+    }
+    } finally {
+      setIsFiltering(false);
     }
   };
 
@@ -146,36 +269,90 @@ export default function EventsPage() {
     setSelectedStatus(status);
 
     setOverrideEvents(null);
+    setIsFiltering(true);
 
-    if (status === null) {
-      const [a, f] = await Promise.all([
+    try {
+      if (status === null) {
+      // Load all events without category filter for category count
+      const [aAll, fAll] = await Promise.all([
         loadAll({
           page: 0,
           search: searchTerm || undefined,
-          categoryId: selectedCategory || undefined,
           status: "ACTIVE" as const,
         }),
         loadAll({
           page: 0,
           search: searchTerm || undefined,
-          categoryId: selectedCategory || undefined,
           status: "FINISHED" as const,
         }),
       ]);
-      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
-      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
-      const merged = [...arrA, ...arrF].filter(
+      const arrAAll: Event[] = Array.isArray(aAll)
+        ? (aAll as Event[])
+        : ((aAll as any)?.data ?? (aAll as any)?.content ?? []);
+      const arrFAll: Event[] = Array.isArray(fAll)
+        ? (fAll as Event[])
+        : ((fAll as any)?.data ?? (fAll as any)?.content ?? []);
+      const mergedAll = [...arrAAll, ...arrFAll].filter(
         (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
       );
-      setOverrideEvents(merged as Event[]);
+      setAllEventsForCount(mergedAll as Event[]);
+
+      // Load events with category filter for display
+      if (selectedCategory) {
+        const [a, f] = await Promise.all([
+          loadAll({
+            page: 0,
+            search: searchTerm || undefined,
+            categoryId: selectedCategory,
+            status: "ACTIVE" as const,
+          }),
+          loadAll({
+            page: 0,
+            search: searchTerm || undefined,
+            categoryId: selectedCategory,
+            status: "FINISHED" as const,
+          }),
+        ]);
+        const arrA: Event[] = Array.isArray(a)
+          ? (a as Event[])
+          : ((a as any)?.data ?? (a as any)?.content ?? []);
+        const arrF: Event[] = Array.isArray(f)
+          ? (f as Event[])
+          : ((f as any)?.data ?? (f as any)?.content ?? []);
+        const merged = [...arrA, ...arrF].filter(
+          (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
+        );
+        setOverrideEvents(merged as Event[]);
+      } else {
+        setOverrideEvents(mergedAll as Event[]);
+      }
     } else {
-      setOverrideEvents(null);
-      loadAll({
+      // Load all events without category filter for category count
+      const allEventsResult = await loadAll({
         page: 0,
         search: searchTerm || undefined,
-        categoryId: selectedCategory || undefined,
         status,
       });
+      const arrAll: Event[] = Array.isArray(allEventsResult)
+        ? (allEventsResult as Event[])
+        : ((allEventsResult as any)?.data ?? (allEventsResult as any)?.content ?? []);
+      setAllEventsForCount(arrAll);
+
+      // Load events with category filter for display
+      if (selectedCategory) {
+        setOverrideEvents(null);
+        loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: selectedCategory,
+          status,
+        });
+      } else {
+        setOverrideEvents(null);
+      }
+    }
+    } finally {
+      setIsFiltering(false);
     }
   };
 
@@ -219,39 +396,6 @@ export default function EventsPage() {
     return pages;
   };
 
-  const getEventStatus = (event: (typeof events)[0]) => {
-    return event.status || "DRAFT";
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "DRAFT":
-        return "bg-blue-100 text-blue-700";
-      case "ACTIVE":
-        return "bg-green-100 text-green-700";
-      case "FINISHED":
-        return "bg-gray-100 text-gray-700";
-      case "CANCELLED":
-        return "bg-red-100 text-red-700";
-      default:
-        return "bg-gray-200 text-gray-700";
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "DRAFT":
-        return "NHÁP";
-      case "ACTIVE":
-        return "ĐANG DIỄN RA";
-      case "FINISHED":
-        return "ĐÃ KẾT THÚC";
-      case "CANCELLED":
-        return "ĐÃ HỦY";
-      default:
-        return "KHÔNG XÁC ĐỊNH";
-    }
-  };
 
   useEffect(() => {
     (async () => {
@@ -259,11 +403,17 @@ export default function EventsPage() {
         loadAll({ page: 0, status: "ACTIVE" as const }),
         loadAll({ page: 0, status: "FINISHED" as const }),
       ]);
-      const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
-      const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
+      const arrA: Event[] = Array.isArray(a)
+        ? (a as Event[])
+        : ((a as any)?.data ?? (a as any)?.content ?? []);
+      const arrF: Event[] = Array.isArray(f)
+        ? (f as Event[])
+        : ((f as any)?.data ?? (f as any)?.content ?? []);
       const merged = [...arrA, ...arrF].filter(
         (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
       );
+      // Set allEventsForCount for category count calculation (without category filter)
+      setAllEventsForCount(merged as Event[]);
       setOverrideEvents(merged as Event[]);
       setSelectedStatus(null);
     })();
@@ -273,159 +423,45 @@ export default function EventsPage() {
     <main className="min-h-screen bg-gray-50">
       <PublicNavbar />
 
-      {/* Search & Filter */}
-      <section className="py-8 bg-white border-b">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Tìm kiếm sự kiện..."
-              value={searchTerm}
-              onChange={handleSearch}
-              className="pl-10 pr-4 py-3 rounded-lg border-gray-200 focus:border-orange-500 focus:ring-orange-500 transition"
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <motion.div whileHover={{ scale: 1.05 }}>
-              <Button
-                variant={selectedCategory === null ? "default" : "outline"}
-                onClick={() => handleCategoryFilter(null)}
-              >
-                Tất cả ({baseEvents.length})
-              </Button>
-            </motion.div>
-
-            {eventCategories.map((cat) => (
-              <motion.div key={cat.id} whileHover={{ scale: 1.05 }}>
-                <Button
-                  variant={selectedCategory === cat.id ? "default" : "outline"}
-                  onClick={() => handleCategoryFilter(cat.id)}
-                >
-                  {cat.name} ({categoryIdToCount[cat.id] || 0})
-                </Button>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Status Filters */}
-          <div className="flex gap-2 mt-4 md:mt-0">
-            <Button
-              variant={selectedStatus === null ? "default" : "outline"}
-              onClick={() => handleStatusFilter(null)}
-            >
-              Tất cả trạng thái
-            </Button>
-            <Button
-              variant={selectedStatus === "ACTIVE" ? "default" : "outline"}
-              onClick={() => handleStatusFilter("ACTIVE")}
-            >
-              Đang diễn ra
-            </Button>
-            <Button
-              variant={selectedStatus === "FINISHED" ? "default" : "outline"}
-              onClick={() => handleStatusFilter("FINISHED")}
-            >
-              Đã kết thúc
-            </Button>
-          </div>
-        </div>
-      </section>
+      <EventsSearchBar
+        searchTerm={searchTerm}
+        onSearchChange={handleSearch}
+        selectedStatus={selectedStatus}
+        onStatusFilter={handleStatusFilter}
+      />
 
       {/* Event Grid */}
       <section className="py-12">
-        <motion.div
-          className="container mx-auto px-6 grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-          key={searchTerm + selectedCategory + (selectedStatus || "all")}
-        >
-          {filteredEvents.length > 0 ? (
-            filteredEvents.map((event) => {
-              const status = getEventStatus(event);
-              return (
-                <motion.div
-                  key={event.id}
-                  whileHover={{ scale: 1.03 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <Link href={`/events/${event.id}`}>
-                    <div className="bg-white rounded-xl shadow hover:shadow-lg transition-all duration-300 cursor-pointer p-6 border-2 border-transparent hover:border-orange-200 flex flex-col gap-2">
-                      <h3 className="text-lg font-bold text-gray-800">
-                        {event.title}
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        {event.partnerName}
-                      </p>
-                      <p className="text-gray-600">{event.location}</p>
-                      <p className="text-sm text-gray-400">
-                        {new Date(event.startTime).toLocaleDateString()} -{" "}
-                        {new Date(event.endTime).toLocaleDateString()}
-                      </p>
+        <div className="container mx-auto px-6">
+          <CategoryFilters
+            categories={eventCategories}
+            selectedCategory={selectedCategory}
+            categoryIdToCount={categoryIdToCount}
+            totalCount={eventsForCategoryCount.length}
+            onCategoryFilter={handleCategoryFilter}
+          />
 
-                      <Badge className={`${getStatusColor(status)} mt-2`}>
-                        {getStatusText(status)}
-                      </Badge>
-                    </div>
-                  </Link>
-                </motion.div>
-              );
-            })
-          ) : (
-            <div className="col-span-full text-center py-12 text-gray-500">
-              Không tìm thấy sự kiện
-            </div>
-          )}
-        </motion.div>
+          <EventsGrid
+            events={filteredEvents}
+            showSkeleton={showSkeleton}
+            skeletonCount={skeletonItems.length}
+            searchTerm={searchTerm}
+            selectedCategory={selectedCategory}
+            selectedStatus={selectedStatus}
+          />
+        </div>
       </section>
 
       {/* Pagination */}
       {totalPages > 1 && selectedStatus !== null && (
-        <div className="flex justify-center items-center mt-8">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  className={
-                    currentPage === 0 || loadingList
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-
-              {getPageNumbers().map((page) => (
-                <PaginationItem key={page}>
-                  <PaginationLink
-                    isActive={page === currentPage}
-                    onClick={() => handlePageChange(page)}
-                    className={
-                      loadingList
-                        ? "pointer-events-none opacity-50"
-                        : "transition transform hover:scale-105"
-                    }
-                  >
-                    {page + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  className={
-                    isLastPage || loadingList
-                      ? "pointer-events-none opacity-50"
-                      : ""
-                  }
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
-        </div>
+        <EventsPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          isLastPage={isLastPage}
+          loadingList={loadingList}
+          onPageChange={handlePageChange}
+          getPageNumbers={getPageNumbers}
+        />
       )}
     </main>
   );

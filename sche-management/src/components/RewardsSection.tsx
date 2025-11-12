@@ -1,9 +1,15 @@
-import { Gift, Star, Users, Clock, Zap, TrendingUp } from "lucide-react";
+"use client";
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
+import { Gift, Star, Users, Clock, Zap, TrendingUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { productService } from "@/features/products/services/productService";
+import type { Product } from "@/features/products/types/product";
 
 interface Reward {
-  id: number;
+  id: string;
   name: string;
   description: string;
   points: number;
@@ -13,77 +19,129 @@ interface Reward {
   popular: boolean;
 }
 
-const popularRewards: Reward[] = [
-  {
-    id: 1,
-    name: "Cốc giữ nhiệt cao cấp",
-    description:
-      "Cốc giữ nhiệt 500ml với thiết kế đẹp mắt, phù hợp cho sinh viên",
-    points: 500,
-    image:
-      "https://images.unsplash.com/photo-1599643477877-530eb83abc8e?w=400&h=400&fit=crop",
-    category: "Đồ dùng",
-    stock: 15,
-    popular: true,
-  },
-  {
-    id: 2,
-    name: "Áo thun trường",
-    description: "Áo thun cotton 100% với logo trường, size S-XL",
-    points: 800,
-    image:
-      "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
-    category: "Thời trang",
-    stock: 8,
-    popular: true,
-  },
-  {
-    id: 3,
-    name: "Balo du lịch",
-    description: "Balo 30L chống nước, phù hợp cho các chuyến đi",
-    points: 1200,
-    image:
-      "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
-    category: "Phụ kiện",
-    stock: 5,
-    popular: false,
-  },
-  {
-    id: 4,
-    name: "Sách kỹ năng mềm",
-    description: "Bộ sách phát triển kỹ năng mềm cho sinh viên",
-    points: 300,
-    image:
-      "https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400&h=400&fit=crop",
-    category: "Sách",
-    stock: 20,
-    popular: true,
-  },
-  {
-    id: 5,
-    name: "Tai nghe Bluetooth",
-    description: "Tai nghe không dây chất lượng cao, pin 8 tiếng",
-    points: 2000,
-    image:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
-    category: "Điện tử",
-    stock: 3,
-    popular: false,
-  },
-  {
-    id: 6,
-    name: "Voucher ăn uống",
-    description: "Voucher 100k tại các quán ăn gần trường",
-    points: 600,
-    image:
-      "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=400&fit=crop",
-    category: "Voucher",
-    stock: 50,
-    popular: true,
-  },
-];
+const CATEGORY_BADGE: Record<string, string> = {
+  voucher: "Voucher",
+  gift: "Quà tặng",
+};
+
+// Map Product type to category badge
+const mapProductTypeToCategory = (type: string): string => {
+  switch (type) {
+    case "VOUCHER":
+      return "Voucher";
+    case "GIFT":
+      return "Quà tặng";
+    default:
+      return "Quà tặng";
+  }
+};
+
+// Convert Product to Reward
+const convertProductToReward = (product: Product, index: number): Reward => {
+  return {
+    id: product.id,
+    name: product.title,
+    description: product.description,
+    points: product.unitCost,
+    image: product.imageUrl || "https://via.placeholder.com/400x300?text=No+Image",
+    category: mapProductTypeToCategory(product.type),
+    stock: product.totalStock,
+    popular: true, // All 3 items are popular
+  };
+};
 
 export default function RewardsSection() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load products from API
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load both GIFT and VOUCHER products
+      const [giftResponse, voucherResponse] = await Promise.all([
+        productService.getAll({
+          category: "GIFT",
+          isActive: true,
+          sortBy: "createdAt",
+          order: "desc",
+          limit: 50,
+          offset: 0,
+        }),
+        productService.getAll({
+          category: "VOUCHER",
+          isActive: true,
+          sortBy: "createdAt",
+          order: "desc",
+          limit: 50,
+          offset: 0,
+        }),
+      ]);
+
+      // Helper function to extract products from response
+      const extractProducts = (response: any): Product[] => {
+        if (!response) return [];
+
+        if (response.data && Array.isArray(response.data)) {
+          return response.data;
+        } else if (Array.isArray(response)) {
+          return response;
+        } else {
+          const possibleData =
+            (response as any)?.data?.data ||
+            (response as any)?.content ||
+            (response as any)?.items ||
+            (response as any)?.products;
+          if (Array.isArray(possibleData)) {
+            return possibleData;
+          }
+          // Last resort: check if response itself contains array values
+          const responseValues = Object.values(response);
+          for (const value of responseValues) {
+            if (Array.isArray(value) && value.length > 0 && (value[0] as any)?.id) {
+              return value as Product[];
+            }
+          }
+        }
+        return [];
+      };
+
+      // Extract products from both responses
+      const giftProducts = extractProducts(giftResponse);
+      const voucherProducts = extractProducts(voucherResponse);
+
+      // Merge and remove duplicates
+      const allProducts = [...giftProducts, ...voucherProducts];
+      const uniqueProducts = allProducts.filter(
+        (p, index, self) => index === self.findIndex((product) => product.id === p.id)
+      );
+
+      // Filter only active products with stock > 0, then take first 3
+      const activeProducts = uniqueProducts
+        .filter((p: Product) => p && p.isActive === true && (p.type === "GIFT" || p.type === "VOUCHER") && p.totalStock > 0)
+        .slice(0, 3);
+
+      setProducts(activeProducts);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách quà");
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Load products on mount
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  // Convert products to rewards
+  const rewards: Reward[] = useMemo(() => {
+    return products.map((product, index) => convertProductToReward(product, index));
+  }, [products]);
   return (
     <section className="relative py-20 md:py-28 bg-gradient-to-br from-orange-50 via-amber-100/50 to-white overflow-hidden">
       {/* Decorative glowing circles */}
@@ -155,7 +213,24 @@ export default function RewardsSection() {
 
         {/* Rewards grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
-          {popularRewards.map((reward, index) => (
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+              <span className="ml-3 text-gray-600">Đang tải danh sách quà...</span>
+            </div>
+          ) : error ? (
+            <div className="col-span-full text-center py-16 text-red-600">
+              <p className="mb-4">{error}</p>
+              <Button onClick={loadProducts} variant="outline">
+                Thử lại
+              </Button>
+            </div>
+          ) : rewards.length === 0 ? (
+            <div className="col-span-full text-center py-16 text-gray-500">
+              Không có quà nào
+            </div>
+          ) : (
+            rewards.map((reward, index) => (
             <div
               key={reward.id}
               className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-orange-100 transition-all duration-500 hover:-translate-y-2 animate-fadeInUp"
@@ -183,7 +258,7 @@ export default function RewardsSection() {
                 <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-md flex items-center gap-1">
                   <Zap className="w-4 h-4 text-orange-500" />
                   <span className="font-semibold text-foreground text-sm">
-                    {reward.points}
+                    {reward.points.toLocaleString("vi-VN")}
                   </span>
                 </div>
               </div>
@@ -203,33 +278,42 @@ export default function RewardsSection() {
                     <span>Còn {reward.stock}</span>
                   </div>
 
-                  <Button
-                    size="sm"
-                    className={`rounded-xl transition-all duration-300 ${
-                      reward.stock === 0
-                        ? "bg-muted text-muted-foreground cursor-not-allowed"
-                        : "bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg hover:scale-105"
-                    }`}
-                    disabled={reward.stock === 0}
-                  >
-                    {reward.stock === 0 ? "Hết hàng" : "Đổi ngay"}
-                  </Button>
+                  {reward.stock === 0 ? (
+                    <Button
+                      size="sm"
+                      className="rounded-xl transition-all duration-300 bg-muted text-muted-foreground cursor-not-allowed"
+                      disabled
+                    >
+                      Hết hàng
+                    </Button>
+                  ) : (
+                    <Link href="/gifts">
+                      <Button
+                        size="sm"
+                        className="rounded-xl transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                      >
+                        Đổi ngay
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* View All Button */}
         <div className="text-center">
-          <Button
-            size="lg"
-            className="bg-gradient-to-r from-orange-500 via-orange-400 to-amber-300 hover:from-orange-600 hover:to-amber-400 text-white px-10 py-6 text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-            onClick={() => (window.location.href = "/gifts")}
-          >
-            <Gift className="w-5 h-5 mr-2" />
-            Xem tất cả phần quà
-          </Button>
+          <Link href="/gifts">
+            <Button
+              size="lg"
+              className="bg-gradient-to-r from-orange-500 via-orange-400 to-amber-300 hover:from-orange-600 hover:to-amber-400 text-white px-10 py-6 text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              <Gift className="w-5 h-5 mr-2" />
+              Xem tất cả phần quà
+            </Button>
+          </Link>
         </div>
       </div>
     </section>
