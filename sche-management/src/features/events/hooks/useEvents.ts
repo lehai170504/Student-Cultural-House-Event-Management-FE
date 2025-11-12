@@ -14,15 +14,14 @@ import {
   fetchEventAttendees,
   finalizeEvent,
   checkinByPhoneNumber,
+  approveEvent,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
 import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
-
 import type {
   CreateEvent,
   UpdateEvent,
   EventCheckinDetail,
-  EventCheckinRequest,
 } from "../types/events";
 
 export const useEvents = () => {
@@ -36,12 +35,7 @@ export const useEvents = () => {
     saving,
     deleting,
     error,
-    currentPage,
-    totalElements,
-    totalPages,
-    pageSize,
-    isLastPage,
-
+    pagination,
     registering,
     sendingFeedback,
     checkingIn,
@@ -49,6 +43,7 @@ export const useEvents = () => {
     attendees,
     finalizing,
     submittingCheckin,
+    approving,
   } = useAppSelector((state) => state.event);
 
   const { list: categories = [], loadingList: loadingCategories } =
@@ -56,41 +51,46 @@ export const useEvents = () => {
 
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
-      const validParams =
-        params && Object.keys(params).length > 0 ? params : undefined;
-      const res = await dispatch(fetchAllEvents(validParams)).unwrap();
-      return res;
+      const res = await dispatch(fetchAllEvents(params)).unwrap();
+
+      if (res?.data && Array.isArray(res.data)) {
+        return res.data
+          .filter((item) => item?.createdAt)
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+      }
+
+      return [];
     },
     [dispatch]
   );
 
   const loadDetail = useCallback(
-    async (id: number) => {
-      await dispatch(fetchEventById(id));
+    async (id: string) => {
+      return await dispatch(fetchEventById(id)).unwrap();
     },
     [dispatch]
   );
 
   const createNewEvent = useCallback(
     async (data: CreateEvent) => {
-      const result = await dispatch(createEvent(data));
-      return result;
+      return await dispatch(createEvent(data)).unwrap();
     },
     [dispatch]
   );
 
   const updateExistingEvent = useCallback(
-    async (id: number, data: UpdateEvent) => {
-      const result = await dispatch(updateEvent({ id, data }));
-      return result;
+    async (id: string, data: UpdateEvent) => {
+      return await dispatch(updateEvent({ id, data })).unwrap();
     },
     [dispatch]
   );
 
   const deleteEventById = useCallback(
-    async (id: number) => {
-      const result = await dispatch(deleteEvent(id));
-      return result;
+    async (id: string) => {
+      return await dispatch(deleteEvent(id)).unwrap();
     },
     [dispatch]
   );
@@ -108,72 +108,66 @@ export const useEvents = () => {
   }, [dispatch]);
 
   const loadCategories = useCallback(async () => {
-    await dispatch(fetchAllEventCategories());
+    await dispatch(fetchAllEventCategories()).unwrap();
   }, [dispatch]);
 
   const registerForEventByStudent = useCallback(
-    async (eventId: number, studentId: number) => {
-      const result = await dispatch(registerForEvent({ eventId, studentId }));
-      return result;
+    async (eventId: string, studentId: string) => {
+      return await dispatch(registerForEvent({ eventId, studentId })).unwrap();
     },
     [dispatch]
   );
 
   const sendFeedbackForEvent = useCallback(
-    async (eventId: number, data: { rating: number; comments: string }) => {
-      const result = await dispatch(sendEventFeedback({ eventId, data }));
-      return result;
+    async (eventId: string, data: { rating: number; comments: string }) => {
+      return await dispatch(sendEventFeedback({ eventId, data })).unwrap();
     },
     [dispatch]
   );
 
   const checkinForEvent = useCallback(
-    async (data: { eventId: number; phoneNumber: string }) => {
-      const result = await dispatch(checkinEvent(data));
-      return result;
+    async (data: { eventId: string; phoneNumber: string }) => {
+      return await dispatch(checkinEvent(data)).unwrap();
     },
     [dispatch]
   );
 
   const loadEventAttendees = useCallback(
-    async (eventId: number, params?: Record<string, any>) => {
-      const result = await dispatch(fetchEventAttendees({ eventId, params }));
-      return result;
+    async (eventId: string, params?: Record<string, any>) => {
+      return await dispatch(fetchEventAttendees({ eventId, params })).unwrap();
     },
     [dispatch]
   );
 
   const finalizeEventById = useCallback(
-    async (eventId: number) => {
-      const result = await dispatch(finalizeEvent(eventId));
-      return result;
+    async (eventId: string) => {
+      return await dispatch(finalizeEvent(eventId)).unwrap();
+    },
+    [dispatch]
+  );
+
+  const approveEventById = useCallback(
+    async (eventId: string) => {
+      return await dispatch(approveEvent(eventId)).unwrap();
     },
     [dispatch]
   );
 
   const submitCheckinDetailData = useCallback(
-    async (data: EventCheckinDetail) => {
+    async (data: EventCheckinDetail & { phoneNumber: string }) => {
       const checkinPayload = {
         eventId: data.eventId,
-        phoneNumber: (data as any).phoneNumber,
+        data: { phoneNumber: data.phoneNumber },
       };
-
-      // Gọi thunk checkinEvent
-      const result = await dispatch(checkinEvent(checkinPayload));
-      return result;
+      return await dispatch(checkinByPhoneNumber(checkinPayload)).unwrap();
     },
     [dispatch]
   );
+
   useEffect(() => {
-    loadAll({ page: 1, size: 10 }).catch((err) => {
-      console.log("Could not load events:", err);
-    });
-    dispatch(fetchAllEventCategories())
-      .unwrap()
-      .catch((err: any) => {
-        console.log("Could not load categories:", err);
-      });
-  }, [loadAll, dispatch]);
+    loadAll({ page: 1, size: 10 }).catch(console.error);
+    loadCategories().catch(console.error);
+  }, [loadAll, loadCategories]);
 
   return {
     list,
@@ -193,12 +187,9 @@ export const useEvents = () => {
     loadingAttendees,
     finalizing,
     submittingCheckin,
+    approving,
 
-    currentPage,
-    totalElements,
-    totalPages,
-    pageSize,
-    isLastPage,
+    pagination,
 
     loadAll,
     loadDetail,
@@ -214,6 +205,7 @@ export const useEvents = () => {
     checkinForEvent,
     loadEventAttendees,
     finalizeEventById,
+    approveEventById,
     submitCheckinDetailData,
   };
 };

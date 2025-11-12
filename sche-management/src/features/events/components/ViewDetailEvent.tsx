@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/select";
 import { useEvents } from "../hooks/useEvents";
 import { Button } from "@/components/ui/button";
+import { EventDetailResponse, Event } from "../types/events";
 
 interface ViewDetailEventProps {
-  eventId: number | null;
+  eventId: string | null;
   open: boolean;
   onClose: () => void;
 }
@@ -43,7 +44,7 @@ export default function ViewDetailEvent({
   const [location, setLocation] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
 
   const [pointCostToRegister, setPointCostToRegister] = useState("0");
   const [totalRewardPoints, setTotalRewardPoints] = useState("0");
@@ -63,7 +64,6 @@ export default function ViewDetailEvent({
       setDescription(detail.description);
       setLocation(detail.location);
 
-      // Format ngày giờ thành "yyyy-MM-dd HH:mm"
       const formatDate = (dateStr: string) => {
         const d = new Date(dateStr);
         return d.toLocaleString("vi-VN", {
@@ -159,9 +159,7 @@ export default function ViewDetailEvent({
               <label className="block text-gray-700 font-medium mb-1">
                 Danh mục sự kiện
               </label>
-              <Select
-                value={categoryId !== null ? categoryId.toString() : undefined}
-              >
+              <Select value={categoryId ?? undefined}>
                 <SelectTrigger>
                   <SelectValue
                     placeholder={
@@ -171,7 +169,7 @@ export default function ViewDetailEvent({
                 </SelectTrigger>
                 <SelectContent>
                   {eventCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id.toString()}>
+                    <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>
                   ))}

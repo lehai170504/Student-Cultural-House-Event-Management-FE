@@ -17,13 +17,13 @@ import {
   Bell,
   FileSearch,
   BarChart3,
-  Ticket,
   Gift,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 
 const menuSections = [
   {
@@ -32,14 +32,12 @@ const menuSections = [
       { label: "Doanh thu", href: "/admin/dashboard", icon: LayoutDashboard },
       { label: "Sự kiện", href: "/admin/events", icon: Calendar },
       { label: "Người dùng", href: "/admin/users", icon: Users },
-      { label: "Khuyến mãi", href: "/admin/vouchers", icon: Ticket },
       { label: "Quà tặng", href: "/admin/product", icon: Gift },
     ],
   },
   {
     title: "Hệ thống",
     items: [
-      { label: "Theo dõi", href: "/admin/audit", icon: FileSearch },
       { label: "Thông báo", href: "/admin/notifications", icon: Bell },
       { label: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
       { label: "Cài đặt", href: "/admin/settings", icon: Settings },
@@ -49,25 +47,39 @@ const menuSections = [
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const { user, isLoading } = useUserProfile();
 
   return (
     <SidebarProvider>
-      <Sidebar collapsible="icon" className="border-r bg-white shadow-sm">
-        {/* Header với avatar + admin info */}
+      <Sidebar
+        collapsible="icon"
+        className="border-r bg-white/90 backdrop-blur-sm shadow-lg w-64"
+      >
+        {/* Header với avatar + info */}
         <SidebarHeader className="border-b px-4 py-4">
           <Link
             href="/admin/profile"
-            className="flex items-center gap-3 hover:bg-orange-50 p-2 rounded-lg transition-colors"
+            className="flex items-center gap-3 hover:bg-orange-50 p-2 rounded-lg transition-all duration-200"
           >
-            <Avatar className="w-10 h-10 border">
-              <AvatarImage src="https://i.pravatar.cc/100?img=12" />
-              <AvatarFallback>A</AvatarFallback>
+            <Avatar className="w-10 h-10 border border-orange-200 shadow-sm">
+              <AvatarImage
+                src={
+                  !isLoading && user?.avatar
+                    ? user.avatar
+                    : "https://i.pravatar.cc/100"
+                }
+              />
+              <AvatarFallback>
+                {!isLoading && user?.fullName ? user.fullName.charAt(0) : "A"}
+              </AvatarFallback>
             </Avatar>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-gray-800">
-                Nguyễn Admin
+              <p className="text-sm font-semibold text-gray-800 hover:text-orange-600 transition-colors">
+                {!isLoading && user?.fullName ? user.fullName : "Admin"}
               </p>
-              <p className="text-xs text-gray-500">Administrator</p>
+              <p className="text-xs text-gray-500">
+                {!isLoading && user?.email ? user.email : "Administrator"}
+              </p>
             </div>
           </Link>
         </SidebarHeader>
@@ -88,14 +100,19 @@ export default function AdminSidebar() {
                         <Link
                           href={item.href}
                           className={clsx(
-                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                            "hover:bg-orange-50 hover:text-orange-600",
+                            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300",
+                            "hover:bg-orange-50 hover:text-orange-600 hover:shadow-md",
                             isActive
-                              ? "bg-gradient-to-r from-orange-100 to-orange-50 text-orange-600 border-l-4 border-orange-500"
+                              ? "bg-gradient-to-r from-orange-100 to-orange-50 text-orange-600 border-l-4 border-orange-500 shadow-inner"
                               : "text-gray-600"
                           )}
                         >
-                          <item.icon className="h-5 w-5" />
+                          <item.icon
+                            className={clsx(
+                              "h-5 w-5 transition-colors duration-300",
+                              isActive ? "text-orange-500" : "text-gray-400"
+                            )}
+                          />
                           <span>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>

@@ -1,4 +1,3 @@
-// EventCategoryTable.tsx
 "use client";
 
 import { useState, Suspense, lazy } from "react";
@@ -26,7 +25,7 @@ export default function EventCategoryTable() {
   } = useEventCategories();
 
   const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const filteredCategories = Array.isArray(list)
     ? list.filter((c) => c.name?.toLowerCase().includes(search.toLowerCase()))

@@ -1,3 +1,5 @@
+"use client";
+
 import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import {
@@ -6,7 +8,6 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
-  // 1. IMPORT THUNKS MỚI
   fetchTopRedeemedProducts,
   fetchLowStockProducts,
 } from "../thunks/productThunks";
@@ -25,7 +26,6 @@ export const useProducts = () => {
     error,
     detail,
     loadingDetail,
-
     topRedeemed,
     loadingTopRedeemed,
     lowStock,
@@ -35,20 +35,30 @@ export const useProducts = () => {
   /** 🔹 Fetch tất cả sản phẩm */
   const loadAll = useCallback(
     async (params?: FetchProductsParams) => {
-      await dispatch(fetchAllProducts(params ?? undefined));
+      const res: any = await dispatch(
+        fetchAllProducts(params ?? undefined)
+      ).unwrap();
+
+      if (Array.isArray(res)) {
+        res.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+          return dateB - dateA; // mới nhất lên đầu
+        });
+      }
+
+      return res;
     },
     [dispatch]
   );
 
   /** 🏆 Fetch sản phẩm được redeem nhiều nhất */
   const loadTopRedeemed = useCallback(async () => {
-    // Không cần tham số đầu vào cho thunk
     await dispatch(fetchTopRedeemedProducts());
   }, [dispatch]);
 
   /** 📉 Fetch sản phẩm tồn kho thấp */
   const loadLowStock = useCallback(async () => {
-    // Không cần tham số đầu vào cho thunk
     await dispatch(fetchLowStockProducts());
   }, [dispatch]);
 
@@ -64,7 +74,6 @@ export const useProducts = () => {
   const createNewProduct = useCallback(
     async (data: CreateProduct): Promise<boolean> => {
       const result = await dispatch(createProduct(data));
-      // Kiểm tra xem thunk có fulfilled không
       return createProduct.fulfilled.match(result);
     },
     [dispatch]
@@ -74,7 +83,6 @@ export const useProducts = () => {
   const editProduct = useCallback(
     async (id: number, data: UpdateProduct): Promise<boolean> => {
       const result = await dispatch(updateProduct({ id, data }));
-      // Kiểm tra xem thunk có fulfilled không
       return updateProduct.fulfilled.match(result);
     },
     [dispatch]
@@ -84,13 +92,12 @@ export const useProducts = () => {
   const removeProduct = useCallback(
     async (id: number): Promise<boolean> => {
       const result = await dispatch(deleteProduct(id));
-      // Kiểm tra xem thunk có fulfilled không
       return deleteProduct.fulfilled.match(result);
     },
     [dispatch]
   );
 
-  /** 🔹 Reset danh sách (chỉ reset list/pagination chính) */
+  /** 🔹 Reset danh sách */
   const reset = useCallback(() => {
     dispatch(resetList());
   }, [dispatch]);
@@ -106,7 +113,6 @@ export const useProducts = () => {
   }, [dispatch]);
 
   /** 🔹 Tự động load sản phẩm khi mount */
-  // Giữ nguyên loadAll, bạn có thể thêm loadTopRedeemed/loadLowStock nếu muốn
   useEffect(() => {
     loadAll();
     // loadTopRedeemed(); // Có thể thêm nếu muốn tự động tải
@@ -120,17 +126,14 @@ export const useProducts = () => {
     error,
     detail,
     loadingDetail,
-    // 3. RETURN CÁC GIÁ TRỊ MỚI
     topRedeemed,
     loadingTopRedeemed,
     lowStock,
     loadingLowStock,
-
     loadAll,
     loadDetail,
-    loadTopRedeemed, // Hàm mới
-    loadLowStock, // Hàm mới
-
+    loadTopRedeemed,
+    loadLowStock,
     createNewProduct,
     editProduct,
     removeProduct,

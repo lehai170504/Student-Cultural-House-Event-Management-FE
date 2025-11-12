@@ -5,7 +5,6 @@ import HeroSection from "@/components/HeroSection";
 import RewardsSection from "@/components/RewardsSection";
 import EventCategoriesSection from "@/components/EventCategoriesSection";
 import RecommendedEventsModal from "@/components/RecommendedEventsModal";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 
 export default function Home() {
@@ -20,12 +19,12 @@ export default function Home() {
 
       {/* --- Rewards Section --- */}
       <section className="py-16">
-          <RewardsSection />
+        <RewardsSection />
       </section>
 
       {/* --- Event Categories --- */}
       <section className="py-16 bg-gray-50">
-          <EventCategoriesSection />
+        <EventCategoriesSection />
       </section>
     </main>
   );

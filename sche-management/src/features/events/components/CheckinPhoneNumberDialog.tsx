@@ -1,10 +1,8 @@
-// CheckinPhoneNumberDialog.tsx
-// File này chứa component modal để nhập số điện thoại check-in cho sự kiện.
+"use client";
 
-import { useState } from "react";
-// Giả định các imports từ ShadCN/ui và các thư viện khác (Lucide, Sonner)
-import { Button } from "@/components/ui/button"; // Hoặc tương đương
-import { Input } from "@/components/ui/input"; // Hoặc tương đương
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -14,14 +12,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Phone, RotateCw, CheckSquare } from "lucide-react";
-import { toast } from "sonner"; // Hoặc tương đương
+import { toast } from "sonner";
+import { EventForCheckin } from "../types/events";
 
-// Interface cần thiết cho component này
 interface CheckinDialogProps {
   open: boolean;
-  event: { id: number; title: string; studentId: number; studentName: string };
+  event: EventForCheckin;
   onClose: () => void;
-  onSubmit: (eventId: number, phoneNumber: string) => void;
+  onSubmit: (payload: { eventId: string; phoneNumber: string }) => void;
   submitting: boolean;
 }
 
@@ -34,19 +32,23 @@ export default function CheckinPhoneNumberDialog({
 }: CheckinDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
 
+  // Reset phoneNumber mỗi khi modal mở hoặc đóng
+  useEffect(() => {
+    if (!open) setPhoneNumber("");
+  }, [open]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (phoneNumber.trim() === "") {
+    if (!phoneNumber.trim()) {
       toast.error("Vui lòng nhập số điện thoại.");
       return;
     }
-    onSubmit(event.id, phoneNumber.trim());
+    onSubmit({ eventId: event.id, phoneNumber: phoneNumber.trim() });
   };
 
-  // Hàm này để reset form khi modal đóng, đảm bảo SĐT trống cho lần mở tiếp theo
   const handleClose = () => {
     setPhoneNumber("");
-    onClose(); 
+    onClose();
   };
 
   return (
@@ -59,10 +61,10 @@ export default function CheckinPhoneNumberDialog({
           </DialogTitle>
           <DialogDescription className="mt-2 text-gray-600">
             Vui lòng nhập **số điện thoại** đã dùng để đăng ký sự kiện{" "}
-            <span className="font-semibold text-gray-800">"{event.title}"</span>
-            .
+            <span className="font-semibold text-gray-800">{event.title}</span>.
           </DialogDescription>
         </DialogHeader>
+
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
             <Input
@@ -75,6 +77,7 @@ export default function CheckinPhoneNumberDialog({
               disabled={submitting}
             />
           </div>
+
           <DialogFooter className="mt-4 pt-4 border-t border-gray-100">
             <Button
               variant="outline"
@@ -87,7 +90,7 @@ export default function CheckinPhoneNumberDialog({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || phoneNumber.trim() === ""}
+              disabled={submitting || !phoneNumber.trim()}
               className="bg-green-600 hover:bg-green-700 text-white transition-all duration-200"
             >
               {submitting ? (

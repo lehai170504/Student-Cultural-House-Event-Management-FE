@@ -1,5 +1,5 @@
 export interface EventCategory {
-  id: number;
+  id: string;
   name: string;
   description: string;
 }
@@ -11,7 +11,7 @@ export interface PaginationMeta {
 }
 
 export interface EventCategoryResponse {
-  meta: PaginationMeta; 
+  meta: PaginationMeta;
   data: EventCategory[];
 }
 

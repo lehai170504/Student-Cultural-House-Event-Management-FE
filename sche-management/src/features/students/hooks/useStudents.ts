@@ -16,7 +16,18 @@ export const useUniversityUsers = () => {
   /** 🔸 Fetch all university users with parameters */
   const loadAll = useCallback(
     async (params?: FetchUniversityUsersParams) => {
-      await dispatch(fetchStudents(params ?? undefined));
+      const res: any = await dispatch(
+        fetchStudents(params ?? undefined)
+      ).unwrap();
+      if (Array.isArray(res)) {
+        res.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+          return dateB - dateA;
+        });
+      }
+
+      return res;
     },
     [dispatch]
   );
@@ -26,12 +37,8 @@ export const useUniversityUsers = () => {
     async (id: number, status: "ACTIVE" | "INACTIVE"): Promise<boolean> => {
       try {
         const result = await dispatch(updateStudentStatus({ id, status }));
-
-        if (updateStudentStatus.fulfilled.match(result)) {
-          return true;
-        }
-        return false;
-      } catch (e) {
+        return updateStudentStatus.fulfilled.match(result);
+      } catch {
         return false;
       }
     },

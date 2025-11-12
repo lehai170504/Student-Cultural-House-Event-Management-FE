@@ -19,31 +19,22 @@ export const universityService = {
     params?: PaginationParams
   ): Promise<PaginatedResponse<University>> {
     try {
-      // Mặc định: page=1, size=10, không có sort
       const queryParams: Record<string, any> = {
         page: params?.page ?? 1,
         size: params?.size ?? 10,
-        // sort không được include theo yêu cầu
       };
 
       const res = await axiosInstance.get<any>(endpoint, {
         params: queryParams,
       });
-      
-      // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
       const responseData = res.data;
-      
-      // Nếu có wrap trong { status, message, data } thì lấy data
+    
       if (responseData?.data && Array.isArray(responseData.data) && responseData.meta) {
         return responseData as PaginatedResponse<University>;
       }
-      
-      // Nếu trả về trực tiếp { data, meta }
       if (responseData?.data && responseData?.meta) {
         return responseData as PaginatedResponse<University>;
       }
-      
-      // Fallback: giả sử responseData là PaginatedResponse trực tiếp
       return responseData as PaginatedResponse<University>;
     } catch (error) {
       console.error(

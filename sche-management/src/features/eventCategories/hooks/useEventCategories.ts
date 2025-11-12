@@ -30,12 +30,27 @@ export const useEventCategories = () => {
 
   /** 🔸 Lấy danh sách tất cả danh mục */
   const loadAll = useCallback(async () => {
-    await dispatch(fetchAllEventCategories());
+    const res: any = await dispatch(fetchAllEventCategories()).unwrap();
+
+    if (Array.isArray(res)) {
+      res.sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+        // Nếu createdAt bằng nhau, fallback so sánh id (string) theo Unicode
+        if (timeB === timeA) {
+          return a.id.localeCompare(b.id);
+        }
+        return timeB - timeA;
+      });
+    }
+
+    return res;
   }, [dispatch]);
 
   /** 🔸 Lấy chi tiết danh mục */
   const loadDetail = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       await dispatch(fetchEventCategoryById(id));
     },
     [dispatch]
@@ -52,7 +67,7 @@ export const useEventCategories = () => {
 
   /** 🔸 Cập nhật danh mục */
   const updateCategory = useCallback(
-    async (id: number, data: UpdateEventCategory) => {
+    async (id: string, data: UpdateEventCategory) => {
       const result = await dispatch(updateEventCategory({ id, data }));
       return result;
     },
@@ -61,7 +76,7 @@ export const useEventCategories = () => {
 
   /** 🔸 Xoá danh mục */
   const deleteCategoryById = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       const result = await dispatch(deleteEventCategory(id));
       return result;
     },
@@ -78,16 +93,15 @@ export const useEventCategories = () => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /** 🔸 Tự động load danh sách khi mount (chỉ khi có token) */
+  /** 🔸 Tự động load danh sách khi mount */
   useEffect(() => {
-    // Tạm thời comment auto-load để tránh lỗi 401 trên homepage
-    // Component có thể gọi loadAll() thủ công khi cần
+    // loadAll() có thể gọi thủ công khi component mount
     // loadAll();
   }, []);
 
   return {
     list,
-    detail: detailCategory, // ✅ trả về detailCategory
+    detail: detailCategory,
     error,
     loadingList,
     loadingDetail,

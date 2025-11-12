@@ -1,68 +1,67 @@
-// eventCategoryService.ts (Phiên bản đã tối ưu hóa)
+// src/features/eventCategories/services/eventCategoryService.ts
 import axiosInstance from "@/config/axiosInstance";
 import {
   EventCategory,
   CreateEventCategory,
   UpdateEventCategory,
   EventCategoryResponse,
+  EventCategoryDetail,
 } from "@/features/eventCategories/types/eventCategories";
 
 const endpoint = "/event-categories";
 
 export const eventCategoryService = {
-  // ✅ Đã sạch: Chỉ định kiểu chuẩn và trả về res.data
+  // Lấy tất cả danh mục sự kiện (trả về EventCategory[])
   async getAll(): Promise<EventCategory[]> {
     try {
-      // 1. Gọi API, mong đợi trả về PaginatedResponse
       const res = await axiosInstance.get<EventCategoryResponse>(endpoint);
-
-      // 2. Trả về mảng data (EventCategory[])
-      return res.data.data;
+      return res.data.data; // Trả về mảng EventCategory
     } catch (error) {
       console.error("❌ Lỗi khi tải danh sách danh mục sự kiện:", error);
       throw error;
     }
   },
 
-  // ✅ Đã tối ưu hóa: Loại bỏ res.data?.data ?? res.data và kiểu any
-  async getById(id: number): Promise<EventCategory> {
+  // Lấy chi tiết danh mục theo ID
+  async getById(id: string): Promise<EventCategoryDetail> {
     try {
-      // Chỉ định kiểu EventCategory
-      const res = await axiosInstance.get<EventCategory>(`${endpoint}/${id}`);
-      return res.data; // Trả về data thuần
+      const res = await axiosInstance.get<EventCategoryDetail>(
+        `${endpoint}/${id}`
+      );
+      return res.data;
     } catch (error) {
       console.error(`❌ Lỗi khi lấy danh mục sự kiện ID ${id}:`, error);
       throw error;
     }
   },
 
-  // ✅ Đã tối ưu hóa: Loại bỏ res.data?.data ?? res.data và kiểu any
+  // Tạo danh mục mới
   async create(data: CreateEventCategory): Promise<EventCategory> {
     try {
       const res = await axiosInstance.post<EventCategory>(endpoint, data);
-      return res.data; // Trả về data thuần
+      return res.data;
     } catch (error) {
       console.error("❌ Lỗi khi tạo danh mục sự kiện:", error);
       throw error;
     }
   },
 
-  // ✅ Đã tối ưu hóa: Loại bỏ res.data?.data ?? res.data và kiểu any
-  async update(id: number, data: UpdateEventCategory): Promise<EventCategory> {
+  // Cập nhật danh mục
+  async update(id: string, data: UpdateEventCategory): Promise<EventCategory> {
     try {
       const res = await axiosInstance.put<EventCategory>(
         `${endpoint}/${id}`,
         data
       );
-      return res.data; // Trả về data thuần
+      return res.data;
     } catch (error) {
       console.error(`❌ Lỗi khi cập nhật danh mục sự kiện ID ${id}:`, error);
       throw error;
     }
   },
 
-  // Giữ nguyên: Delete không cần thay đổi
-  async delete(id: number): Promise<void> {
+  // Xoá danh mục
+  async delete(id: string): Promise<void> {
     try {
       await axiosInstance.delete(`${endpoint}/${id}`);
     } catch (error) {

@@ -23,7 +23,7 @@ export default function PartnerLayout({
       const json = localStorage.getItem(key) || sessionStorage.getItem(key);
       if (!json) return false;
       const user = JSON.parse(json);
-      const groups = user?.profile?.["cognito:groups"]; 
+      const groups = user?.profile?.["cognito:groups"];
       return Array.isArray(groups) && groups.includes("PARTNERS");
     } catch {
       return false;
@@ -52,21 +52,29 @@ export default function PartnerLayout({
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Navbar dính trên cùng nhưng không che Sidebar */}
-      <PartnerNavbar />
+    <div className="flex h-screen bg-gray-50">
+      {/* Sidebar cố định bên trái */}
+      <aside className="w-64 h-screen border-r bg-white/90 backdrop-blur-sm shadow-lg flex-shrink-0">
+        <PartnerSidebar />
+      </aside>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar chiếm width cố định */}
-        <aside className="w-64 border-r bg-white flex-shrink-0">
-          <PartnerSidebar />
-        </aside>
+      {/* Cột phải: navbar + content + footer */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Navbar sticky */}
+        <header className="sticky top-0 z-50">
+          <PartnerNavbar />
+        </header>
 
-        {/* Main chiếm phần còn lại */}
-        <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
+          {children}
+        </main>
+
+        {/* Footer */}
+        <footer className="flex-shrink-0">
+          <Footer />
+        </footer>
       </div>
-
-      <Footer />
     </div>
   );
 }

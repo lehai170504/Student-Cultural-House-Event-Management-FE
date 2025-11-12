@@ -32,21 +32,25 @@ export default function EventsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<null | "ACTIVE" | "FINISHED">(null);
+  const [selectedStatus, setSelectedStatus] = useState<
+    null | "ACTIVE" | "FINISHED"
+  >(null);
   const [overrideEvents, setOverrideEvents] = useState<Event[] | null>(null);
 
-  // Chọn nguồn hiển thị: override (khi xem 'Tất cả trạng thái') hoặc từ store
   const baseEvents = overrideEvents ?? events;
 
-  // Chỉ hiển thị các danh mục có ít nhất 1 event trong danh sách hiện tại
-  const categoryIdToCount = baseEvents.reduce<Record<number, number>>((acc, ev) => {
-    const id = ev.category?.id;
-    if (typeof id === "number") acc[id] = (acc[id] || 0) + 1;
-    return acc;
-  }, {});
-  const eventCategories = allCategories.filter((cat) => (categoryIdToCount[cat.id] || 0) > 0);
+  const categoryIdToCount = baseEvents.reduce<Record<number, number>>(
+    (acc, ev) => {
+      const id = ev.category?.id;
+      if (typeof id === "number") acc[id] = (acc[id] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
+  const eventCategories = allCategories.filter(
+    (cat) => (categoryIdToCount[cat.id] || 0) > 0
+  );
 
-  // Filter events theo search + category
   const filteredEvents = baseEvents.filter((event) => {
     const matchSearch =
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,18 +58,36 @@ export default function EventsPage() {
     const matchCategory = selectedCategory
       ? event.category.id === selectedCategory
       : true;
+
     const matchStatus = selectedStatus ? event.status === selectedStatus : true;
+
+    if (selectedStatus === null && overrideEvents) {
+      return matchSearch && matchCategory;
+    }
+
     return matchSearch && matchCategory && matchStatus;
   });
 
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const keyword = e.target.value;
     setSearchTerm(keyword);
+
+    setOverrideEvents(null);
+
     if (selectedStatus === null) {
-      // Fetch cả ACTIVE + FINISHED và gộp kết quả
       const [a, f] = await Promise.all([
-        loadAll({ page: 1, search: keyword, status: "ACTIVE" as const }),
-        loadAll({ page: 1, search: keyword, status: "FINISHED" as const }),
+        loadAll({
+          page: 0,
+          search: keyword,
+          status: "ACTIVE" as const,
+          categoryId: selectedCategory || undefined,
+        }),
+        loadAll({
+          page: 0,
+          search: keyword,
+          status: "FINISHED" as const,
+          categoryId: selectedCategory || undefined,
+        }),
       ]);
       const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
       const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
@@ -74,21 +96,34 @@ export default function EventsPage() {
       );
       setOverrideEvents(merged as Event[]);
     } else {
-      setOverrideEvents(null);
       loadAll({
-        page: 1,
+        page: 0,
         search: keyword,
         status: selectedStatus || undefined,
+        categoryId: selectedCategory || undefined,
       });
     }
   };
 
   const handleCategoryFilter = async (categoryId: number | null) => {
     setSelectedCategory(categoryId);
+
+    setOverrideEvents(null);
+
     if (selectedStatus === null) {
       const [a, f] = await Promise.all([
-        loadAll({ page: 1, search: searchTerm || undefined, status: "ACTIVE" as const }),
-        loadAll({ page: 1, search: searchTerm || undefined, status: "FINISHED" as const }),
+        loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: categoryId || undefined,
+          status: "ACTIVE" as const,
+        }),
+        loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: categoryId || undefined,
+          status: "FINISHED" as const,
+        }),
       ]);
       const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
       const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
@@ -99,8 +134,9 @@ export default function EventsPage() {
     } else {
       setOverrideEvents(null);
       loadAll({
-        page: 1, // Format mới: page bắt đầu từ 1
+        page: 0,
         search: searchTerm || undefined,
+        categoryId: categoryId || undefined,
         status: selectedStatus || undefined,
       });
     }
@@ -108,10 +144,23 @@ export default function EventsPage() {
 
   const handleStatusFilter = async (status: null | "ACTIVE" | "FINISHED") => {
     setSelectedStatus(status);
+
+    setOverrideEvents(null);
+
     if (status === null) {
       const [a, f] = await Promise.all([
-        loadAll({ page: 1, search: searchTerm || undefined, categoryId: selectedCategory || undefined, status: "ACTIVE" as const }),
-        loadAll({ page: 1, search: searchTerm || undefined, categoryId: selectedCategory || undefined, status: "FINISHED" as const }),
+        loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: selectedCategory || undefined,
+          status: "ACTIVE" as const,
+        }),
+        loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: selectedCategory || undefined,
+          status: "FINISHED" as const,
+        }),
       ]);
       const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
       const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
@@ -122,7 +171,7 @@ export default function EventsPage() {
     } else {
       setOverrideEvents(null);
       loadAll({
-        page: 1,
+        page: 0,
         search: searchTerm || undefined,
         categoryId: selectedCategory || undefined,
         status,
@@ -131,7 +180,13 @@ export default function EventsPage() {
   };
 
   const handlePageChange = (page: number) => {
+    if (selectedStatus === null) {
+      console.warn("Pagination disabled when viewing 'Tất cả trạng thái'");
+      return;
+    }
+
     if (loadingList || page < 0 || page >= totalPages) return;
+
     loadAll({
       page,
       search: searchTerm || undefined,
@@ -165,21 +220,21 @@ export default function EventsPage() {
   };
 
   const getEventStatus = (event: (typeof events)[0]) => {
-    return event.status || "DRAFT"; // default là DRAFT
+    return event.status || "DRAFT";
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "DRAFT":
-        return "bg-blue-100 text-blue-700"; // Nháp
+        return "bg-blue-100 text-blue-700";
       case "ACTIVE":
-        return "bg-green-100 text-green-700"; // Đang diễn ra
+        return "bg-green-100 text-green-700";
       case "FINISHED":
-        return "bg-gray-100 text-gray-700"; // Kết thúc
+        return "bg-gray-100 text-gray-700";
       case "CANCELLED":
-        return "bg-red-100 text-red-700"; // Hủy
+        return "bg-red-100 text-red-700";
       default:
-        return "bg-gray-200 text-gray-700"; // Không xác định
+        return "bg-gray-200 text-gray-700";
     }
   };
 
@@ -199,11 +254,10 @@ export default function EventsPage() {
   };
 
   useEffect(() => {
-    // Mặc định hiển thị tất cả trạng thái: gộp ACTIVE + FINISHED
     (async () => {
       const [a, f] = await Promise.all([
-        loadAll({ page: 1, status: "ACTIVE" }),
-        loadAll({ page: 1, status: "FINISHED" }),
+        loadAll({ page: 0, status: "ACTIVE" as const }),
+        loadAll({ page: 0, status: "FINISHED" as const }),
       ]);
       const arrA: any[] = (a as any)?.data ?? (a as any)?.content ?? [];
       const arrF: any[] = (f as any)?.data ?? (f as any)?.content ?? [];
@@ -211,6 +265,7 @@ export default function EventsPage() {
         (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
       );
       setOverrideEvents(merged as Event[]);
+      setSelectedStatus(null);
     })();
   }, [loadAll]);
 
@@ -253,7 +308,7 @@ export default function EventsPage() {
               </motion.div>
             ))}
           </div>
-          
+
           {/* Status Filters */}
           <div className="flex gap-2 mt-4 md:mt-0">
             <Button
@@ -285,7 +340,7 @@ export default function EventsPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          key={searchTerm + selectedCategory}
+          key={searchTerm + selectedCategory + (selectedStatus || "all")}
         >
           {filteredEvents.length > 0 ? (
             filteredEvents.map((event) => {
@@ -327,7 +382,7 @@ export default function EventsPage() {
       </section>
 
       {/* Pagination */}
-      {totalPages > 1 && (
+      {totalPages > 1 && selectedStatus !== null && (
         <div className="flex justify-center items-center mt-8">
           <Pagination>
             <PaginationContent>
