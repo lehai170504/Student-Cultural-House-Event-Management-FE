@@ -30,7 +30,16 @@ export const useEventCategories = () => {
 
   /** 🔸 Lấy danh sách tất cả danh mục */
   const loadAll = useCallback(async () => {
-    await dispatch(fetchAllEventCategories());
+    const res: any = await dispatch(fetchAllEventCategories()).unwrap();
+    if (Array.isArray(res)) {
+      res.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+        return dateB - dateA;
+      });
+    }
+
+    return res;
   }, [dispatch]);
 
   /** 🔸 Lấy chi tiết danh mục */
@@ -78,16 +87,15 @@ export const useEventCategories = () => {
     dispatch(clearError());
   }, [dispatch]);
 
-  /** 🔸 Tự động load danh sách khi mount (chỉ khi có token) */
+  /** 🔸 Tự động load danh sách khi mount */
   useEffect(() => {
-    // Tạm thời comment auto-load để tránh lỗi 401 trên homepage
-    // Component có thể gọi loadAll() thủ công khi cần
+    // loadAll() có thể gọi thủ công khi component mount
     // loadAll();
   }, []);
 
   return {
     list,
-    detail: detailCategory, // ✅ trả về detailCategory
+    detail: detailCategory,
     error,
     loadingList,
     loadingDetail,

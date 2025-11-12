@@ -365,29 +365,6 @@ export default function EventTable() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          title="Xóa sự kiện"
-                          className="flex items-center gap-1 p-2 rounded-full 
-                                          bg-red-500 text-white font-medium
-                                          transition-all duration-200
-                                          hover:bg-red-600 hover:scale-105 active:scale-95 shadow-md"
-                          disabled={deleting}
-                          onClick={() => {
-                            // Khuyến nghị dùng custom modal thay vì window.confirm
-                            if (
-                              window.confirm(
-                                `Bạn có chắc chắn muốn xóa sự kiện "${event.title}" (ID: ${event.id})?`
-                              )
-                            ) {
-                              deleteEventById(event.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </TableCell>
                     </TableRow>
                   ))

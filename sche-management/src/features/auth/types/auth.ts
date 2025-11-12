@@ -57,5 +57,6 @@ export interface AuthResponse {
     fullName: string;
     createdAt: string;
     cognitoSub: string;
+    avatar: string;
   };
 }

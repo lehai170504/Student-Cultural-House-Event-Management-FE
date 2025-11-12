@@ -19,7 +19,17 @@ export const usePartners = () => {
 
   /** 🔸 Lấy danh sách tất cả partner */
   const loadAll = useCallback(async () => {
-    await dispatch(fetchAllPartners());
+    const res: any = await dispatch(fetchAllPartners()).unwrap();
+
+    if (Array.isArray(res)) {
+      res.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+        return dateB - dateA;
+      });
+    }
+
+    return res;
   }, [dispatch]);
 
   /** 🔸 Tạo mới partner */

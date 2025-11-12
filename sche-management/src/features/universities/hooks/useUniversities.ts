@@ -21,7 +21,18 @@ export const useUniversities = () => {
   /** 🔸 Lấy danh sách tất cả universities */
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
-      await dispatch(fetchAllUniversities(params));
+      const res: any = await dispatch(fetchAllUniversities(params)).unwrap();
+
+      // Sắp xếp mới nhất lên đầu (theo createdAt hoặc id)
+      if (Array.isArray(res)) {
+        res.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
+          return dateB - dateA; // mới nhất lên đầu
+        });
+      }
+
+      return res;
     },
     [dispatch]
   );

@@ -59,6 +59,14 @@ export const useEvents = () => {
       const validParams =
         params && Object.keys(params).length > 0 ? params : undefined;
       const res = await dispatch(fetchAllEvents(validParams)).unwrap();
+      if (Array.isArray(res)) {
+        res.sort((a, b) => {
+          const dateA = new Date(a.createdAt || a.eventDate).getTime();
+          const dateB = new Date(b.createdAt || b.eventDate).getTime();
+          return dateB - dateA;
+        });
+      }
+
       return res;
     },
     [dispatch]
