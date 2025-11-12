@@ -7,7 +7,7 @@ import { partnerService } from "@/features/partner/services/partnerService";
 import { cn } from "@/lib/utils";
 
 export default function PartnerWalletPage() {
-  const [partnerId, setPartnerId] = useState<number | null>(null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,12 +20,15 @@ export default function PartnerWalletPage() {
       try {
         const me = await axiosInstance.get("/me");
         const data = me?.data?.data ?? me?.data;
-        const pid = data?.id;
-        setPartnerId(pid ?? null);
-        if (pid) {
-          const w = await partnerService.getWallet(pid);
+        // Backend đã đổi sang UUID (string), lấy id hoặc uuid
+        const pid = data?.id || data?.uuid || data?.sub;
+        // Đảm bảo pid là string (UUID)
+        const partnerIdStr = pid ? String(pid) : null;
+        setPartnerId(partnerIdStr);
+        if (partnerIdStr) {
+          const w = await partnerService.getWallet(partnerIdStr);
           setWallet(w);
-          const h: any = await partnerService.getWalletHistory(pid, { page: 0, size: 20 });
+          const h: any = await partnerService.getWalletHistory(partnerIdStr, { page: 0, size: 20 });
           // Support both paged response and array
           const items = Array.isArray(h)
             ? h

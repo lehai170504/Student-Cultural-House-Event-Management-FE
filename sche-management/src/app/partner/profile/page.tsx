@@ -7,7 +7,7 @@ import { User, Mail, Phone, Building2, Wallet, Calendar, Loader2, AlertCircle, C
 import { cn } from "@/lib/utils";
 
 type PartnerProfile = {
-  id: number;
+  id: string | number;
   fullName: string;
   email: string;
   phoneNumber?: string;
@@ -15,7 +15,7 @@ type PartnerProfile = {
   organizationName?: string;
   createdAt?: string;
   status?: string;
-  walletId?: number;
+  walletId?: string | number;
 };
 
 export default function PartnerProfilePage() {
@@ -30,8 +30,10 @@ export default function PartnerProfilePage() {
       try {
         const res = await axiosInstance.get("/me"); // baseURL includes /api/v1
         const data = res?.data?.data ?? res?.data;
+        // Backend đã đổi sang UUID (string), lấy id hoặc uuid
+        const partnerId = data?.id || data?.uuid || data?.sub;
         setProfile({
-          id: data?.id,
+          id: partnerId ? String(partnerId) : data?.id,
           fullName: data?.fullName || data?.name || "Partner",
           email: data?.contactEmail || data?.email,
           phoneNumber: data?.contactPhone || data?.phoneNumber,
