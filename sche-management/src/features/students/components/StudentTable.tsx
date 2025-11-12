@@ -32,7 +32,7 @@ export default function StudentTable() {
     : [];
 
   const toggleStatus = async (
-    id: number,
+    id: string,
     currentStatus: "ACTIVE" | "INACTIVE"
   ) => {
     const newStatus = currentStatus === "ACTIVE" ? "INACTIVE" : "ACTIVE";

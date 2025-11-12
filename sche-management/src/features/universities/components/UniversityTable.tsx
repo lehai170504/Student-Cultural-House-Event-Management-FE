@@ -26,7 +26,7 @@ import type { CreateUniversity, UpdateUniversity } from "../types/universities";
 interface UniversityFormModalProps {
   open: boolean;
   onClose: () => void;
-  university?: { id: number; name: string; code: string; domain: string };
+  university?: { id: string; name: string; code: string; domain: string };
 }
 
 function UniversityFormModal({
@@ -121,7 +121,7 @@ export default function UniversityTable() {
   const [search, setSearch] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editUniversity, setEditUniversity] = useState<any>(null);
-  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const filteredUniversities = Array.isArray(list)
     ? list.filter((u) => u.name?.toLowerCase().includes(search.toLowerCase()))
@@ -133,7 +133,7 @@ export default function UniversityTable() {
   };
   const closeModal = () => setModalOpen(false);
 
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     setConfirmingId(id);
   };
 

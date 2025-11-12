@@ -18,8 +18,8 @@ export interface Pageable {
 }
 
 export interface UniversityUser {
-  id: number;
-  universityId: number;
+  id: string;
+  universityId: string;
   universityName: string;
   fullName: string;
   phoneNumber: string;

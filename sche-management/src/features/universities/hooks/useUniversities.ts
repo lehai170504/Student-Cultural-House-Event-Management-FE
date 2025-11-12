@@ -48,7 +48,7 @@ export const useUniversities = () => {
 
   /** 🔸 Cập nhật university */
   const update = useCallback(
-    async (id: number, data: UpdateUniversity) => {
+    async (id: string, data: UpdateUniversity) => {
       const result = await dispatch(updateUniversity({ id, data }));
       return result;
     },
@@ -57,7 +57,7 @@ export const useUniversities = () => {
 
   /** 🔸 Xoá university */
   const remove = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       const result = await dispatch(deleteUniversity(id));
       return result;
     },

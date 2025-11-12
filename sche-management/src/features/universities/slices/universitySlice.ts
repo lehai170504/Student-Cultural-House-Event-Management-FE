@@ -1,7 +1,10 @@
 // src/features/universities/slices/universitySlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type { University } from "../types/universities";
-import type { PaginatedResponseMeta, PaginatedResponse } from "@/utils/apiResponse";
+import type {
+  PaginatedResponseMeta,
+  PaginatedResponse,
+} from "@/utils/apiResponse";
 import {
   fetchAllUniversities,
   createUniversity,
@@ -12,7 +15,7 @@ import {
 interface UniversityState {
   list: University[];
   loadingList: boolean;
-  pagination: PaginatedResponseMeta | null; // metadata cho pagination
+  pagination: PaginatedResponseMeta | null;
   saving: boolean;
   deleting: boolean;
   error: string | null;
@@ -103,7 +106,7 @@ const universitySlice = createSlice({
       })
       .addCase(
         deleteUniversity.fulfilled,
-        (state, action: PayloadAction<number>) => {
+        (state, action: PayloadAction<string>) => {
           state.deleting = false;
           state.list = state.list.filter((u) => u.id !== action.payload);
         }

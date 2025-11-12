@@ -17,7 +17,7 @@ import { toast } from "sonner"; // import toast
 interface UniversityFormModalProps {
   open: boolean;
   onClose: () => void;
-  university?: { id: number; name: string; code: string; domain: string };
+  university?: { id: string; name: string; code: string; domain: string };
 }
 
 export default function UniversityFormModal({

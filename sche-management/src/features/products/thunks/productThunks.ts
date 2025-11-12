@@ -35,7 +35,7 @@ export const fetchAllProducts = createAsyncThunk<
 });
 
 /** 🔹 Lấy chi tiết sản phẩm theo ID */
-export const fetchProductById = createAsyncThunk<Product, number>(
+export const fetchProductById = createAsyncThunk<Product, string>(
   "product/fetchById",
   async (id, { rejectWithValue }) => {
     try {
@@ -97,7 +97,7 @@ export const createProduct = createAsyncThunk<Product, CreateProduct>(
 /** 🔹 Cập nhật sản phẩm */
 export const updateProduct = createAsyncThunk<
   Product,
-  { id: number; data: UpdateProduct }
+  { id: string; data: UpdateProduct }
 >("product/update", async ({ id, data }, { rejectWithValue }) => {
   try {
     const response = await productService.update(id, data);
@@ -109,7 +109,7 @@ export const updateProduct = createAsyncThunk<
 });
 
 /** 🔹 Xoá mềm sản phẩm */
-export const deleteProduct = createAsyncThunk<{ success: boolean }, number>(
+export const deleteProduct = createAsyncThunk<{ success: boolean }, string>(
   "product/delete",
   async (id, { rejectWithValue }) => {
     try {

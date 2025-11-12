@@ -43,7 +43,7 @@ export const createUniversity = createAsyncThunk<
 // 🔹 Cập nhật university
 export const updateUniversity = createAsyncThunk<
   University,
-  { id: number; data: UpdateUniversity },
+  { id: string; data: UpdateUniversity },
   { rejectValue: string }
 >("universities/update", async ({ id, data }, { rejectWithValue }) => {
   try {
@@ -58,8 +58,8 @@ export const updateUniversity = createAsyncThunk<
 
 // 🔹 Xoá university
 export const deleteUniversity = createAsyncThunk<
-  number,
-  number,
+  string, 
+  string, 
   { rejectValue: string }
 >("universities/delete", async (id, { rejectWithValue }) => {
   try {

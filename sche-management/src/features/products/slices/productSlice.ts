@@ -151,7 +151,7 @@ const productSlice = createSlice({
       .addCase(deleteProduct.fulfilled, (state, action) => {
         state.saving = false;
         // ✅ Xóa khỏi danh sách nếu có ID trong meta.arg
-        const id = (action.meta.arg as number) ?? null;
+        const id = (action.meta.arg as string) ?? null;
         if (id) {
           state.list = state.list.filter((p) => p.id !== id);
         }
