@@ -121,9 +121,16 @@ export const studentService = {
   /** 🔹 Hoàn thiện thông tin profile của student */
   async completeProfile(data: CompleteProfileRequest): Promise<StudentProfile> {
     try {
+      const formData = new FormData();
+      formData.append("phoneNumber", data.phoneNumber);
+
+      if (data.avatarUrl && data.avatarUrl.trim()) {
+        formData.append("avatarUrl", data.avatarUrl.trim());
+      }
+
       const res = await axiosInstance.post<any>(
         "/students/me/complete-profile",
-        data
+        formData
       );
       // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
       const apiData = res.data?.data ?? res.data;
