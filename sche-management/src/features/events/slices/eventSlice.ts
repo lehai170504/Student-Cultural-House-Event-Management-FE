@@ -1,17 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type {
   Event,
-  EventRegistration,
-  EventFeedbackResponse,
-  EventCheckinResponse,
   AttendeesResponse,
   EventFinalizeResponse,
-  EventCheckinDetail,
+  EventApproveResponse,
+  GetAllEventsResponse,
 } from "@/features/events/types/events";
-import type {
-  PaginatedResponseMeta,
-  PaginatedResponse,
-} from "@/utils/apiResponse";
 import {
   fetchAllEvents,
   fetchEventById,
@@ -23,6 +17,7 @@ import {
   checkinEvent,
   fetchEventAttendees,
   finalizeEvent,
+  approveEvent,
   checkinByPhoneNumber,
 } from "../thunks/eventThunks";
 
@@ -42,14 +37,16 @@ interface EventState {
   attendees: AttendeesResponse | null;
 
   finalizing: boolean;
+  approving: boolean;
   submittingCheckin: boolean;
 
-  pagination: PaginatedResponseMeta | null;
-  currentPage: number;
-  totalElements: number;
-  totalPages: number;
-  pageSize: number;
-  isLastPage: boolean;
+  pagination: {
+    currentPage: number;
+    pageSize: number;
+    totalElements: number;
+    totalPages: number;
+    isLastPage: boolean;
+  } | null;
 }
 
 const initialState: EventState = {
@@ -68,14 +65,10 @@ const initialState: EventState = {
   attendees: null,
 
   finalizing: false,
+  approving: false,
   submittingCheckin: false,
 
   pagination: null,
-  currentPage: 0,
-  totalElements: 0,
-  totalPages: 0,
-  pageSize: 10,
-  isLastPage: true,
 };
 
 const eventSlice = createSlice({
@@ -91,51 +84,43 @@ const eventSlice = createSlice({
     resetPagination: (state) => {
       state.list = [];
       state.pagination = null;
-      state.currentPage = 0;
-      state.totalElements = 0;
-      state.totalPages = 0;
-      state.isLastPage = true;
     },
     updateEventDetail: (state, action: PayloadAction<Event>) => {
-      if (state.detail?.id === action.payload.id) {
-        state.detail = action.payload;
-      }
+      const updated = action.payload;
+      const idx = state.list.findIndex((e) => e.id === updated.id);
+      if (idx !== -1) state.list[idx] = updated;
+      if (state.detail?.id === updated.id) state.detail = updated;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Fetch all events
       .addCase(fetchAllEvents.pending, (state) => {
         state.loadingList = true;
       })
       .addCase(
         fetchAllEvents.fulfilled,
-        (state, action: PayloadAction<PaginatedResponse<Event>>) => {
+        (state, action: PayloadAction<GetAllEventsResponse>) => {
           state.loadingList = false;
-          if (action.payload) {
-            state.list = action.payload?.data || [];
-            state.pagination = action.payload?.meta || null;
-
-            if (action.payload?.meta) {
-              state.currentPage = action.payload.meta.currentPage - 1;
-              state.pageSize = action.payload.meta.pageSize;
-              state.totalElements = action.payload.meta.totalItems;
-              state.totalPages = action.payload.meta.totalPages;
-              state.isLastPage =
-                action.payload.meta.currentPage >=
-                action.payload.meta.totalPages;
-            }
-          } else {
-            state.list = [];
-            state.pagination = null;
-          }
+          const payload = action.payload;
+          state.list = payload.data || [];
+          state.pagination = {
+            currentPage: payload.meta.currentPage,
+            pageSize: payload.meta.pageSize,
+            totalElements: payload.meta.totalItems,
+            totalPages: payload.meta.totalPages,
+            isLastPage: payload.meta.currentPage >= payload.meta.totalPages,
+          };
           state.error = null;
         }
       )
+
       .addCase(fetchAllEvents.rejected, (state, action) => {
         state.loadingList = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Fetch event detail
       .addCase(fetchEventById.pending, (state) => {
         state.loadingDetail = true;
       })
@@ -149,9 +134,10 @@ const eventSlice = createSlice({
       )
       .addCase(fetchEventById.rejected, (state, action) => {
         state.loadingDetail = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Create event
       .addCase(createEvent.pending, (state) => {
         state.saving = true;
       })
@@ -162,31 +148,33 @@ const eventSlice = createSlice({
       })
       .addCase(createEvent.rejected, (state, action) => {
         state.saving = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Update event
       .addCase(updateEvent.pending, (state) => {
         state.saving = true;
       })
       .addCase(updateEvent.fulfilled, (state, action: PayloadAction<Event>) => {
         state.saving = false;
-        const idx = state.list.findIndex((e) => e.id === action.payload.id);
-        if (idx !== -1) state.list[idx] = action.payload;
-        if (state.detail?.id === action.payload.id)
-          state.detail = action.payload;
+        const updated = action.payload;
+        const idx = state.list.findIndex((e) => e.id === updated.id);
+        if (idx !== -1) state.list[idx] = updated;
+        if (state.detail?.id === updated.id) state.detail = updated;
         state.error = null;
       })
       .addCase(updateEvent.rejected, (state, action) => {
         state.saving = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Delete event
       .addCase(deleteEvent.pending, (state) => {
         state.deleting = true;
       })
       .addCase(
         deleteEvent.fulfilled,
-        (state, action: PayloadAction<number>) => {
+        (state, action: PayloadAction<string>) => {
           state.deleting = false;
           state.list = state.list.filter((e) => e.id !== action.payload);
           state.error = null;
@@ -194,45 +182,42 @@ const eventSlice = createSlice({
       )
       .addCase(deleteEvent.rejected, (state, action) => {
         state.deleting = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Register / Feedback / Check-in
       .addCase(registerForEvent.pending, (state) => {
         state.registering = true;
       })
       .addCase(registerForEvent.fulfilled, (state) => {
         state.registering = false;
-        state.error = null;
       })
       .addCase(registerForEvent.rejected, (state, action) => {
         state.registering = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
-
       .addCase(sendEventFeedback.pending, (state) => {
         state.sendingFeedback = true;
       })
       .addCase(sendEventFeedback.fulfilled, (state) => {
         state.sendingFeedback = false;
-        state.error = null;
       })
       .addCase(sendEventFeedback.rejected, (state, action) => {
         state.sendingFeedback = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
-
       .addCase(checkinEvent.pending, (state) => {
         state.checkingIn = true;
       })
       .addCase(checkinEvent.fulfilled, (state) => {
         state.checkingIn = false;
-        state.error = null;
       })
       .addCase(checkinEvent.rejected, (state, action) => {
         state.checkingIn = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Fetch attendees
       .addCase(fetchEventAttendees.pending, (state) => {
         state.loadingAttendees = true;
       })
@@ -241,54 +226,62 @@ const eventSlice = createSlice({
         (state, action: PayloadAction<AttendeesResponse>) => {
           state.loadingAttendees = false;
           state.attendees = action.payload;
-          state.error = null;
         }
       )
       .addCase(fetchEventAttendees.rejected, (state, action) => {
         state.loadingAttendees = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
+      // Finalize event
       .addCase(finalizeEvent.pending, (state) => {
         state.finalizing = true;
-        state.error = null;
       })
       .addCase(
         finalizeEvent.fulfilled,
         (state, action: PayloadAction<EventFinalizeResponse>) => {
           state.finalizing = false;
-          const finalizedEvent = action.payload;
-
-          const idx = state.list.findIndex((e) => e.id === finalizedEvent.id);
-          if (idx !== -1) {
-            state.list[idx] = finalizedEvent;
-          }
-
-          if (state.detail?.id === finalizedEvent.id) {
-            state.detail = finalizedEvent;
-          }
-          state.error = null;
+          const updated = action.payload;
+          const idx = state.list.findIndex((e) => e.id === updated.id);
+          if (idx !== -1) state.list[idx] = updated;
+          if (state.detail?.id === updated.id) state.detail = updated;
         }
       )
       .addCase(finalizeEvent.rejected, (state, action) => {
         state.finalizing = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       })
 
-      .addCase(checkinByPhoneNumber.pending, (state) => {
-        state.submittingCheckin = true;
-        state.error = null;
+      // Approve event
+      .addCase(approveEvent.pending, (state) => {
+        state.approving = true;
       })
       .addCase(
-        checkinByPhoneNumber.fulfilled,
-        (state, action: PayloadAction<EventCheckinDetail>) => {
-          state.submittingCheckin = false;
+        approveEvent.fulfilled,
+        (state, action: PayloadAction<EventApproveResponse>) => {
+          state.approving = false;
+          const approved = action.payload;
+          const idx = state.list.findIndex((e) => e.id === approved.id);
+          if (idx !== -1) state.list[idx] = approved;
+          if (state.detail?.id === approved.id) state.detail = approved;
           state.error = null;
         }
       )
+      .addCase(approveEvent.rejected, (state, action) => {
+        state.approving = false;
+        state.error = action.payload || null;
+      })
+
+      // Check-in by phone
+      .addCase(checkinByPhoneNumber.pending, (state) => {
+        state.submittingCheckin = true;
+      })
+      .addCase(checkinByPhoneNumber.fulfilled, (state) => {
+        state.submittingCheckin = false;
+      })
       .addCase(checkinByPhoneNumber.rejected, (state, action) => {
         state.submittingCheckin = false;
-        state.error = (action.payload as string) || null;
+        state.error = action.payload || null;
       });
   },
 });

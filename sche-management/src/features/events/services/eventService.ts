@@ -2,98 +2,63 @@ import axiosInstance from "@/config/axiosInstance";
 import {
   CreateEvent,
   UpdateEvent,
-  EventResponse,
-  EventDetailResponse,
   EventRegistration,
   EventFeedbackRequest,
   EventFeedbackResponse,
   EventCheckinRequest,
   EventCheckinResponse,
   AttendeesResponse,
-  PagedEventResponse,
   Event,
   EventCheckinDetail,
   EventFinalizeResponse,
   RequestEventCheckin,
+  EventApproveResponse,
+  GetAllEventsResponse,
+  EventMeta,
 } from "../types/events";
-import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 
 const endpoint = "/events";
+const endpoint2 = "/admin/events";
 
 export const eventService = {
-  /** 🔹 Lấy tất cả events với pagination (format mới: { data: [...], meta: {...} }) */
-  async getAll(
-    params?: PaginationParams & Record<string, any>
-  ): Promise<PaginatedResponse<Event>> {
+  /** 🔹 Lấy tất cả events với pagination */
+  async getAll(params?: Record<string, any>): Promise<GetAllEventsResponse> {
     try {
-      // Mặc định: page=1, size=10, không có sort
       const queryParams: Record<string, any> = {
         page: params?.page ?? 1,
         size: params?.size ?? 10,
-        // sort không được include theo yêu cầu
       };
 
-      // Copy các params khác nếu có (nhưng không copy sort)
       if (params) {
         Object.keys(params).forEach((key) => {
-          if (key !== "sort" && key !== "page" && key !== "size") {
+          if (key !== "page" && key !== "size") {
             queryParams[key] = params[key];
           }
         });
       }
 
-      const res = await axiosInstance.get<any>(endpoint, {
-        params: queryParams,
-      });
+      const res = await axiosInstance.get<{ data: Event[]; meta: EventMeta }>(
+        endpoint,
+        {
+          params: queryParams,
+        }
+      );
 
-      // Format mới: { data: [...], meta: { currentPage, pageSize, totalPages, totalItems } }
-      const responseData = res.data;
+      const { data, meta } = res.data;
 
-      // Nếu có wrap trong { status, message, data } thì lấy data
-      if (
-        responseData?.data &&
-        Array.isArray(responseData.data) &&
-        responseData.meta
-      ) {
-        return responseData as PaginatedResponse<Event>;
-      }
-
-      // Nếu trả về trực tiếp { data, meta }
-      if (responseData?.data && responseData?.meta) {
-        return responseData as PaginatedResponse<Event>;
-      }
-
-      // Fallback: nếu là format cũ PagedEventResponse, convert sang format mới
-      if (responseData?.content && Array.isArray(responseData.content)) {
-        return {
-          data: responseData.content,
-          meta: {
-            currentPage: (responseData.number ?? 0) + 1, // convert 0-indexed to 1-indexed
-            pageSize: responseData.size ?? 10,
-            totalPages: responseData.totalPages ?? 0,
-            totalItems: responseData.totalElements ?? 0,
-          },
-        };
-      }
-
-      // Fallback cuối cùng: giả sử responseData là PaginatedResponse trực tiếp
-      return responseData as PaginatedResponse<Event>;
+      // Trả về đúng type GetAllEventsResponse
+      return { data, meta };
     } catch (error) {
       console.error("❌ [getAll] Lỗi khi lấy danh sách events:", error);
       throw error;
     }
   },
 
-  /** 🔹 Lấy chi tiết event theo ID */
-  async getById(id: number): Promise<Event> {
+  /** 🔹 Lấy chi tiết event theo ID (id kiểu string) */
+  async getById(id: string): Promise<Event> {
     try {
       const res = await axiosInstance.get<any>(`${endpoint}/${id}`);
-      // BE giờ trả về Event trực tiếp hoặc wrap trong { data: {...} }
-      const responseData = res.data;
-      if (responseData?.data && responseData?.status !== undefined) {
-        return responseData.data;
-      }
-      return responseData;
+      return res.data?.data || res.data;
     } catch (error) {
       console.error(`❌ [getById] Lỗi khi lấy event ID ${id}:`, error);
       throw error;
@@ -104,12 +69,7 @@ export const eventService = {
   async create(data: CreateEvent): Promise<Event> {
     try {
       const res = await axiosInstance.post<any>(endpoint, data);
-      // BE giờ trả về Event trực tiếp hoặc wrap trong { data: {...} }
-      const responseData = res.data;
-      if (responseData?.data && responseData?.status !== undefined) {
-        return responseData.data;
-      }
-      return responseData;
+      return res.data?.data || res.data;
     } catch (error) {
       console.error("❌ [create] Lỗi khi tạo event:", error);
       throw error;
@@ -117,15 +77,10 @@ export const eventService = {
   },
 
   /** 🔹 Cập nhật event theo ID */
-  async update(id: number, data: UpdateEvent): Promise<Event> {
+  async update(id: string, data: UpdateEvent): Promise<Event> {
     try {
       const res = await axiosInstance.put<any>(`${endpoint}/${id}`, data);
-      // BE giờ trả về Event trực tiếp hoặc wrap trong { data: {...} }
-      const responseData = res.data;
-      if (responseData?.data && responseData?.status !== undefined) {
-        return responseData.data;
-      }
-      return responseData;
+      return res.data?.data || res.data;
     } catch (error) {
       console.error(`❌ [update] Lỗi khi cập nhật event ID ${id}:`, error);
       throw error;
@@ -133,7 +88,7 @@ export const eventService = {
   },
 
   /** 🔹 Xoá event theo ID */
-  async delete(id: number): Promise<void> {
+  async delete(id: string): Promise<void> {
     try {
       await axiosInstance.delete(`${endpoint}/${id}`);
     } catch (error) {
@@ -142,14 +97,10 @@ export const eventService = {
     }
   },
 
-  // ============================================================
-  // 🔸 CÁC API MỚI
-  // ============================================================
-
-  /** 🔹 1. Đăng ký tham gia sự kiện */
+  /** 🔹 Đăng ký tham gia sự kiện */
   async register(
-    eventId: number,
-    studentId: number
+    eventId: string,
+    studentId: string
   ): Promise<EventRegistration> {
     try {
       const res = await axiosInstance.post<EventRegistration>(
@@ -166,9 +117,9 @@ export const eventService = {
     }
   },
 
-  /** 🔹 2. Gửi feedback cho sự kiện */
+  /** 🔹 Gửi feedback cho sự kiện */
   async sendFeedback(
-    eventId: number,
+    eventId: string,
     data: EventFeedbackRequest
   ): Promise<EventFeedbackResponse> {
     try {
@@ -186,7 +137,7 @@ export const eventService = {
     }
   },
 
-  /** 🔹 3. Check-in sự kiện */
+  /** 🔹 Check-in sự kiện */
   async checkin(data: EventCheckinRequest): Promise<EventCheckinResponse> {
     try {
       const res = await axiosInstance.post<EventCheckinResponse>(
@@ -200,9 +151,9 @@ export const eventService = {
     }
   },
 
-  /** 🔹 4. Lấy danh sách người tham dự */
+  /** 🔹 Lấy danh sách người tham dự */
   async getAttendees(
-    eventId: number,
+    eventId: string,
     params?: Record<string, any>
   ): Promise<AttendeesResponse> {
     try {
@@ -213,22 +164,19 @@ export const eventService = {
       return res.data;
     } catch (error) {
       console.error(
-        `❌ [getAttendees] Lỗi khi lấy danh sách attendees cho event ID ${eventId}:`,
+        `❌ [getAttendees] Lỗi khi lấy attendees cho event ID ${eventId}:`,
         error
       );
       throw error;
     }
   },
 
-  /** 🔹 5. Finalize Event (POST /api/v1/events/{eventId}/finalize) */
-  async finalizeEvent(eventId: number): Promise<EventFinalizeResponse> {
+  /** 🔹 Finalize Event */
+  async finalizeEvent(eventId: string): Promise<EventFinalizeResponse> {
     try {
-      // POST request, không có body
       const res = await axiosInstance.post<EventFinalizeResponse>(
         `${endpoint}/${eventId}/finalize`
       );
-
-      // Response trả về đối tượng Event đã finalized
       return res.data;
     } catch (error) {
       console.error(
@@ -239,9 +187,9 @@ export const eventService = {
     }
   },
 
-  /** 🔹 6. Submit Checkin/Registration Detail */
+  /** 🔹 Checkin bằng số điện thoại */
   async checkinByPhoneNumber(
-    eventId: number,
+    eventId: string,
     data: RequestEventCheckin
   ): Promise<EventCheckinDetail> {
     try {
@@ -249,12 +197,26 @@ export const eventService = {
         `${endpoint}/${eventId}/checkin`,
         data
       );
-
-      // Trả về đối tượng EventCheckinDetail chi tiết
       return res.data;
     } catch (error) {
       console.error(
-        `❌ [checkinByPhoneNumber] Lỗi khi checkin cho event ID ${eventId}:`,
+        `❌ [checkinByPhoneNumber] Lỗi khi checkin event ID ${eventId}:`,
+        error
+      );
+      throw error;
+    }
+  },
+
+  /** ✅ 🔹 Duyệt sự kiện (approve) */
+  async approveEvent(eventId: string): Promise<EventApproveResponse> {
+    try {
+      const res = await axiosInstance.post<{ data: EventApproveResponse }>(
+        `${endpoint2}/${eventId}/approve`
+      );
+      return res.data.data;
+    } catch (error) {
+      console.error(
+        `❌ [approveEvent] Lỗi khi duyệt event ID ${eventId}:`,
         error
       );
       throw error;

@@ -52,7 +52,7 @@ export interface AuthResponse {
   status: number;
   message: string;
   data: {
-    id: number;
+    id: string;
     email: string;
     fullName: string;
     createdAt: string;

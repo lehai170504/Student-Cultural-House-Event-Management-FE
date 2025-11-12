@@ -5,9 +5,9 @@ import type {
   CreateEventCategory,
   UpdateEventCategory,
 } from "@/features/eventCategories/types/eventCategories";
-import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 import { getErrorMessage } from "@/utils/errorHandler";
 
+// 🔹 Lấy tất cả danh mục sự kiện
 export const fetchAllEventCategories = createAsyncThunk<
   EventCategory[],
   void,
@@ -15,7 +15,6 @@ export const fetchAllEventCategories = createAsyncThunk<
 >("eventCategories/fetchAll", async (_, { rejectWithValue }) => {
   try {
     const res = await eventCategoryService.getAll();
-
     return res;
   } catch (err: any) {
     return rejectWithValue(
@@ -23,9 +22,11 @@ export const fetchAllEventCategories = createAsyncThunk<
     );
   }
 });
+
+// 🔹 Lấy chi tiết danh mục theo ID
 export const fetchEventCategoryById = createAsyncThunk<
   EventCategory,
-  number,
+  string,
   { rejectValue: string }
 >("eventCategories/fetchById", async (id, { rejectWithValue }) => {
   try {
@@ -38,6 +39,7 @@ export const fetchEventCategoryById = createAsyncThunk<
   }
 });
 
+// 🔹 Tạo danh mục mới
 export const createEventCategory = createAsyncThunk<
   EventCategory,
   CreateEventCategory,
@@ -53,9 +55,10 @@ export const createEventCategory = createAsyncThunk<
   }
 });
 
+// 🔹 Cập nhật danh mục
 export const updateEventCategory = createAsyncThunk<
   EventCategory,
-  { id: number; data: UpdateEventCategory },
+  { id: string; data: UpdateEventCategory },
   { rejectValue: string }
 >("eventCategories/update", async ({ id, data }, { rejectWithValue }) => {
   try {
@@ -68,9 +71,10 @@ export const updateEventCategory = createAsyncThunk<
   }
 });
 
+// 🔹 Xoá danh mục
 export const deleteEventCategory = createAsyncThunk<
-  number,
-  number,
+  string,
+  string,
   { rejectValue: string }
 >("eventCategories/delete", async (id, { rejectWithValue }) => {
   try {

@@ -31,11 +31,17 @@ export const useEventCategories = () => {
   /** 🔸 Lấy danh sách tất cả danh mục */
   const loadAll = useCallback(async () => {
     const res: any = await dispatch(fetchAllEventCategories()).unwrap();
+
     if (Array.isArray(res)) {
       res.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : a.id;
-        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : b.id;
-        return dateB - dateA;
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+        // Nếu createdAt bằng nhau, fallback so sánh id (string) theo Unicode
+        if (timeB === timeA) {
+          return a.id.localeCompare(b.id);
+        }
+        return timeB - timeA;
       });
     }
 
@@ -44,7 +50,7 @@ export const useEventCategories = () => {
 
   /** 🔸 Lấy chi tiết danh mục */
   const loadDetail = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       await dispatch(fetchEventCategoryById(id));
     },
     [dispatch]
@@ -61,7 +67,7 @@ export const useEventCategories = () => {
 
   /** 🔸 Cập nhật danh mục */
   const updateCategory = useCallback(
-    async (id: number, data: UpdateEventCategory) => {
+    async (id: string, data: UpdateEventCategory) => {
       const result = await dispatch(updateEventCategory({ id, data }));
       return result;
     },
@@ -70,7 +76,7 @@ export const useEventCategories = () => {
 
   /** 🔸 Xoá danh mục */
   const deleteCategoryById = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       const result = await dispatch(deleteEventCategory(id));
       return result;
     },

@@ -19,132 +19,128 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-// Imports cho Dialog đã được loại bỏ ở đây vì chúng đã được chuyển sang component CheckinPhoneNumberDialog.
-import { Eye, Trash2, CheckSquare, Zap, RotateCw } from "lucide-react";
+import { Eye, CheckSquare, Zap, RotateCw, PlusCircle } from "lucide-react";
+
 import { useEvents } from "../hooks/useEvents";
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
-import { toast } from "sonner";
 
-import type { EventCheckinDetail } from "../types/events";
 import {
-  finalizeEvent,
-  checkinByPhoneNumber as submitCheckinDetail,
-} from "../thunks/eventThunks";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
-// 🌟 IMPORT COMPONENT MỚI ĐÃ TÁCH
-import CheckinPhoneNumberDialog from "./CheckinPhoneNumberDialog";
+import { toast } from "sonner";
+import { EventCheckinDetail, EventForCheckin } from "../types/events";
 
+// 🌟 Lazy load components
 const ViewDetailEvent = lazy(() => import("./ViewDetailEvent"));
-
-// Hàm giả định cho trạng thái (giữ nguyên)
-const getStatusBadge = (status: string) => {
-  let classes = "";
-  switch (status) {
-    case "ACTIVE":
-      classes = "bg-green-100 text-green-800";
-      break;
-    case "DRAFT":
-      classes = "bg-blue-100 text-blue-800";
-      break;
-    case "FINISHED":
-      classes = "bg-gray-100 text-gray-800";
-      break;
-    case "CANCELLED":
-      classes = "bg-red-100 text-red-800";
-      break;
-    case "FINALIZED":
-      classes = "bg-purple-100 text-purple-800";
-      break;
-    default:
-      classes = "bg-gray-200 text-gray-700";
-  }
-  return (
-    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${classes}`}>
-      {status}
-    </span>
-  );
-};
-
-// ========================================================
-// 🌟 EVENT TABLE COMPONENT
-// ========================================================
+const CreateEventModal = lazy(() => import("./CreateEventModal"));
+const CheckinPhoneNumberDialog = lazy(
+  () => import("./CheckinPhoneNumberDialog")
+);
 
 export default function EventTable() {
   const {
     list = [],
     loadingList,
-    deleting,
-    deleteEventById,
     loadAll,
-    currentPage,
-    totalPages,
-    totalElements,
-    isLastPage,
+    pagination,
     finalizeEventById,
     finalizing,
     submitCheckinDetailData,
     submittingCheckin,
+    approveEventById,
+    approving,
   } = useEvents();
 
   const { user } = useUserProfile();
-  const studentId = user?.id; // Lấy studentId từ user.id
+  const studentId = user?.id;
 
+  // 🌟 State
   const [search, setSearch] = useState("");
-  const [selectedEvent, setSelectedEvent] = useState<number | null>(null);
-
-  // 🌟 STATE MỚI CHO MODAL CHECK-IN
+  const [selectedEvent, setSelectedEvent] = useState<string | null>(null);
+  const [currentCheckinEvent, setCurrentCheckinEvent] =
+    useState<EventForCheckin | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isCheckinModalOpen, setIsCheckinModalOpen] = useState(false);
-  const [currentCheckinEvent, setCurrentCheckinEvent] = useState<{
-    id: number;
-    title: string;
-    studentId: number;
-    studentName: string;
-  } | null>(null);
 
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<
+    "approve" | "finalize" | null
+  >(null);
+  const [pendingEventId, setPendingEventId] = useState<string | null>(null);
+  const [pendingEventTitle, setPendingEventTitle] = useState("");
+
+  const totalPages = pagination?.totalPages || 0;
+  const totalElements = pagination?.totalElements || 0;
+  const currentPage = pagination?.currentPage || 0;
+  const isLastPage = pagination?.isLastPage || false;
+
+  // 🌟 Filtered events
   const filteredEvents = Array.isArray(list)
     ? list.filter((e) => e.title?.toLowerCase().includes(search.toLowerCase()))
     : [];
 
+  // 🌟 Handlers
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const keyword = e.target.value;
     setSearch(keyword);
-    loadAll({ page: 0, search: keyword || undefined });
+    loadAll({ page: 1, search: keyword || undefined });
   };
 
   const handlePageChange = (page: number) => {
     if (loadingList) return;
-
     const apiPage = page + 1;
-
     if (page >= 0 && page < totalPages) {
       loadAll({ page: apiPage, search: search || undefined });
     }
   };
 
-  const handleFinalize = useCallback(
-    async (eventId: number, eventTitle: string) => {
-      // NOTE: Đã giữ lại window.confirm như trong code gốc, mặc dù khuyến nghị dùng custom modal
-      if (
-        !window.confirm(
-          `Xác nhận kết thúc và phân phối phần thưởng cho sự kiện "${eventTitle}"?`
-        )
-      ) {
-        return;
-      }
-      const result = await finalizeEventById(eventId);
-      if (finalizeEvent.fulfilled.match(result)) {
-        toast.success("Finalize thành công! Phần thưởng đã được phân phối.");
-        loadAll({ page: currentPage + 0, search: search || undefined }); // Reload trang hiện tại
-      } else {
-        toast.error(`Finalize thất bại: ${result.payload}`);
-      }
-    },
-    [finalizeEventById, loadAll, currentPage, search]
-  );
+  const openConfirm = (
+    action: "approve" | "finalize",
+    eventId: string,
+    eventTitle: string
+  ) => {
+    setPendingAction(action);
+    setPendingEventId(eventId);
+    setPendingEventTitle(eventTitle);
+    setConfirmOpen(true);
+  };
 
-  // 🌟 HÀM MỞ MODAL CHECK-IN
+  const handleConfirmAction = async () => {
+    if (!pendingAction || !pendingEventId) return;
+
+    try {
+      if (pendingAction === "approve") {
+        const result = await approveEventById(pendingEventId);
+        if (result)
+          toast.success(`Sự kiện "${pendingEventTitle}" đã được duyệt.`);
+        else toast.error(`Duyệt sự kiện thất bại.`);
+      } else if (pendingAction === "finalize") {
+        const result = await finalizeEventById(pendingEventId);
+        if (result)
+          toast.success(
+            `Phần thưởng cho sự kiện "${pendingEventTitle}" đã được phân phối.`
+          );
+        else toast.error(`Finalize thất bại.`);
+      }
+    } catch {
+      toast.error("Đã có lỗi xảy ra.");
+    } finally {
+      setConfirmOpen(false);
+      setPendingAction(null);
+      setPendingEventId(null);
+      setPendingEventTitle("");
+      loadAll({ page: currentPage, search });
+    }
+  };
+
   const openCheckinModal = useCallback(
-    (event: { id: number; title: string }) => {
+    (event: { id: string; title: string }) => {
       if (!studentId) {
         toast.error("Vui lòng đăng nhập để thực hiện thao tác check-in.");
         return;
@@ -152,50 +148,71 @@ export default function EventTable() {
       setCurrentCheckinEvent({
         id: event.id,
         title: event.title,
-        studentId: studentId,
+        studentId,
         studentName: user?.fullName || "Sinh viên",
       });
       setIsCheckinModalOpen(true);
     },
     [studentId, user?.fullName]
   );
-
-  // 🌟 HÀM XỬ LÝ SUBMIT TỪ MODAL
   const handleCheckinSubmit = useCallback(
-    async (eventId: number, phoneNumber: string) => {
+    async (payload: { eventId: string; phoneNumber: string }) => {
       if (!currentCheckinEvent) return;
 
-      const checkinData: EventCheckinDetail = {
-        checkinId: 0,
-        eventId: eventId,
-        eventTitle: currentCheckinEvent.title,
-        studentId: currentCheckinEvent.studentId,
-        studentName: currentCheckinEvent.studentName,
-        registrationTime: new Date().toISOString(),
-        verified: true,
-        depositPaid: 0,
-        phoneNumber: phoneNumber,
-      } as EventCheckinDetail & { phoneNumber: string };
+      const { eventId, phoneNumber } = payload;
 
-      const result = await submitCheckinDetailData(checkinData);
+      try {
+        const fullPayload: EventCheckinDetail & { phoneNumber: string } = {
+          checkinId: "", 
+          eventId,
+          eventTitle: currentCheckinEvent.title,
+          studentId: Number(currentCheckinEvent.studentId),
+          studentName: currentCheckinEvent.studentName,
+          registrationTime: new Date().toISOString(),
+          verified: false,
+          depositPaid: 0,
+          phoneNumber,
+        };
 
-      if (submitCheckinDetail.fulfilled.match(result)) {
-        toast.success("Check-in thành công!", {
-          description: `Bạn đã check-in cho sự kiện ${currentCheckinEvent.title} với SĐT: ${phoneNumber}`,
-        });
-        setIsCheckinModalOpen(false); // Đóng modal khi thành công
-        setCurrentCheckinEvent(null);
-      } else {
-        const errorMessage =
-          typeof result.payload === "string"
-            ? result.payload
-            : "Đã xảy ra lỗi không xác định.";
-        toast.error(`Check-in thất bại: ${errorMessage}`);
+        const result = await submitCheckinDetailData(fullPayload);
+
+        if (result) {
+          toast.success(
+            `Bạn đã check-in cho sự kiện ${currentCheckinEvent.title} với SĐT: ${phoneNumber}`
+          );
+          setIsCheckinModalOpen(false);
+          setCurrentCheckinEvent(null);
+        } else {
+          toast.error("Check-in thất bại.");
+        }
+      } catch {
+        toast.error("Đã có lỗi xảy ra khi check-in.");
       }
     },
     [submitCheckinDetailData, currentCheckinEvent]
   );
 
+  // 🌟 Badge
+  const getStatusBadge = (status: string) => {
+    const classes =
+      {
+        ACTIVE: "bg-green-100 text-green-800",
+        DRAFT: "bg-blue-100 text-blue-800",
+        FINISHED: "bg-gray-100 text-gray-800",
+        CANCELLED: "bg-red-100 text-red-800",
+        FINALIZED: "bg-purple-100 text-purple-800",
+      }[status] || "bg-gray-200 text-gray-700";
+
+    return (
+      <span
+        className={`px-3 py-1 text-xs font-semibold rounded-full ${classes}`}
+      >
+        {status}
+      </span>
+    );
+  };
+
+  // 🌟 Pagination numbers
   const getPageNumbers = () => {
     const pages = [];
     const maxPagesToShow = 5;
@@ -218,9 +235,7 @@ export default function EventTable() {
       }
     }
 
-    for (let i = startPage; i < endPage; i++) {
-      pages.push(i);
-    }
+    for (let i = startPage; i < endPage; i++) pages.push(i);
     return pages;
   };
 
@@ -234,10 +249,10 @@ export default function EventTable() {
                 Quản lý sự kiện
               </h1>
               <p className="text-lg text-gray-600">
-                Admin quản lý các sự kiện (Tổng: **{totalElements}**)
+                Admin quản lý các sự kiện (Tổng:{" "}
+                <strong>{totalElements}</strong>)
               </p>
             </div>
-
             <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
               <Input
                 placeholder="Tìm kiếm sự kiện..."
@@ -245,13 +260,21 @@ export default function EventTable() {
                 onChange={handleSearch}
                 className="w-[200px] rounded-lg shadow-sm"
               />
+              <Button
+                onClick={() => setIsCreateModalOpen(true)}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-md"
+              >
+                <PlusCircle className="h-4 w-4" />
+                Tạo sự kiện
+              </Button>
             </div>
           </div>
 
+          {/* Table */}
           <div className="rounded-xl border border-gray-200 overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="text-white bg-gray-50 hover:bg-gray-50">
+                <TableRow className="bg-gray-50">
                   <TableHead className="min-w-[250px] px-6 py-3 text-gray-700 font-semibold">
                     Tên sự kiện
                   </TableHead>
@@ -279,7 +302,7 @@ export default function EventTable() {
                       colSpan={6}
                       className="text-center py-6 text-gray-500"
                     >
-                      <RotateCw className="inline animate-spin mr-2 h-4 w-4" />{" "}
+                      <RotateCw className="inline animate-spin mr-2 h-4 w-4" />
                       Đang tải danh sách sự kiện...
                     </TableCell>
                   </TableRow>
@@ -294,10 +317,7 @@ export default function EventTable() {
                   </TableRow>
                 ) : (
                   filteredEvents.map((event) => (
-                    <TableRow
-                      key={event.id}
-                      className="hover:bg-gray-50 transition-colors"
-                    >
+                    <TableRow key={event.id} className="hover:bg-gray-50">
                       <TableCell className="px-6 py-4 font-medium text-gray-800">
                         {event.title}
                       </TableCell>
@@ -318,49 +338,50 @@ export default function EventTable() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {getStatusBadge(event.status)}
-                      </TableCell>
-
+                      <TableCell>{getStatusBadge(event.status)}</TableCell>
                       <TableCell className="px-6 py-4 flex gap-2">
+                        {/* Approve */}
+                        {event.status === "DRAFT" && (
+                          <Button
+                            size="sm"
+                            disabled={approving}
+                            className="flex items-center gap-1 p-2 rounded-full bg-green-500 hover:bg-green-600 shadow-md"
+                            onClick={() =>
+                              openConfirm("approve", event.id, event.title)
+                            }
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {/* Finalize */}
                         {(event.status === "ACTIVE" ||
                           event.status === "FINISHED") && (
                           <Button
-                            variant="default"
                             size="sm"
-                            title="Kết thúc và phân phối phần thưởng"
                             disabled={finalizing}
-                            className="flex items-center gap-1 p-2 rounded-full bg-purple-500 hover:bg-purple-600 transition-all duration-200 shadow-md"
+                            className="flex items-center gap-1 p-2 rounded-full bg-purple-500 hover:bg-purple-600 shadow-md"
                             onClick={() =>
-                              handleFinalize(event.id, event.title)
+                              openConfirm("finalize", event.id, event.title)
                             }
                           >
                             <Zap className="h-4 w-4" />
                           </Button>
                         )}
-
+                        {/* Checkin */}
                         {studentId && event.status === "ACTIVE" && (
                           <Button
-                            variant="outline"
                             size="sm"
-                            title="Check-in sự kiện (Bằng SĐT)"
                             disabled={submittingCheckin}
-                            className="flex items-center gap-1 p-2 rounded-full border-green-500 text-green-500 hover:bg-green-100 transition-all duration-200 shadow-md"
-                            onClick={() => openCheckinModal(event)} // 🌟 MỞ MODAL
+                            className="flex items-center gap-1 p-2 rounded-full border-green-500 text-green-500 hover:bg-green-100 shadow-md"
+                            onClick={() => openCheckinModal(event)}
                           >
                             <CheckSquare className="h-4 w-4" />
                           </Button>
                         )}
-
+                        {/* View */}
                         <Button
-                          variant="outline"
                           size="sm"
-                          title="Xem chi tiết sự kiện"
-                          className="flex items-center gap-1 p-2 rounded-full
-                                          border-2 border-orange-500 text-orange-500 font-medium
-                                          transition-all duration-200
-                                          hover:bg-orange-500 hover:text-white hover:scale-105
-                                          active:scale-95 shadow-md"
+                          className="flex items-center gap-1 p-2 rounded-full border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white shadow-md"
                           onClick={() => setSelectedEvent(event.id)}
                         >
                           <Eye className="h-4 w-4" />
@@ -373,13 +394,12 @@ export default function EventTable() {
             </Table>
           </div>
 
+          {/* Pagination */}
           {totalPages > 0 && (
             <div className="flex justify-between items-center mt-6 flex-wrap">
               <div className="text-sm text-gray-600 mb-2 md:mb-0">
-                Hiển thị {filteredEvents.length} trên tổng số **{totalElements}
-                ** sự kiện.
+                Hiển thị {filteredEvents.length}/{totalElements} sự kiện.
               </div>
-
               <Pagination>
                 <PaginationContent>
                   <PaginationItem>
@@ -392,21 +412,16 @@ export default function EventTable() {
                       }
                     />
                   </PaginationItem>
-
                   {getPageNumbers().map((page) => (
                     <PaginationItem key={page}>
                       <PaginationLink
                         isActive={page === currentPage}
                         onClick={() => handlePageChange(page)}
-                        className={
-                          loadingList ? "pointer-events-none opacity-50" : ""
-                        }
                       >
                         {page + 1}
                       </PaginationLink>
                     </PaginationItem>
                   ))}
-
                   <PaginationItem>
                     <PaginationNext
                       onClick={() => handlePageChange(currentPage + 1)}
@@ -424,30 +439,68 @@ export default function EventTable() {
         </div>
       </section>
 
-      {/* Modal chi tiết (View Detail) */}
-      {selectedEvent !== null && (
-        <Suspense fallback={<div>Đang tải chi tiết sự kiện...</div>}>
+      {/* Confirm Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {pendingAction === "approve"
+                ? "Xác nhận duyệt sự kiện"
+                : "Xác nhận kết thúc sự kiện"}
+            </DialogTitle>
+            <DialogDescription>
+              {pendingAction === "approve"
+                ? `Bạn có chắc muốn duyệt sự kiện "${pendingEventTitle}" không?`
+                : `Bạn có chắc muốn kết thúc và phân phối phần thưởng cho sự kiện "${pendingEventTitle}" không?`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleConfirmAction}>Xác nhận</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lazy Modals */}
+      <Suspense fallback={<div>Đang tải chi tiết sự kiện...</div>}>
+        {selectedEvent && (
           <ViewDetailEvent
             eventId={selectedEvent}
-            open={selectedEvent !== null}
+            open={!!selectedEvent}
             onClose={() => setSelectedEvent(null)}
           />
-        </Suspense>
-      )}
+        )}
+      </Suspense>
 
-      {/* 🌟 MODAL NHẬP PHONE (Check-in) - Sử dụng component đã tách */}
-      {currentCheckinEvent && (
-        <CheckinPhoneNumberDialog
-          open={isCheckinModalOpen}
-          event={currentCheckinEvent}
-          onClose={() => {
-            setIsCheckinModalOpen(false);
-            setCurrentCheckinEvent(null);
-          }}
-          onSubmit={handleCheckinSubmit}
-          submitting={submittingCheckin}
-        />
-      )}
+      <Suspense fallback={<div>Đang tải form tạo sự kiện...</div>}>
+        {isCreateModalOpen && (
+          <CreateEventModal
+            open={isCreateModalOpen}
+            onClose={() => setIsCreateModalOpen(false)}
+            onSuccess={() => {
+              setIsCreateModalOpen(false);
+              loadAll({ page: currentPage, search });
+            }}
+          />
+        )}
+      </Suspense>
+
+      <Suspense fallback={<div>Đang tải form check-in...</div>}>
+        {currentCheckinEvent && (
+          <CheckinPhoneNumberDialog
+            open={isCheckinModalOpen}
+            event={currentCheckinEvent}
+            onClose={() => {
+              setIsCheckinModalOpen(false);
+              setCurrentCheckinEvent(null);
+            }}
+            onSubmit={handleCheckinSubmit}
+            submitting={submittingCheckin}
+          />
+        )}
+      </Suspense>
     </main>
   );
 }

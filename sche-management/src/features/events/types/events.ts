@@ -2,8 +2,8 @@
 import { EventCategory } from "@/features/eventCategories/types/eventCategories";
 
 export interface Event {
-  id: number;
-  partnerId: number;
+  id: string;
+  partnerId: string;
   partnerName: string;
   title: string;
   description: string;
@@ -19,7 +19,7 @@ export interface Event {
   maxAttendees?: number; // mới
 }
 export interface CreateEvent {
-  partnerId: number;
+  partnerId: string;
   title: string;
   description: string;
   startTime: string;
@@ -37,49 +37,26 @@ export interface UpdateEvent {
   startTime: string;
   endTime: string;
   location: string;
-  categoryId: number;
+  categoryId: string;
   pointCostToRegister: number;
   totalRewardPoints: number;
   totalBudgetCoin: number;
   status: string;
 }
 
-// Paged response cho Event
-export interface PagedEventResponse {
-  totalElements: number;
+export interface EventMeta {
+  currentPage: number;
+  pageSize: number;
   totalPages: number;
-  size: number;
-  number: number;
-  content: Event[];
-  first: boolean;
-  last: boolean;
-  numberOfElements: number;
-  sort: {
-    empty: boolean;
-    sorted: boolean;
-    unsorted: boolean;
-  };
-  pageable: {
-    pageNumber: number;
-    pageSize: number;
-    offset: number;
-    paged: boolean;
-    unpaged: boolean;
-    sort: {
-      empty: boolean;
-      sorted: boolean;
-      unsorted: boolean;
-    };
-  };
-  empty: boolean;
+  totalItems: number;
+}
+
+export interface GetAllEventsResponse {
+  data: Event[];
+  meta: EventMeta;
 }
 
 // Response tổng
-export interface EventResponse {
-  status: number;
-  message: string;
-  data: PagedEventResponse;
-}
 
 export interface EventDetailResponse {
   status: number;
@@ -97,10 +74,10 @@ export interface PagedResponse<T> {
 }
 
 export interface EventRegistration {
-  id: number;
-  studentId: number;
+  id: string;
+  studentId: string;
   studentName: string;
-  eventId: number;
+  eventId: string;
   eventTitle: string;
   registeredAt: string; // ISO string
 }
@@ -112,9 +89,9 @@ export interface EventFeedbackRequest {
 }
 
 export interface EventFeedbackResponse {
-  id: number;
-  studentId: number;
-  eventId: number;
+  id: string;
+  studentId: string;
+  eventId: string;
   eventTitle: string;
   rating: number;
   comments: string;
@@ -124,7 +101,7 @@ export interface EventFeedbackResponse {
 
 // ✅ 3. Check-in sự kiện
 export interface EventCheckinRequest {
-  eventId: number;
+  eventId: string;
   phoneNumber: string;
 }
 
@@ -138,8 +115,8 @@ export interface EventCheckinResponse {
 
 // ✅ 4. Danh sách người tham dự
 export interface Attendee {
-  id: number;
-  universityId: number;
+  id: string;
+  universityId: string;
   universityName: string;
   fullName: string;
   phoneNumber: string;
@@ -182,8 +159,8 @@ export interface AttendeesResponse {
   empty: boolean;
 }
 export interface EventFinalizeResponse {
-  id: number;
-  partnerId: number;
+  id: string;
+  partnerId: string;
   partnerName: string;
   title: string;
   description: string;
@@ -191,7 +168,7 @@ export interface EventFinalizeResponse {
   endTime: string;
   location: string;
   category: {
-    id: number;
+    id: string;
     name: string;
     description: string;
   };
@@ -208,12 +185,41 @@ export interface RequestEventCheckin {
 }
 
 export interface EventCheckinDetail {
-  checkinId: number;
-  eventId: number;
+  checkinId: string;
+  eventId: string;
   eventTitle: string;
   studentId: number;
   studentName: string;
   registrationTime: string;
   verified: boolean;
   depositPaid: number;
+}
+
+export interface EventApproveResponse {
+  id: string;
+  partnerId: string;
+  partnerName: string;
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+  location: string;
+  category: {
+    id: string;
+    name: string;
+    description: string;
+  };
+  pointCostToRegister: number;
+  totalRewardPoints: number;
+  totalBudgetCoin: number;
+  status: "APPROVED" | "REJECTED" | "PENDING" | "ACTIVE";
+  createdAt: string;
+  maxAttendees?: number;
+}
+
+export interface EventForCheckin {
+  id: string;
+  title: string;
+  studentId: string;
+  studentName: string;
 }

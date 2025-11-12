@@ -48,6 +48,7 @@ const eventCategorySlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // 🔹 Fetch All
       .addCase(fetchAllEventCategories.pending, (state) => {
         state.loadingList = true;
       })
@@ -64,6 +65,7 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
+      // 🔹 Fetch Detail
       .addCase(fetchEventCategoryById.pending, (state) => {
         state.loadingDetail = true;
       })
@@ -79,6 +81,7 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
+      // 🔹 Create
       .addCase(createEventCategory.pending, (state) => {
         state.saving = true;
       })
@@ -94,6 +97,7 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
+      // 🔹 Update
       .addCase(updateEventCategory.pending, (state) => {
         state.saving = true;
       })
@@ -114,12 +118,13 @@ const eventCategorySlice = createSlice({
         state.error = (action.payload as string) || null;
       })
 
+      // 🔹 Delete
       .addCase(deleteEventCategory.pending, (state) => {
         state.deleting = true;
       })
       .addCase(
         deleteEventCategory.fulfilled,
-        (state, action: PayloadAction<number>) => {
+        (state, action: PayloadAction<string>) => {
           state.deleting = false;
           state.list = state.list.filter((c) => c.id !== action.payload);
         }

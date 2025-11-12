@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useEventCategories } from "../hooks/useEventCategories";
 
 interface ViewDetailEventCategoryProps {
-  categoryId: number | null;
+  categoryId: string | null;
   open: boolean;
   onClose: () => void;
 }
