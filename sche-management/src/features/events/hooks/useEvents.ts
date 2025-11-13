@@ -12,6 +12,8 @@ import {
   finalizeEvent,
   checkinByPhoneNumber,
   approveEvent,
+  registerForEvent,
+  sendEventFeedback,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
 import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
@@ -19,6 +21,7 @@ import type {
   CreateEvent,
   UpdateEvent,
   EventCheckinDetail,
+  EventFeedbackRequest,
 } from "../types/events";
 import { toast } from "sonner";
 
@@ -102,6 +105,20 @@ export const useEvents = () => {
   const approveEventById = useCallback(
     async (eventId: string) => {
       return await dispatch(approveEvent(eventId)).unwrap();
+    },
+    [dispatch]
+  );
+
+  const registerForEventByStudent = useCallback(
+    async (eventId: string, studentId: string) => {
+      return await dispatch(registerForEvent({ eventId, studentId })).unwrap();
+    },
+    [dispatch]
+  );
+
+  const sendFeedbackForEvent = useCallback(
+    async (eventId: string, data: EventFeedbackRequest) => {
+      return await dispatch(sendEventFeedback({ eventId, data })).unwrap();
     },
     [dispatch]
   );
@@ -266,6 +283,8 @@ export const useEvents = () => {
     finalizeEventAndReload,
     deleteEventAndReload,
     submitCheckinAndNotify,
+    registerForEventByStudent,
+    sendFeedbackForEvent,
 
     // Event categories
     eventCategories: categories,
