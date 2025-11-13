@@ -26,26 +26,19 @@ export const createInvoice = createAsyncThunk<Invoice, CreateInvoice>(
 /** ✅ Đánh dấu hóa đơn đã giao */
 export const markInvoiceAsDelivered = createAsyncThunk<
   ProductInvoiceMasked,
-  { invoiceId: string; deliveredBy: string }
->(
-  "invoice/markAsDelivered",
-  async ({ invoiceId, deliveredBy }, { rejectWithValue }) => {
-    try {
-      const response = await InvoiceService.markAsDelivered(
-        invoiceId,
-        deliveredBy
-      );
-      // Lưu ý: Thunk này trả về ProductInvoiceMasked, không phải Invoice
-      return response;
-    } catch (error: any) {
-      console.error(
-        `❌ [markInvoiceAsDelivered] Error for id=${invoiceId}:`,
-        error
-      );
-      return rejectWithValue(error.response?.data || error.message);
-    }
+  { invoiceId: string }
+>("invoice/markAsDelivered", async ({ invoiceId }, { rejectWithValue }) => {
+  try {
+    const response = await InvoiceService.markAsDelivered(invoiceId);
+    return response;
+  } catch (error: any) {
+    console.error(
+      `❌ [markInvoiceAsDelivered] Error for id=${invoiceId}:`,
+      error
+    );
+    return rejectWithValue(error.response?.data || error.message);
   }
-);
+});
 
 /** ↩️ Hủy hóa đơn */
 export const cancelInvoice = createAsyncThunk<
@@ -93,17 +86,3 @@ export const fetchStudentRedeemHistory = createAsyncThunk<
     return rejectWithValue(error.response?.data || error.message);
   }
 });
-
-/** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
-// export const fetchRedeemStats = createAsyncThunk<
-//   InvoiceStat,
-//   void // Không nhận tham số
-// >("invoice/fetchStats", async (_, { rejectWithValue }) => {
-//   try {
-//     const response = await InvoiceService.getRedeemStats();
-//     return response;
-//   } catch (error: any) {
-//     console.error("❌ [fetchRedeemStats] Error:", error);
-//     return rejectWithValue(error.response?.data || error.message);
-//   }
-// });

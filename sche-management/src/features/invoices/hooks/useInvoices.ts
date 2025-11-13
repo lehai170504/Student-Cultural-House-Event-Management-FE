@@ -5,8 +5,7 @@ import {
   markInvoiceAsDelivered,
   cancelInvoice,
   fetchInvoiceDetail,
-  fetchStudentRedeemHistory,
-  //   fetchRedeemStats,
+  fetchStudentRedeemHistory
 } from "../thunks/invoiceThunks";
 import {
   clearError,
@@ -22,7 +21,6 @@ export const useInvoices = () => {
   const {
     detail,
     studentHistory,
-    // stats,
     loadingDetail,
     loadingHistory,
     loadingStats,
@@ -48,13 +46,6 @@ export const useInvoices = () => {
     [dispatch]
   );
 
-  /** 📊 Fetch thống kê redeem */
-  //   const loadStats = useCallback(async () => {
-  //     await dispatch(fetchRedeemStats());
-  //   }, [dispatch]);
-
-  // --- 2. THAO TÁC (WRITE: CREATE/UPDATE/CANCEL) ---
-
   /** 🛒 Tạo hóa đơn mới (Thực hiện Redeem) */
   const createNewInvoice = useCallback(
     async (data: CreateInvoice): Promise<boolean> => {
@@ -67,9 +58,9 @@ export const useInvoices = () => {
 
   /** ✅ Đánh dấu hóa đơn đã giao */
   const deliverInvoice = useCallback(
-    async (invoiceId: string, deliveredBy: string): Promise<boolean> => {
+    async (invoiceId: string): Promise<boolean> => {
       const result = await dispatch(
-        markInvoiceAsDelivered({ invoiceId, deliveredBy })
+        markInvoiceAsDelivered({ invoiceId })
       );
       return markInvoiceAsDelivered.fulfilled.match(result);
     },

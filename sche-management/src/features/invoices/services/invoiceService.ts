@@ -5,8 +5,6 @@ import { CreateInvoice, Invoice, ProductInvoiceMasked } from "../types/invoice";
 const endpoint = "/invoices";
 
 const InvoiceService = {
-  // --- 1. Tạo Hóa đơn (Redeem) ---
-
   /** 🛒 Tạo hóa đơn khi redeem product và trừ balance: POST /api/v1/invoices */
   async createInvoice(payload: CreateInvoice): Promise<Invoice> {
     try {
@@ -20,19 +18,10 @@ const InvoiceService = {
   },
 
   // --- 2. Cập nhật Trạng thái Hóa đơn ---
-  async markAsDelivered(
-    invoiceId: string,
-    deliveredBy: string
-  ): Promise<ProductInvoiceMasked> {
+  async markAsDelivered(invoiceId: string): Promise<ProductInvoiceMasked> {
     try {
       const res = await axiosInstance.put<ProductInvoiceMasked>(
-        `${endpoint}/${invoiceId}/deliver`,
-        null,
-        {
-          params: {
-            deliveredBy: deliveredBy,
-          },
-        }
+        `${endpoint}/${invoiceId}/confirm-delivery`
       );
       return res.data;
     } catch (error) {
@@ -45,7 +34,6 @@ const InvoiceService = {
   },
   async cancelInvoice(invoiceId: string): Promise<Invoice> {
     try {
-      // Thường các API POST/PUT không cần truyền data cho hành động đơn giản
       const res = await axiosInstance.post<Invoice>(
         `${endpoint}/${invoiceId}/cancel`
       );

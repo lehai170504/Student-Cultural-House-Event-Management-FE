@@ -88,25 +88,6 @@ const invoiceSlice = createSlice({
           (action.payload as string) || "Không thể tải lịch sử redeem.";
       })
 
-      // FETCH REDEEM STATS
-      //   .addCase(fetchRedeemStats.pending, (state) => {
-      //     state.loadingStats = true;
-      //     state.error = null;
-      //   })
-      //   .addCase(
-      //     fetchRedeemStats.fulfilled,
-      //     (state, action: PayloadAction<InvoiceStat>) => {
-      //       state.loadingStats = false;
-      //       state.stats = action.payload;
-      //     }
-      //   )
-      //   .addCase(fetchRedeemStats.rejected, (state, action) => {
-      //     state.loadingStats = false;
-      //     state.stats = null;
-      //     state.error =
-      //       (action.payload as string) || "Không thể tải thống kê redeem.";
-      //   })
-
       // B. THAO TÁC (WRITE: CREATE/UPDATE/CANCEL)
 
       // PENDING
