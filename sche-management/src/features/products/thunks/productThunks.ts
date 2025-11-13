@@ -5,6 +5,8 @@ import type {
   UpdateProduct,
   ProductListResponse,
   CreateProductInput,
+  RedeemStatistics,
+  ProductOverviewAnalytics,
 } from "../types/product";
 import type { FetchProductsParams } from "../services/productService";
 
@@ -77,6 +79,33 @@ export const fetchLowStockProducts = createAsyncThunk<Product[]>(
     }
   }
 );
+
+export const fetchRedeemStatistics = createAsyncThunk<RedeemStatistics>(
+  "product/fetchRedeemStatistics",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await productService.getRedeemStatistics();
+      return response;
+    } catch (error: any) {
+      console.error("❌ [fetchRedeemStatistics] Error:", error);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);
+
+export const fetchOverviewAnalytics =
+  createAsyncThunk<ProductOverviewAnalytics>(
+    "product/fetchOverviewAnalytics",
+    async (_, { rejectWithValue }) => {
+      try {
+        const response = await productService.getOverviewAnalytics();
+        return response;
+      } catch (error: any) {
+        console.error("❌ [fetchOverviewAnalytics] Error:", error);
+        return rejectWithValue(error.response?.data || error.message);
+      }
+    }
+  );
 
 // --- CÁC HÀM QUẢN TRỊ (ADMIN) ---
 

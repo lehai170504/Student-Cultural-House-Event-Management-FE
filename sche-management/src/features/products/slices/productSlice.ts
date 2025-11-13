@@ -1,12 +1,18 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { Product, ProductListResponse } from "../types/product";
+import type {
+  Product,
+  ProductListResponse,
+  ProductOverviewAnalytics,
+  RedeemStatistics,
+} from "../types/product";
 import {
   fetchAllProducts,
   fetchProductById,
   createProduct,
   updateProduct,
   deleteProduct,
-  // 1. Cập nhật Imports: Thêm hai thunk mới
+  fetchRedeemStatistics,
+  fetchOverviewAnalytics,
   fetchTopRedeemedProducts,
   fetchLowStockProducts,
 } from "../thunks/productThunks";
@@ -29,6 +35,13 @@ interface ProductState {
   // Trạng thái cho Low Stock Products
   lowStock: Product[];
   loadingLowStock: boolean;
+
+  overviewAnalytics: ProductOverviewAnalytics | null;
+  loadingOverview: boolean;
+
+  // 📊 Trạng thái cho Redeem Statistics (Admin)
+  redeemStatistics: RedeemStatistics | null;
+  loadingStats: boolean;
 }
 
 const initialState: ProductState = {
@@ -45,6 +58,10 @@ const initialState: ProductState = {
   loadingTopRedeemed: false,
   lowStock: [],
   loadingLowStock: false,
+  overviewAnalytics: null,
+  loadingOverview: false,
+  redeemStatistics: null,
+  loadingStats: false,
 };
 
 const productSlice = createSlice({
@@ -63,6 +80,10 @@ const productSlice = createSlice({
     /** 🔹 Xóa lỗi */
     clearError: (state) => {
       state.error = null;
+    },
+    resetAnalytics: (state) => {
+      state.overviewAnalytics = null;
+      state.redeemStatistics = null;
     },
   },
   extraReducers: (builder) => {
@@ -201,9 +222,48 @@ const productSlice = createSlice({
         state.lowStock = [];
         state.error =
           (action.payload as string) || "Không thể tải sản phẩm tồn kho thấp.";
+      })
+
+      /** 📊 FETCH REDEEM STATISTICS */
+      .addCase(fetchRedeemStatistics.pending, (state) => {
+        state.loadingStats = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchRedeemStatistics.fulfilled,
+        (state, action: PayloadAction<RedeemStatistics>) => {
+          state.loadingStats = false;
+          state.redeemStatistics = action.payload;
+        }
+      )
+      .addCase(fetchRedeemStatistics.rejected, (state, action) => {
+        state.loadingStats = false;
+        state.redeemStatistics = null;
+        state.error =
+          (action.payload as string) || "Không thể tải thống kê đổi quà.";
+      })
+
+      /** 📈 FETCH OVERVIEW ANALYTICS */
+      .addCase(fetchOverviewAnalytics.pending, (state) => {
+        state.loadingOverview = true;
+        state.error = null;
+      })
+      .addCase(
+        fetchOverviewAnalytics.fulfilled,
+        (state, action: PayloadAction<ProductOverviewAnalytics>) => {
+          state.loadingOverview = false;
+          state.overviewAnalytics = action.payload;
+        }
+      )
+      .addCase(fetchOverviewAnalytics.rejected, (state, action) => {
+        state.loadingOverview = false;
+        state.overviewAnalytics = null;
+        state.error =
+          (action.payload as string) || "Không thể tải dữ liệu tổng quan.";
       });
   },
 });
 
-export const { resetList, resetDetail, clearError } = productSlice.actions;
+export const { resetList, resetDetail, clearError, resetAnalytics } =
+  productSlice.actions;
 export default productSlice.reducer;

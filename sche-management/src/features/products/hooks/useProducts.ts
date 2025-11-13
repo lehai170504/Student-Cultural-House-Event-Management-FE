@@ -10,8 +10,15 @@ import {
   deleteProduct,
   fetchTopRedeemedProducts,
   fetchLowStockProducts,
+  fetchRedeemStatistics,
+  fetchOverviewAnalytics,
 } from "../thunks/productThunks";
-import { clearError, resetList, resetDetail } from "../slices/productSlice";
+import {
+  clearError,
+  resetList,
+  resetDetail,
+  resetAnalytics,
+} from "../slices/productSlice";
 import type { CreateProductInput, UpdateProduct } from "../types/product";
 import type { FetchProductsParams } from "../services/productService";
 
@@ -30,6 +37,10 @@ export const useProducts = () => {
     loadingTopRedeemed,
     lowStock,
     loadingLowStock,
+    overviewAnalytics,
+    loadingOverview,
+    redeemStatistics,
+    loadingStats,
   } = useAppSelector((state) => state.product);
 
   /** 🔹 Fetch tất cả sản phẩm */
@@ -60,6 +71,14 @@ export const useProducts = () => {
   /** 📉 Fetch sản phẩm tồn kho thấp */
   const loadLowStock = useCallback(async () => {
     await dispatch(fetchLowStockProducts());
+  }, [dispatch]);
+
+  const loadRedeemStatistics = useCallback(async () => {
+    await dispatch(fetchRedeemStatistics());
+  }, [dispatch]);
+
+  const loadOverviewAnalytics = useCallback(async () => {
+    await dispatch(fetchOverviewAnalytics());
   }, [dispatch]);
 
   /** 🔹 Fetch chi tiết sản phẩm */
@@ -112,6 +131,10 @@ export const useProducts = () => {
     dispatch(clearError());
   }, [dispatch]);
 
+  const resetProductAnalytics = useCallback(() => {
+    dispatch(resetAnalytics());
+  }, [dispatch]);
+
   /** 🔹 Tự động load sản phẩm khi mount */
   useEffect(() => {
     loadAll();
@@ -130,15 +153,22 @@ export const useProducts = () => {
     loadingTopRedeemed,
     lowStock,
     loadingLowStock,
+    overviewAnalytics,
+    loadingOverview,
+    redeemStatistics,
+    loadingStats,
     loadAll,
     loadDetail,
     loadTopRedeemed,
     loadLowStock,
     createNewProduct,
+    loadRedeemStatistics,
+    loadOverviewAnalytics,
     editProduct,
     removeProduct,
     reset,
     resetProductDetail,
     clearProductError,
+    resetProductAnalytics,
   };
 };

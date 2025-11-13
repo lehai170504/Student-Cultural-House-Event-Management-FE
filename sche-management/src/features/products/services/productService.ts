@@ -4,6 +4,8 @@ import type {
   UpdateProduct,
   ProductListResponse,
   CreateProductData,
+  ProductOverviewAnalytics,
+  RedeemStatistics,
 } from "../types/product";
 
 /** Endpoint gốc cho module Product */
@@ -142,6 +144,35 @@ export const productService = {
     } catch (error) {
       console.error(
         "❌ [getLowStock] Error fetching low stock products:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  async getOverviewAnalytics(): Promise<ProductOverviewAnalytics> {
+    try {
+      const res = await axiosInstance.get<ProductOverviewAnalytics>(
+        `/admin${endpoint}/overview`
+      );
+      return res.data;
+    } catch (error) {
+      console.error(
+        "❌ [getOverviewAnalytics] Error fetching overview:",
+        error
+      );
+      throw error;
+    }
+  },
+
+  async getRedeemStatistics(): Promise<RedeemStatistics> {
+    try {
+      // Endpoint này nằm trong module 'invoices'
+      const res = await axiosInstance.get<RedeemStatistics>(`/invoices/stats`);
+      return res.data;
+    } catch (error) {
+      console.error(
+        "❌ [getRedeemStatistics] Error fetching redeem stats:",
         error
       );
       throw error;

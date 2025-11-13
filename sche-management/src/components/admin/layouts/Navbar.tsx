@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, UserCircle, LogOut, Home } from "lucide-react"; // Đã thêm Home
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,8 +11,17 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 import { cognitoDomain } from "@/config/oidc-config";
+
+import AdminProfileSheetContent from "@/components/admin/profile/AdminProfileSheet";
 
 export default function AdminNavbar() {
   const { user, isLoading } = useUserProfile();
@@ -20,12 +29,19 @@ export default function AdminNavbar() {
   const handleLogout = async () => {
     const base = typeof window !== "undefined" ? window.location.origin : "";
     const redirectUri = `${base}/`;
-    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID as string;
-    const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY as string;
+    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID;
+    const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY;
+
+    if (!clientId || !authority) {
+      console.error("Cognito environment variables are missing.");
+      return;
+    }
+
     const storageKey = `oidc.user:${authority}:${clientId}`;
     const userJson =
       (typeof window !== "undefined" && localStorage.getItem(storageKey)) ||
       "{}";
+
     const idToken = (() => {
       try {
         return JSON.parse(userJson)?.id_token || "";
@@ -94,7 +110,7 @@ export default function AdminNavbar() {
             </span>
           </Button>
 
-          {/* User Dropdown */}
+          {/* User Dropdown MENU */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -122,24 +138,41 @@ export default function AdminNavbar() {
               align="end"
               sideOffset={8}
             >
-              <DropdownMenuItem asChild>
-                <Link href="/admin/profile" className="w-full">
-                  Xem Profile
-                </Link>
-              </DropdownMenuItem>
+              {/* Xem Hồ sơ (Sheet Trigger) */}
+              <Sheet>
+                <DropdownMenuItem asChild onSelect={(e) => e.preventDefault()}>
+                  <SheetTrigger className="flex items-center w-full px-2 py-1.5 text-sm cursor-pointer hover:bg-gray-100 rounded-md">
+                    <UserCircle className="w-4 h-4 mr-2 text-indigo-500" />
+                    Xem Hồ sơ
+                  </SheetTrigger>
+                </DropdownMenuItem>
 
+                <SheetContent side="right" className="w-full sm:max-w-md p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="text-xl font-bold text-gray-800">
+                      Hồ sơ Quản trị viên
+                    </SheetTitle>
+                  </SheetHeader>
+                  <AdminProfileSheetContent />
+                </SheetContent>
+              </Sheet>
+
+              {/* Trang Chủ (Đã thêm Icon) */}
               <DropdownMenuItem asChild>
-                <Link href="/" className="w-full">
-                  Trang Chủ
+                <Link href="/" className="w-full flex items-center">
+                  <Home className="w-4 h-4 mr-2 text-gray-500" />{" "}
+                  {/* Icon Trang Chủ */}
+                  <span>Trang Chủ</span>
                 </Link>
               </DropdownMenuItem>
 
               <DropdownMenuSeparator className="border-orange-100" />
 
               <DropdownMenuItem
-                className="text-red-600 hover:bg-red-50 focus:bg-red-50 rounded-md transition-colors"
+                className="text-red-600 focus:text-red-600 hover:bg-red-50 focus:bg-red-50 rounded-md transition-colors flex items-center"
                 onClick={handleLogout}
               >
+                <LogOut className="w-4 h-4 mr-2" />
                 Đăng xuất
               </DropdownMenuItem>
             </DropdownMenuContent>

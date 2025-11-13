@@ -10,11 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowUpDown } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useWallet } from "../hooks/useWallet";
 import { WalletTransaction } from "../types/wallet";
-
-type SortOrder = "desc" | "asc";
 
 export default function WalletTransactionTable() {
   const {
@@ -24,28 +22,21 @@ export default function WalletTransactionTable() {
     loadTransactions,
   } = useWallet();
   const [currentPage, setCurrentPage] = useState(1);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
 
   const pageSize = meta?.pageSize ?? 10;
   const currentMetaPage = meta?.currentPage ?? 1;
 
   const fetchData = useCallback(
-    async (page = 1, order: SortOrder = sortOrder) => {
-      await loadTransactions({ page, pageSize, sort: `createdAt.${order}` });
+    async (page = 1) => {
+      await loadTransactions({ page, pageSize });
       setCurrentPage(page);
     },
-    [loadTransactions, pageSize, sortOrder]
+    [loadTransactions, pageSize]
   );
 
   useEffect(() => {
-    fetchData(currentPage, sortOrder);
-  }, [fetchData, currentPage, sortOrder]);
-
-  const handleSortChange = () => {
-    const newOrder = sortOrder === "desc" ? "asc" : "desc";
-    setSortOrder(newOrder);
-    fetchData(1, newOrder);
-  };
+    fetchData(currentPage);
+  }, [fetchData, currentPage]);
 
   const calculateStt = (index: number) =>
     (currentMetaPage - 1) * pageSize + index + 1;
@@ -75,32 +66,22 @@ export default function WalletTransactionTable() {
         <Table className="min-w-full">
           <TableHeader className="bg-gray-50">
             <TableRow>
-              {["STT", "Loại Giao Dịch", "Số Tiền", "Tham Chiếu"].map(
-                (title, index) => (
-                  <TableHead
-                    key={title}
-                    className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-600 ${
-                      index === 2 ? "text-right" : "text-left"
-                    }`}
-                  >
-                    {title}
-                  </TableHead>
-                )
-              )}
-              <TableHead className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-600 text-left">
-                <Button
-                  variant="ghost"
-                  onClick={handleSortChange}
-                  className="p-0 h-auto text-xs font-semibold"
+              {[
+                "STT",
+                "Loại Giao Dịch",
+                "Số Tiền",
+                "Tham Chiếu",
+                "Thời Gian Tạo",
+              ].map((title, index) => (
+                <TableHead
+                  key={title}
+                  className={`px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-600 ${
+                    index === 2 ? "text-right" : "text-left"
+                  }`}
                 >
-                  Thời Gian Tạo
-                  <ArrowUpDown
-                    className={`ml-2 h-4 w-4 ${
-                      sortOrder === "asc" ? "rotate-180" : ""
-                    } transition-transform duration-300`}
-                  />
-                </Button>
-              </TableHead>
+                  {title}
+                </TableHead>
+              ))}
             </TableRow>
           </TableHeader>
 
@@ -154,9 +135,7 @@ export default function WalletTransactionTable() {
                     {txn.amount.toLocaleString("vi-VN")}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-sm text-gray-600">
-                    {txn.referenceType
-                      ? `${txn.referenceType} (${txn.referenceId ?? "-"})`
-                      : "-"}
+                    {txn.referenceType ? `${txn.referenceType} ` : "-"}
                   </TableCell>
                   <TableCell className="px-4 py-3 text-sm text-gray-600">
                     {formatDate(txn.createdAt)}

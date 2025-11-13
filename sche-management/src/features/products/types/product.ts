@@ -41,3 +41,17 @@ export interface CreateProductInput {
 export type UpdateProduct = Partial<CreateProductData>;
 
 export type ProductReponse = Product;
+
+export interface ProductOverviewAnalytics {
+  averageRedeemPerStudent: number;
+  totalRedeemed: number;
+  totalProducts: number;
+  totalInvoices: number;
+  mostActivePartner: string;
+}
+
+export interface RedeemStatistics {
+  topProducts: Product[];
+  totalRedeems: number;
+  totalCoinsSpent: number;
+}
