@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,33 @@ interface ViewDetailEventProps {
   onClose: () => void;
 }
 
+function toISOStringWithTimezone(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
+  const offsetMinutes = date.getTimezoneOffset();
+  const offsetSign = offsetMinutes > 0 ? "-" : "+";
+  const absOffset = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, "0");
+  const offsetMins = String(absOffset % 60).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetSign}${offsetHours}:${offsetMins}`;
+}
+
+const toLocalDatetimeValue = (isoString: string) => {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "";
+  const timezoneOffset = date.getTimezoneOffset() * 60000;
+  const localISO = new Date(date.getTime() - timezoneOffset)
+    .toISOString()
+    .slice(0, 16);
+  return localISO;
+};
+
 export default function ViewDetailEvent({
   eventId,
   open,
@@ -42,69 +69,118 @@ export default function ViewDetailEvent({
     eventCategories,
     loadingCategories,
     updateExistingEvent,
+    loadCategories,
   } = useEvents();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [location, setLocation] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
-  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    location: "",
+    startTime: "",
+    endTime: "",
+    categoryId: "",
+    pointCostToRegister: "0",
+    totalRewardPoints: "0",
+    totalBudgetCoin: "0",
+  });
 
-  const [pointCostToRegister, setPointCostToRegister] = useState("0");
-  const [totalRewardPoints, setTotalRewardPoints] = useState("0");
-  const [totalBudgetCoin, setTotalBudgetCoin] = useState("0");
+  const [startDateTimeInput, setStartDateTimeInput] = useState("");
+  const [endDateTimeInput, setEndDateTimeInput] = useState("");
 
   // Load chi tiết khi eventId thay đổi
   useEffect(() => {
     if (open && eventId) {
       loadDetail(eventId);
+      loadCategories().catch(console.error);
     }
-  }, [eventId, open, loadDetail]);
+  }, [eventId, open, loadDetail, loadCategories]);
 
   // Khi detail load xong
   useEffect(() => {
     if (detail && detail.id === eventId) {
-      setTitle(detail.title);
-      setDescription(detail.description);
-      setLocation(detail.location);
+      setForm({
+        title: detail.title,
+        description: detail.description,
+        location: detail.location,
+        startTime: detail.startTime,
+        endTime: detail.endTime,
+        categoryId: String(detail.category?.id ?? ""),
+        pointCostToRegister: detail.pointCostToRegister.toString(),
+        totalRewardPoints: detail.totalRewardPoints.toString(),
+        totalBudgetCoin: detail.totalBudgetCoin.toString(),
+      });
 
-      const formatDate = (dateStr: string) => {
-        const d = new Date(dateStr);
-        return d.toLocaleString("vi-VN", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      };
-
-      setStartTime(formatDate(detail.startTime));
-      setEndTime(formatDate(detail.endTime));
-
-      setCategoryId(detail.category.id);
-
-      setPointCostToRegister(detail.pointCostToRegister.toString());
-      setTotalRewardPoints(detail.totalRewardPoints.toString());
-      setTotalBudgetCoin(detail.totalBudgetCoin.toString());
+      setStartDateTimeInput(toLocalDatetimeValue(detail.startTime));
+      setEndDateTimeInput(toLocalDatetimeValue(detail.endTime));
     }
   }, [detail, eventId]);
 
+  const isPartnerCategoryDisabled = useMemo(
+    () => !isPartner || loadingCategories,
+    [isPartner, loadingCategories]
+  );
+
+  const setField = (
+    key:
+      | "title"
+      | "description"
+      | "location"
+      | "categoryId"
+      | "pointCostToRegister"
+      | "totalRewardPoints"
+      | "totalBudgetCoin"
+  ) => {
+    return (value: string) => {
+      setForm((prev) => ({ ...prev, [key]: value }));
+    };
+  };
+
+  const handleStartDateTimeChange = (value: string) => {
+    setStartDateTimeInput(value);
+    if (!value) {
+      setForm((prev) => ({ ...prev, startTime: "" }));
+      return;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return;
+    setForm((prev) => ({
+      ...prev,
+      startTime: toISOStringWithTimezone(parsed),
+    }));
+  };
+
+  const handleEndDateTimeChange = (value: string) => {
+    setEndDateTimeInput(value);
+    if (!value) {
+      setForm((prev) => ({ ...prev, endTime: "" }));
+      return;
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return;
+    setForm((prev) => ({
+      ...prev,
+      endTime: toISOStringWithTimezone(parsed),
+    }));
+  };
+
   const handleUpdate = async () => {
     if (!eventId) return;
+    if (!form.title || !form.startTime || !form.endTime || !form.location) {
+      toast.error("Vui lòng điền đầy đủ các trường bắt buộc!");
+      return;
+    }
 
     try {
       await updateExistingEvent(eventId, {
-        title,
-        description,
-        location,
-        startTime: new Date(startTime).toISOString(),
-        endTime: new Date(endTime).toISOString(),
-        categoryId: categoryId!,
-        pointCostToRegister: Number(pointCostToRegister),
-        totalRewardPoints: Number(totalRewardPoints),
-        totalBudgetCoin: Number(totalBudgetCoin),
+        title: form.title,
+        description: form.description,
+        location: form.location,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        categoryId: form.categoryId,
+        pointCostToRegister: Number(form.pointCostToRegister),
+        totalRewardPoints: Number(form.totalRewardPoints),
+        totalBudgetCoin: Number(form.totalBudgetCoin),
       });
       toast.success("Cập nhật sự kiện thành công!");
       onClose();
@@ -132,12 +208,10 @@ export default function ViewDetailEvent({
                 Tên sự kiện
               </label>
               <Input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                value={form.title}
+                onChange={(e) => isPartner && setField("title")(e.target.value)}
                 readOnly={!isPartner}
-                className={`bg-gray-100 ${
-                  !isPartner ? "cursor-not-allowed" : ""
-                }`}
+                className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
               />
             </div>
 
@@ -147,12 +221,12 @@ export default function ViewDetailEvent({
                 Mô tả
               </label>
               <Input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={form.description}
+                onChange={(e) =>
+                  isPartner && setField("description")(e.target.value)
+                }
                 readOnly={!isPartner}
-                className={`bg-gray-100 ${
-                  !isPartner ? "cursor-not-allowed" : ""
-                }`}
+                className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
               />
             </div>
 
@@ -162,12 +236,12 @@ export default function ViewDetailEvent({
                 Địa điểm
               </label>
               <Input
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                value={form.location}
+                onChange={(e) =>
+                  isPartner && setField("location")(e.target.value)
+                }
                 readOnly={!isPartner}
-                className={`bg-gray-100 ${
-                  !isPartner ? "cursor-not-allowed" : ""
-                }`}
+                className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
               />
             </div>
 
@@ -178,12 +252,13 @@ export default function ViewDetailEvent({
                   Thời gian bắt đầu
                 </label>
                 <Input
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  type="datetime-local"
+                  value={startDateTimeInput}
+                  onChange={(e) =>
+                    isPartner && handleStartDateTimeChange(e.target.value)
+                  }
                   readOnly={!isPartner}
-                  className={`bg-gray-100 ${
-                    !isPartner ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
                 />
               </div>
               <div>
@@ -191,12 +266,13 @@ export default function ViewDetailEvent({
                   Thời gian kết thúc
                 </label>
                 <Input
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  type="datetime-local"
+                  value={endDateTimeInput}
+                  onChange={(e) =>
+                    isPartner && handleEndDateTimeChange(e.target.value)
+                  }
                   readOnly={!isPartner}
-                  className={`bg-gray-100 ${
-                    !isPartner ? "cursor-not-allowed" : ""
-                  }`}
+                  className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
                 />
               </div>
             </div>
@@ -207,8 +283,9 @@ export default function ViewDetailEvent({
                 Danh mục sự kiện
               </label>
               <Select
-                value={categoryId ?? undefined}
-                onValueChange={(v) => isPartner && setCategoryId(v)}
+                value={form.categoryId || undefined}
+                onValueChange={(v) => isPartner && setField("categoryId")(v)}
+                disabled={isPartnerCategoryDisabled}
               >
                 <SelectTrigger>
                   <SelectValue
@@ -219,7 +296,7 @@ export default function ViewDetailEvent({
                 </SelectTrigger>
                 <SelectContent>
                   {eventCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
+                    <SelectItem key={cat.id} value={String(cat.id)}>
                       {cat.name}
                     </SelectItem>
                   ))}
@@ -233,12 +310,12 @@ export default function ViewDetailEvent({
                 Điểm đăng ký
               </label>
               <Input
-                value={pointCostToRegister}
-                onChange={(e) => setPointCostToRegister(e.target.value)}
+                value={form.pointCostToRegister}
+                onChange={(e) =>
+                  isPartner && setField("pointCostToRegister")(e.target.value)
+                }
                 readOnly={!isPartner}
-                className={`bg-gray-100 ${
-                  !isPartner ? "cursor-not-allowed" : ""
-                }`}
+                className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
               />
             </div>
 
@@ -247,12 +324,12 @@ export default function ViewDetailEvent({
                 Tổng điểm thưởng
               </label>
               <Input
-                value={totalRewardPoints}
-                onChange={(e) => setTotalRewardPoints(e.target.value)}
+                value={form.totalRewardPoints}
+                onChange={(e) =>
+                  isPartner && setField("totalRewardPoints")(e.target.value)
+                }
                 readOnly={!isPartner}
-                className={`bg-gray-100 ${
-                  !isPartner ? "cursor-not-allowed" : ""
-                }`}
+                className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
               />
             </div>
 
@@ -261,12 +338,12 @@ export default function ViewDetailEvent({
                 Tổng ngân sách coin
               </label>
               <Input
-                value={totalBudgetCoin}
-                onChange={(e) => setTotalBudgetCoin(e.target.value)}
+                value={form.totalBudgetCoin}
+                onChange={(e) =>
+                  isPartner && setField("totalBudgetCoin")(e.target.value)
+                }
                 readOnly={!isPartner}
-                className={`bg-gray-100 ${
-                  !isPartner ? "cursor-not-allowed" : ""
-                }`}
+                className={`bg-gray-100 ${!isPartner ? "cursor-not-allowed" : ""}`}
               />
             </div>
           </div>

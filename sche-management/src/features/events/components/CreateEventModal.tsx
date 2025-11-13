@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -21,13 +20,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
 import { CreateEvent } from "../types/events";
 import { useEvents } from "../hooks/useEvents";
 
@@ -46,7 +38,12 @@ function toISOStringWithTimezone(date: Date): string {
   const minutes = String(date.getMinutes()).padStart(2, "0");
   const seconds = String(date.getSeconds()).padStart(2, "0");
   const milliseconds = String(date.getMilliseconds()).padStart(3, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}+07:00`;
+  const offsetMinutes = date.getTimezoneOffset();
+  const offsetSign = offsetMinutes > 0 ? "-" : "+";
+  const absOffset = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(absOffset / 60)).padStart(2, "0");
+  const offsetMins = String(absOffset % 60).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}${offsetSign}${offsetHours}:${offsetMins}`;
 }
 
 export default function CreateEventModal({
@@ -76,10 +73,8 @@ export default function CreateEventModal({
     totalBudgetCoin: 0,
   });
 
-  const [startDate, setStartDate] = useState<Date>();
-  const [startTimeStr, setStartTimeStr] = useState<string>("");
-  const [endDate, setEndDate] = useState<Date>();
-  const [endTimeStr, setEndTimeStr] = useState<string>("");
+  const [startInput, setStartInput] = useState<string>("");
+  const [endInput, setEndInput] = useState<string>("");
 
   // Load categories khi mở modal
   useEffect(() => {
@@ -106,10 +101,8 @@ export default function CreateEventModal({
         totalRewardPoints: 0,
         totalBudgetCoin: 0,
       });
-      setStartDate(undefined);
-      setStartTimeStr("");
-      setEndDate(undefined);
-      setEndTimeStr("");
+      setStartInput("");
+      setEndInput("");
     }
   }, [open, partnerId]);
 
@@ -120,45 +113,54 @@ export default function CreateEventModal({
       setForm((f) => ({ ...f, [k]: value }));
     };
 
-  const handleStartDateChange = (date: Date | undefined) => {
-    setStartDate(date);
-    if (date && startTimeStr) {
-      const [h, m] = startTimeStr.split(":");
-      const combined = new Date(date);
-      combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f) => ({ ...f, startTime: toISOStringWithTimezone(combined) }));
-    } else setForm((f) => ({ ...f, startTime: "" }));
+  const handleDateTimeChange = (
+    value: string,
+    type: "start" | "end"
+  ) => {
+    if (type === "start") {
+      setStartInput(value);
+    } else {
+      setEndInput(value);
+    }
+
+    if (!value) {
+      setForm((f) => ({ ...f, [type === "start" ? "startTime" : "endTime"]: "" }));
+      return;
+    }
+
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return;
+
+    setForm((f) => ({
+      ...f,
+      [type === "start" ? "startTime" : "endTime"]: toISOStringWithTimezone(parsed),
+    }));
+
+    if (type === "start" && (!endInput || new Date(endInput) < parsed)) {
+      const offset = parsed.getTimezoneOffset() * 60000;
+      const normalized = new Date(parsed.getTime() - offset)
+        .toISOString()
+        .slice(0, 16);
+      setEndInput(normalized);
+      setForm((f) => ({ ...f, endTime: toISOStringWithTimezone(parsed) }));
+    }
   };
 
-  const handleStartTimeChange = (time: string) => {
-    setStartTimeStr(time);
-    if (startDate && time) {
-      const [h, m] = time.split(":");
-      const combined = new Date(startDate);
-      combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f) => ({ ...f, startTime: toISOStringWithTimezone(combined) }));
-    } else setForm((f) => ({ ...f, startTime: "" }));
-  };
+  const startLabel = useMemo(() => {
+    if (!startInput) return "Chưa chọn";
+    const parsed = new Date(startInput);
+    return Number.isNaN(parsed.getTime())
+      ? "Chưa chọn"
+      : parsed.toLocaleString("vi-VN");
+  }, [startInput]);
 
-  const handleEndDateChange = (date: Date | undefined) => {
-    setEndDate(date);
-    if (date && endTimeStr) {
-      const [h, m] = endTimeStr.split(":");
-      const combined = new Date(date);
-      combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f) => ({ ...f, endTime: toISOStringWithTimezone(combined) }));
-    } else setForm((f) => ({ ...f, endTime: "" }));
-  };
-
-  const handleEndTimeChange = (time: string) => {
-    setEndTimeStr(time);
-    if (endDate && time) {
-      const [h, m] = time.split(":");
-      const combined = new Date(endDate);
-      combined.setHours(parseInt(h), parseInt(m), 0, 0);
-      setForm((f) => ({ ...f, endTime: toISOStringWithTimezone(combined) }));
-    } else setForm((f) => ({ ...f, endTime: "" }));
-  };
+  const endLabel = useMemo(() => {
+    if (!endInput) return "Chưa chọn";
+    const parsed = new Date(endInput);
+    return Number.isNaN(parsed.getTime())
+      ? "Chưa chọn"
+      : parsed.toLocaleString("vi-VN");
+  }, [endInput]);
 
   const handleSubmit = async () => {
     if (
@@ -208,75 +210,38 @@ export default function CreateEventModal({
           />
 
           {/* Ngày bắt đầu & giờ */}
-          <div className="grid grid-cols-2 gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !startDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate
-                    ? format(startDate, "dd/MM/yyyy")
-                    : "Chọn ngày bắt đầu (*)"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={handleStartDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <div className="relative">
-              <Input
-                type="time"
-                value={startTimeStr}
-                onChange={(e) => handleStartTimeChange(e.target.value)}
-              />
-              <Clock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+              <CalendarIcon className="h-4 w-4 text-gray-500" />
+              Thời gian bắt đầu <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="datetime-local"
+              value={startInput}
+              onChange={(e) => handleDateTimeChange(e.target.value, "start")}
+              className="h-11"
+            />
+            <p className="text-xs text-gray-500">
+              Đã chọn: <span className="font-medium">{startLabel}</span>
+            </p>
           </div>
 
           {/* Ngày kết thúc & giờ */}
-          <div className="grid grid-cols-2 gap-4">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !endDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate
-                    ? format(endDate, "dd/MM/yyyy")
-                    : "Chọn ngày kết thúc (*)"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={handleEndDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <div className="relative">
-              <Input
-                type="time"
-                value={endTimeStr}
-                onChange={(e) => handleEndTimeChange(e.target.value)}
-              />
-              <Clock className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            </div>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+              <CalendarIcon className="h-4 w-4 text-gray-500" />
+              Thời gian kết thúc <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="datetime-local"
+              value={endInput}
+              min={startInput || undefined}
+              onChange={(e) => handleDateTimeChange(e.target.value, "end")}
+              className="h-11"
+            />
+            <p className="text-xs text-gray-500">
+              Đã chọn: <span className="font-medium">{endLabel}</span>
+            </p>
           </div>
 
           <Input

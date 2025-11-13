@@ -15,7 +15,7 @@ export default function PartnerWalletPage() {
     loadingTransactions,
     loadPartnerWallet,
     loadPartnerWalletHistory,
-  } = usePartners();
+  } = usePartners({ autoLoad: false });
 
   const partnerId = user?.id || user?.cognitoSub;
 

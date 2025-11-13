@@ -19,7 +19,9 @@ import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 
 export default function PartnerNotificationsPage() {
   const { user } = useUserProfile();
-  const { loadPartnerEvents, broadcast, events, loadingEvents } = usePartners();
+  const { loadPartnerEvents, broadcast, events, loadingEvents } = usePartners({
+    autoLoad: false,
+  });
 
   const [selected, setSelected] = useState<string>("");
   const [message, setMessage] = useState<string>("");
