@@ -16,8 +16,13 @@ import {
 import { clearError } from "../slices/partnerSlice";
 import type { CreatePartner } from "@/features/partner/types/partner";
 
-export const usePartners = () => {
+interface UsePartnersOptions {
+  autoLoad?: boolean;
+}
+
+export const usePartners = (options?: UsePartnersOptions) => {
   const dispatch = useAppDispatch();
+  const autoLoad = options?.autoLoad ?? true;
 
   const {
     list,
@@ -141,8 +146,9 @@ export const usePartners = () => {
 
   /** 🔸 Tự động load danh sách khi mount */
   useEffect(() => {
+    if (!autoLoad) return;
     loadAll();
-  }, [loadAll]);
+  }, [loadAll, autoLoad]);
 
   return {
     list,
