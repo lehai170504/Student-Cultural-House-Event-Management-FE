@@ -1,15 +1,14 @@
 import axiosInstance from "@/config/axiosInstance";
 import { CreateInvoice, Invoice, ProductInvoiceMasked } from "../types/invoice";
 
-// Định nghĩa chung cho Invoice Service
-const endpoint = "/invoices";
+const BASE_ENDPOINT = "/invoices";
+const REDEMPTION_ENDPOINT = "/redemptions/invoices";
 
 const InvoiceService = {
-  /** 🛒 Tạo hóa đơn khi redeem product và trừ balance: POST /api/v1/invoices */
   async createInvoice(payload: CreateInvoice): Promise<Invoice> {
     try {
       // payload chứa thông tin cần thiết để redeem sản phẩm
-      const res = await axiosInstance.post<Invoice>(endpoint, payload);
+      const res = await axiosInstance.post<Invoice>(BASE_ENDPOINT, payload);
       return res.data;
     } catch (error) {
       console.error("❌ [createInvoice] Error creating invoice:", error);
@@ -21,7 +20,7 @@ const InvoiceService = {
   async markAsDelivered(invoiceId: string): Promise<ProductInvoiceMasked> {
     try {
       const res = await axiosInstance.put<ProductInvoiceMasked>(
-        `${endpoint}/${invoiceId}/confirm-delivery`
+        `${BASE_ENDPOINT}/${invoiceId}/confirm-delivery`
       );
       return res.data;
     } catch (error) {
@@ -35,7 +34,7 @@ const InvoiceService = {
   async cancelInvoice(invoiceId: string): Promise<Invoice> {
     try {
       const res = await axiosInstance.post<Invoice>(
-        `${endpoint}/${invoiceId}/cancel`
+        `${BASE_ENDPOINT}/${invoiceId}/cancel`
       );
       return res.data;
     } catch (error) {
@@ -50,7 +49,9 @@ const InvoiceService = {
   // --- 3. Lấy Dữ liệu Hóa đơn ---
   async getInvoiceDetail(invoiceId: string): Promise<Invoice> {
     try {
-      const res = await axiosInstance.get<Invoice>(`${endpoint}/${invoiceId}`);
+      const res = await axiosInstance.get<Invoice>(
+        `${BASE_ENDPOINT}/${invoiceId}`
+      );
       return res.data;
     } catch (error) {
       console.error(
@@ -64,7 +65,7 @@ const InvoiceService = {
     try {
       // Endpoint hơi khác: /api/v1/invoices/students/{studentId}
       const res = await axiosInstance.get<Invoice[]>(
-        `${endpoint}/students/${studentId}`
+        `${BASE_ENDPOINT}/students/${studentId}`
       );
       return res.data;
     } catch (error) {
@@ -76,16 +77,19 @@ const InvoiceService = {
     }
   },
 
-  /** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
-  //   async getRedeemStats(): Promise<InvoiceStat> {
-  //     try {
-  //       const res = await axiosInstance.get<InvoiceStat>(`${endpoint}/stats`);
-  //       return res.data;
-  //     } catch (error) {
-  //       console.error("❌ [getRedeemStats] Error fetching redeem stats:", error);
-  //       throw error;
-  //     }
-  //   },
+  /** 🌟 NEW: Lấy danh sách TẤT CẢ hóa đơn redeem: GET /api/v1/redemptions/invoices */
+  async getAllRedemptionInvoices(): Promise<Invoice[]> {
+    try {
+      const res = await axiosInstance.get<Invoice[]>(REDEMPTION_ENDPOINT);
+      return res.data;
+    } catch (error) {
+      console.error(
+        "❌ [getAllRedemptionInvoices] Error fetching all redemption invoices:",
+        error
+      );
+      throw error;
+    }
+  },
 };
 
 export default InvoiceService;

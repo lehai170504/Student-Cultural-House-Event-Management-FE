@@ -86,3 +86,17 @@ export const fetchStudentRedeemHistory = createAsyncThunk<
     return rejectWithValue(error.response?.data || error.message);
   }
 });
+
+/** 💰 Lấy TẤT CẢ hóa đơn đổi quà (Redemptions) */
+export const fetchAllRedemptionInvoices = createAsyncThunk<Invoice[], void>(
+  "invoice/fetchAllRedemptions",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await InvoiceService.getAllRedemptionInvoices();
+      return response;
+    } catch (error: any) {
+      console.error("❌ [fetchAllRedemptionInvoices] Error:", error);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);

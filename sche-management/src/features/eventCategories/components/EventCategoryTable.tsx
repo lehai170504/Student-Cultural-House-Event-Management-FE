@@ -24,7 +24,7 @@ const CreateEventCategoryModal = lazy(() => import("./CreateEventCategory"));
 export default function EventCategoryTable() {
   // 🌟 Lấy thông tin user và nhóm quyền
   const { user: authUser } = useUserProfileAuth();
-  const isPartner = authUser?.groups.includes("PARTNERS");
+  const isAdmin = authUser?.groups.includes("Admin");
 
   const {
     list = [],
@@ -96,7 +96,7 @@ export default function EventCategoryTable() {
                 className="w-[200px]"
               />
               {/* 🌟 Chỉ hiển thị nút Thêm nếu là PARTNER */}
-              {isPartner && (
+              {isAdmin && (
                 <Button
                   className="bg-green-600 hover:bg-green-700 transition-colors"
                   onClick={() => setIsCreateModalOpen(true)}
@@ -155,7 +155,7 @@ export default function EventCategoryTable() {
                         </Button>
 
                         {/* 🌟 Chỉ hiển thị nút Xóa nếu là PARTNER */}
-                        {isPartner && (
+                        {isAdmin && (
                           <Button
                             variant="destructive"
                             size="sm"

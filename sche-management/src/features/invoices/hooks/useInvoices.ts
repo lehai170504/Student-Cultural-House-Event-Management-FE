@@ -5,12 +5,14 @@ import {
   markInvoiceAsDelivered,
   cancelInvoice,
   fetchInvoiceDetail,
-  fetchStudentRedeemHistory
+  fetchStudentRedeemHistory,
+  fetchAllRedemptionInvoices, // 🌟 Import Thunk mới
 } from "../thunks/invoiceThunks";
 import {
   clearError,
   resetDetail,
   resetStudentHistory,
+  resetAllRedemptions, // 🌟 Import Reducer mới
 } from "../slices/invoiceSlice";
 import type { CreateInvoice } from "../types/invoice";
 
@@ -21,8 +23,10 @@ export const useInvoices = () => {
   const {
     detail,
     studentHistory,
+    allRedemptions, // 🌟 State mới: Danh sách tất cả hóa đơn redeem
     loadingDetail,
     loadingHistory,
+    loadingAllRedemptions, // 🌟 Loading state mới
     loadingStats,
     saving,
     error,
@@ -46,6 +50,11 @@ export const useInvoices = () => {
     [dispatch]
   );
 
+  /** 🌟 Fetch TẤT CẢ hóa đơn đổi quà */
+  const loadAllRedemptions = useCallback(async () => {
+    await dispatch(fetchAllRedemptionInvoices());
+  }, [dispatch]);
+
   /** 🛒 Tạo hóa đơn mới (Thực hiện Redeem) */
   const createNewInvoice = useCallback(
     async (data: CreateInvoice): Promise<boolean> => {
@@ -59,9 +68,7 @@ export const useInvoices = () => {
   /** ✅ Đánh dấu hóa đơn đã giao */
   const deliverInvoice = useCallback(
     async (invoiceId: string): Promise<boolean> => {
-      const result = await dispatch(
-        markInvoiceAsDelivered({ invoiceId })
-      );
+      const result = await dispatch(markInvoiceAsDelivered({ invoiceId }));
       return markInvoiceAsDelivered.fulfilled.match(result);
     },
     [dispatch]
@@ -88,6 +95,11 @@ export const useInvoices = () => {
     dispatch(resetStudentHistory());
   }, [dispatch]);
 
+  /** 🌟 Reset danh sách tất cả hóa đơn redeem */
+  const resetAllRedemptionsList = useCallback(() => {
+    dispatch(resetAllRedemptions());
+  }, [dispatch]);
+
   /** ❌ Xóa lỗi */
   const clearInvoiceError = useCallback(() => {
     dispatch(clearError());
@@ -97,15 +109,18 @@ export const useInvoices = () => {
   return {
     detail,
     studentHistory,
+    allRedemptions,
     // stats,
     loadingDetail,
     loadingHistory,
+    loadingAllRedemptions,
     loadingStats,
     saving,
     error,
 
     loadDetail,
     loadStudentHistory,
+    loadAllRedemptions,
     // loadStats,
 
     createNewInvoice,
@@ -114,6 +129,7 @@ export const useInvoices = () => {
 
     resetInvoiceDetail,
     resetHistory,
+    resetAllRedemptionsList,
     clearInvoiceError,
   };
 };

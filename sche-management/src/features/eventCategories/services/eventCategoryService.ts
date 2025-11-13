@@ -38,7 +38,10 @@ export const eventCategoryService = {
   // Tạo danh mục mới
   async create(data: CreateEventCategory): Promise<EventCategory> {
     try {
-      const res = await axiosInstance.post<EventCategory>(endpoint, data);
+      const res = await axiosInstance.post<EventCategory>(
+        `/admin${endpoint}`,
+        data
+      );
       return res.data;
     } catch (error) {
       console.error("❌ Lỗi khi tạo danh mục sự kiện:", error);
@@ -63,7 +66,7 @@ export const eventCategoryService = {
   // Xoá danh mục
   async delete(id: string): Promise<void> {
     try {
-      await axiosInstance.delete(`${endpoint}/${id}`);
+      await axiosInstance.delete(`/admin${endpoint}/${id}`);
     } catch (error) {
       console.error(`❌ Lỗi khi xoá danh mục sự kiện ID ${id}:`, error);
       throw error;

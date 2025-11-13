@@ -18,6 +18,7 @@ import {
   BarChart3,
   Gift,
   MessageCircle,
+  Receipt,
   // UserCircle, // Đã có trong các file trước
 } from "lucide-react";
 import { usePathname } from "next/navigation";
@@ -48,7 +49,11 @@ const menuSections = [
   {
     title: "Hệ thống",
     items: [
-      { label: "Thông báo", href: "/admin/notifications", icon: Bell },
+      {
+        label: "Quản lý Đổi quà",
+        href: "/admin/invoice",
+        icon: Receipt,
+      },
       {
         label: "Giao dịch ví",
         href: "/admin/transactions",
