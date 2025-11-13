@@ -95,6 +95,33 @@ export const useEvents = () => {
     [dispatch]
   );
 
+  const cancelEventById = useCallback(
+    async (id: string) => {
+      const currentEventDetail = await dispatch(fetchEventById(id)).unwrap();
+
+      // Kiểm tra dữ liệu
+      if (!currentEventDetail || !currentEventDetail.id) {
+        throw new Error("Không tìm thấy sự kiện để hủy (CANCEL).");
+      }
+      const {
+        id: _,
+        partnerId: __,
+        createdAt: ___,
+        updatedAt: ____,
+        ...updatableFields
+      } = currentEventDetail as any;
+
+      const fullUpdatePayload: UpdateEvent = {
+        ...updatableFields,
+        status: "CANCELLED",
+      };
+      return await dispatch(
+        updateEvent({ id, data: fullUpdatePayload })
+      ).unwrap();
+    },
+    [dispatch]
+  );
+
   const finalizeEventById = useCallback(
     async (eventId: string) => {
       return await dispatch(finalizeEvent(eventId)).unwrap();
@@ -204,16 +231,16 @@ export const useEvents = () => {
   const deleteEventAndReload = useCallback(
     async (eventId: string, title: string, params?: any) => {
       try {
-        await deleteEventById(eventId);
+        await cancelEventById(eventId);
         await loadAll(params);
-        toast.success(`Đã xóa sự kiện: ${title}`);
+        toast.success(`Đã hủy (Soft Delete) sự kiện: ${title}`);
       } catch (error) {
         toast.error(
-          (error as any)?.message || `Xóa sự kiện ${title} thất bại.`
+          (error as any)?.message || `Hủy sự kiện ${title} thất bại.`
         );
       }
     },
-    [deleteEventById, loadAll]
+    [cancelEventById, loadAll]
   );
 
   const submitCheckinAndNotify = useCallback(
