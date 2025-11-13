@@ -149,8 +149,8 @@ export default function RecommendedEventsModal() {
     switch (status) {
       case "ACTIVE":
         return <Badge className="bg-green-100 text-green-700">Đang diễn ra</Badge>;
-      case "FINISHED":
-        return <Badge className="bg-gray-100 text-gray-700">Đã kết thúc</Badge>;
+      case "FINALIZED":
+        return <Badge className="bg-orange-100 text-orange-700">Đã kết thúc</Badge>;
       case "CANCELLED":
         return <Badge className="bg-red-100 text-red-700">Đã hủy</Badge>;
       default:

@@ -158,6 +158,39 @@ export const eventService = {
     }
   },
 
+  /** 🔹 Cập nhật feedback cho sự kiện */
+  async updateFeedback(
+    feedbackId: string,
+    data: EventFeedbackRequest
+  ): Promise<EventFeedbackResponse> {
+    try {
+      const res = await axiosInstance.put<EventFeedbackResponse>(
+        `${endpoint}/feedback/${feedbackId}`,
+        data
+      );
+      return res.data;
+    } catch (error) {
+      console.error(
+        `❌ [updateFeedback] Lỗi khi cập nhật feedback ID ${feedbackId}:`,
+        error
+      );
+      throw error;
+    }
+  },
+
+  /** 🔹 Xóa feedback cho sự kiện */
+  async deleteFeedback(feedbackId: string): Promise<void> {
+    try {
+      await axiosInstance.delete(`${endpoint}/feedback/${feedbackId}`);
+    } catch (error) {
+      console.error(
+        `❌ [deleteFeedback] Lỗi khi xóa feedback ID ${feedbackId}:`,
+        error
+      );
+      throw error;
+    }
+  },
+
   /** 🔹 Check-in sự kiện */
   async checkin(data: EventCheckinRequest): Promise<EventCheckinResponse> {
     try {

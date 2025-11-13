@@ -109,7 +109,13 @@ export function UserProfile() {
   };
 
   // Lấy avatar từ student profile nếu có, fallback về letter
-  const avatarUrl = isStudent && studentProfile?.avatarUrl ? studentProfile.avatarUrl : null;
+  const rawAvatar =
+    (isStudent ? studentProfile?.avatarUrl : auth.user.profile?.picture) ??
+    null;
+  const avatarUrl = useMemo(
+    () => normalizeAvatarUrl(typeof rawAvatar === "string" ? rawAvatar : null),
+    [rawAvatar]
+  );
   const displayNameForAvatar = isStudent && studentProfile?.fullName 
     ? studentProfile.fullName 
     : auth.user.profile?.name || auth.user.profile?.email || "User";
@@ -316,4 +322,19 @@ function formatNotificationTime(value: string) {
   } catch {
     return value;
   }
+}
+
+function normalizeAvatarUrl(url: string | null): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (
+    trimmed.startsWith("http://") ||
+    trimmed.startsWith("https://") ||
+    trimmed.startsWith("data:image") ||
+    trimmed.startsWith("blob:")
+  ) {
+    return trimmed;
+  }
+  return null;
 }

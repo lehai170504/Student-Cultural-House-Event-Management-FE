@@ -1,6 +1,6 @@
 export default function ContactHeader() {
   return (
-    <section className="py-16 bg-gradient-to-r from-orange-50 to-white border-b">
+    <section className="py-16 bg-gradient-to-r mt-20 from-orange-50 to-white border-b">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="text-center">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">

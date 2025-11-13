@@ -28,7 +28,11 @@ export default function EventDetailPage() {
     registerForEventByStudent,
     registering,
     sendFeedbackForEvent,
+    updateFeedbackForEvent,
+    deleteFeedbackForEvent,
     sendingFeedback,
+    updatingFeedback,
+    deletingFeedback,
   } = useEvents();
 
   // Feedback form state (hooks must be before any conditional returns)
@@ -38,6 +42,7 @@ export default function EventDetailPage() {
   const [feedbacks, setFeedbacks] = useState<EventFeedbackResponse[]>([]);
   const [loadingFeedbacks, setLoadingFeedbacks] = useState<boolean>(false);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
 
   const loadFeedbacks = useCallback(async () => {
     if (!eventId) return;
@@ -140,16 +145,62 @@ export default function EventDetailPage() {
       return;
     }
     try {
-      await sendFeedbackForEvent(detail.id, {
-        rating: Number(rating),
-        comments,
-      });
-      toast.success("Gửi phản hồi thành công!");
+      if (editingFeedbackId) {
+        // Update existing feedback
+        await updateFeedbackForEvent(editingFeedbackId, {
+          rating: Number(rating),
+          comments,
+        });
+        toast.success("Cập nhật phản hồi thành công!");
+        setEditingFeedbackId(null);
+      } else {
+        // Create new feedback
+        await sendFeedbackForEvent(detail.id, {
+          rating: Number(rating),
+          comments,
+        });
+        toast.success("Gửi phản hồi thành công!");
+      }
       setRating("");
       setComments("");
       await loadFeedbacks();
     } catch (err: any) {
-      toast.error(err?.message || "Gửi phản hồi thất bại!");
+      toast.error(err?.message || (editingFeedbackId ? "Cập nhật phản hồi thất bại!" : "Gửi phản hồi thất bại!"));
+    }
+  };
+
+  const handleEditFeedback = (feedback: EventFeedbackResponse) => {
+    setEditingFeedbackId(feedback.id);
+    setRating(String(feedback.rating));
+    setComments(feedback.comments || "");
+    // Scroll to feedback form
+    setTimeout(() => {
+      const el = document.getElementById("feedback-section");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 100);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingFeedbackId(null);
+    setRating("");
+    setComments("");
+  };
+
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    try {
+      await deleteFeedbackForEvent(feedbackId);
+      toast.success("Xóa phản hồi thành công!");
+      await loadFeedbacks();
+      // Nếu đang edit feedback bị xóa, reset form
+      if (editingFeedbackId === feedbackId) {
+        setEditingFeedbackId(null);
+        setRating("");
+        setComments("");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Xóa phản hồi thất bại!");
     }
   };
 
@@ -161,15 +212,33 @@ export default function EventDetailPage() {
     setComments(e.target.value);
   };
 
+  // Check if current student has already submitted feedback
+  const hasSubmittedFeedback = currentStudentId
+    ? feedbacks.some(
+        (fb) => String(fb.studentId) === String(currentStudentId)
+      )
+    : false;
+
+  // Show feedback form when:
+  // 1. Event status is FINALIZED
+  // 2. User has registered for the event
+  // 3. Either: user hasn't submitted feedback yet OR user is editing their feedback
+  const shouldShowFeedbackForm =
+    event.status === "FINALIZED" &&
+    hasRegistered &&
+    (!hasSubmittedFeedback || editingFeedbackId !== null);
+
   return (
     <main className="min-h-screen bg-gray-50 pb-12">
       <EventDetailHeader
         status={event.status}
         hasRegistered={hasRegistered}
         registering={registering}
+        startTime={event.startTime}
         onRegister={handleRegister}
         onGoToFeedback={handleGoToFeedback}
         onGoBack={handleGoBack}
+        hasSubmittedFeedback={hasSubmittedFeedback}
       />
 
       {/* Event Info */}
@@ -195,15 +264,17 @@ export default function EventDetailPage() {
           Ngày tạo: {new Date(event.createdAt).toLocaleString()}
         </motion.p>
 
-        {/* Feedback Form - only when FINISHED */}
-        {event.status === "FINISHED" && (
+        {/* Feedback Form - only when FINALIZED, registered, and not yet submitted or editing */}
+        {shouldShowFeedbackForm && (
           <EventFeedbackForm
             rating={rating}
             comments={comments}
-            sendingFeedback={sendingFeedback}
+            sendingFeedback={sendingFeedback || updatingFeedback}
             onRatingChange={handleRatingChange}
             onCommentsChange={handleCommentsChange}
             onSubmit={handleSubmitFeedback}
+            isEditMode={editingFeedbackId !== null}
+            onCancel={handleCancelEdit}
           />
         )}
 
@@ -212,6 +283,9 @@ export default function EventDetailPage() {
           feedbacks={feedbacks}
           loadingFeedbacks={loadingFeedbacks}
           currentStudentId={currentStudentId}
+          onEdit={handleEditFeedback}
+          onDelete={handleDeleteFeedback}
+          deletingFeedback={deletingFeedback}
         />
       </section>
     </main>

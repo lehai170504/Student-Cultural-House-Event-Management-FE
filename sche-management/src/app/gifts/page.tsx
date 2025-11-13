@@ -53,14 +53,34 @@ const mapProductTypeToCategory = (type: string): RewardCategory => {
   }
 };
 
+const normalizeProductImage = (imageUrl?: string | null) => {
+  if (!imageUrl) return null;
+  const trimmed = imageUrl.trim();
+  if (
+    !trimmed ||
+    trimmed.toLowerCase() === "string" ||
+    trimmed.toLowerCase().startsWith("http://localhost:3000/string")
+  ) {
+    return null;
+  }
+  return trimmed;
+};
+
 // Convert Product to Reward
 const convertProductToReward = (product: Product): Reward => {
+  const normalizedImage = normalizeProductImage(product.imageUrl);
+  const defaultImageSvg =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f1f5f9"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="Arial, sans-serif" font-size="24">No Image</text></svg>';
+  const DEFAULT_REWARD_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
+    defaultImageSvg
+  )}`;
   return {
     id: product.id,
     name: product.title,
     description: product.description,
     points: product.unitCost,
-    image: product.imageUrl || "https://via.placeholder.com/400x300?text=No+Image",
+    image:
+      normalizedImage || DEFAULT_REWARD_IMAGE,
     category: mapProductTypeToCategory(product.type),
     inStock: product.isActive && product.totalStock > 0,
     createdAt: product.createdAt,
@@ -95,10 +115,17 @@ export default function GiftsPage() {
     try {
       setLoadingPoints(true);
       const profile = await studentService.getProfile();
-      const walletId = profile?.walletId ?? null;
+      const walletId = profile?.walletId;
 
-      if (walletId) {
-        const wallet = await walletService.getById(Number(walletId));
+      const walletIdNumber =
+        typeof walletId === "number"
+          ? walletId
+          : walletId && !Number.isNaN(Number(walletId))
+          ? Number(walletId)
+          : null;
+
+      if (typeof walletIdNumber === "number") {
+        const wallet = await walletService.getById(String(walletIdNumber));
         setUserPoints(Number(wallet?.balance ?? 0));
       } else {
         setUserPoints(0);
@@ -279,9 +306,13 @@ export default function GiftsPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
                 <Input
                   value={query}
-                  onChange={(e) => { setQuery(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    setCurrentPage(1);
+                  }}
                   placeholder="Tìm theo tên quà..."
                   className="pl-10 pr-4 py-3 rounded-lg border-gray-200 focus:border-orange-500 focus:ring-orange-500"
+                  suppressHydrationWarning
                 />
               </div>
             </div>
@@ -289,7 +320,10 @@ export default function GiftsPage() {
             {/* Sort & Filter */}
             <div className="flex items-center justify-between md:justify-end gap-2 flex-wrap">
               <Select value={sortBy} onValueChange={(v) => { setSortBy(v as any); setCurrentPage(1); }}>
-                <SelectTrigger className="w-full sm:w-[190px]">
+              <SelectTrigger
+                className="w-full sm:w-[190px]"
+                suppressHydrationWarning
+              >
                   <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>

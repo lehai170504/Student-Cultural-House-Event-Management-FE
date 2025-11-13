@@ -32,8 +32,8 @@ export default function EventsPage() {
         return { text: "NHÁP", style: "bg-blue-100 text-blue-700" };
       case "ACTIVE":
         return { text: "ĐANG DIỄN RA", style: "bg-green-100 text-green-700" };
-      case "FINISHED":
-        return { text: "ĐÃ KẾT THÚC", style: "bg-gray-100 text-gray-700" };
+      case "FINALIZED":
+        return { text: "ĐÃ KẾT THÚC", style: "bg-orange-100 text-orange-700" };
       case "CANCELLED":
         return { text: "ĐÃ HỦY", style: "bg-red-100 text-red-700" };
       default:

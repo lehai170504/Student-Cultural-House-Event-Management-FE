@@ -9,10 +9,21 @@ export default function EventDetailHeader({
   status,
   hasRegistered,
   registering,
+  startTime,
   onRegister,
   onGoToFeedback,
   onGoBack,
+  hasSubmittedFeedback = false,
 }: EventDetailHeaderProps) {
+  const eventStartDate =
+    startTime && !Number.isNaN(Date.parse(startTime))
+      ? new Date(startTime)
+      : null;
+  const isEventStarted =
+    status !== "FINISHED" &&
+    eventStartDate !== null &&
+    eventStartDate.getTime() <= Date.now();
+
   return (
     <motion.section
       className="relative flex flex-col md:flex-row items-center justify-between px-6 py-8 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-b-3xl shadow-md mb-8"
@@ -32,7 +43,14 @@ export default function EventDetailHeader({
         {getStatusText(status)}
       </Badge>
 
-      {status === "ACTIVE" ? (
+      {status === "CANCELLED" ? (
+        <Button
+          disabled
+          className="mt-4 bg-red-200 text-red-600 cursor-not-allowed"
+        >
+          Sự kiện đã hủy
+        </Button>
+      ) : status === "ACTIVE" ? (
         hasRegistered ? (
           <Button
             disabled
@@ -43,14 +61,19 @@ export default function EventDetailHeader({
         ) : (
           <Button
             onClick={onRegister}
-            disabled={registering}
+            disabled={registering || isEventStarted}
             className="mt-4 bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
           >
-            {registering ? "Đang đăng ký..." : "Đăng ký sự kiện"}
+            {registering
+              ? "Đang đăng ký..."
+              : isEventStarted
+              ? "Sự kiện đã bắt đầu"
+              : "Đăng ký sự kiện"}
           </Button>
         )
       ) : null}
-      {status === "FINISHED" ? (
+      {/* Show feedback button only when FINALIZED, registered, and not yet submitted */}
+      {status === "FINALIZED" && hasRegistered && !hasSubmittedFeedback ? (
         <Button
           onClick={onGoToFeedback}
           className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white"

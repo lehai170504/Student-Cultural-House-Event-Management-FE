@@ -114,6 +114,35 @@ export const sendEventFeedback = createAsyncThunk<
   }
 });
 
+export const updateEventFeedback = createAsyncThunk<
+  EventFeedbackResponse,
+  { feedbackId: string; data: EventFeedbackRequest },
+  { rejectValue: string }
+>("events/updateFeedback", async ({ feedbackId, data }, { rejectWithValue }) => {
+  try {
+    return await eventService.updateFeedback(feedbackId, data);
+  } catch (err: any) {
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi cập nhật phản hồi sự kiện")
+    );
+  }
+});
+
+export const deleteEventFeedback = createAsyncThunk<
+  void,
+  string,
+  { rejectValue: string }
+>("events/deleteFeedback", async (feedbackId, { rejectWithValue }) => {
+  try {
+    await eventService.deleteFeedback(feedbackId);
+    return;
+  } catch (err: any) {
+    return rejectWithValue(
+      getErrorMessage(err, "Lỗi khi xóa phản hồi sự kiện")
+    );
+  }
+});
+
 export const checkinEvent = createAsyncThunk<
   EventCheckinResponse,
   EventCheckinRequest,
