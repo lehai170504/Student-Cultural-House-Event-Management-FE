@@ -5,6 +5,7 @@ import '../auth/login_page.dart';
 import '../auth/profile_page.dart';
 import '../events/events_page.dart';
 import '../history/event_history_page.dart';
+import '../gifts/gifts_page.dart';
 
 class MainNavigation extends StatefulWidget {
   const MainNavigation({super.key});
@@ -13,17 +14,31 @@ class MainNavigation extends StatefulWidget {
   State<MainNavigation> createState() => _MainNavigationState();
 }
 
-class _MainNavigationState extends State<MainNavigation> {
+class _MainNavigationState extends State<MainNavigation>
+    with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   final AuthService _authService = AuthService();
   bool _isSignedIn = false;
 
   final List<Widget> _pages = [];
+  late final AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+      lowerBound: 0.95,
+      upperBound: 1.05,
+    )..repeat(reverse: true);
     _checkAuthStatus().then((_) => _initPages());
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAuthStatus() async {
@@ -40,7 +55,7 @@ class _MainNavigationState extends State<MainNavigation> {
     _pages.addAll([
       const HomePage(),
       const EventsPage(),
-      const _ComingSoonPage(title: 'Đổi quà', icon: Icons.card_giftcard),
+      const GiftsPage(),
       const EventHistoryPage(key: ValueKey('EventHistoryPage')),
       _isSignedIn
           ? const ProfilePage()
@@ -92,9 +107,15 @@ class _MainNavigationState extends State<MainNavigation> {
           fontWeight: FontWeight.normal,
         ),
         items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
+          BottomNavigationBarItem(
+            icon: ScaleTransition(
+              scale: _pulseController,
+              child: const Icon(Icons.home_outlined),
+            ),
+            activeIcon: ScaleTransition(
+              scale: _pulseController,
+              child: const Icon(Icons.home),
+            ),
             label: 'Trang chủ',
           ),
           const BottomNavigationBarItem(
