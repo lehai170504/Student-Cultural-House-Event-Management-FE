@@ -1,9 +1,9 @@
 import axiosInstance from "@/config/axiosInstance";
 import type {
   Product,
-  CreateProduct,
   UpdateProduct,
   ProductListResponse,
+  CreateProductData,
 } from "../types/product";
 
 /** Endpoint gốc cho module Product */
@@ -74,9 +74,21 @@ export const productService = {
   },
 
   /** 🔹 Tạo mới sản phẩm (Admin) */
-  async create(data: CreateProduct): Promise<Product> {
+  async create(
+    productData: CreateProductData,
+    imageFile: File | null
+  ): Promise<Product> {
     try {
-      const res = await axiosInstance.post<any>(endpoint, data);
+      const formData = new FormData();
+      const dataJsonString = JSON.stringify(productData);
+      formData.append("data", dataJsonString);
+      if (imageFile) {
+        formData.append("image", imageFile, imageFile.name);
+      } else {
+      }
+
+      const res = await axiosInstance.post<any>(endpoint, formData);
+
       const apiData = res?.data?.data ?? res?.data;
       return apiData as Product;
     } catch (error) {

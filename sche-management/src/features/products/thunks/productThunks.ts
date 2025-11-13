@@ -2,9 +2,9 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { productService } from "../services/productService";
 import type {
   Product,
-  CreateProduct,
   UpdateProduct,
   ProductListResponse,
+  CreateProductInput,
 } from "../types/product";
 import type { FetchProductsParams } from "../services/productService";
 
@@ -81,11 +81,12 @@ export const fetchLowStockProducts = createAsyncThunk<Product[]>(
 // --- CÁC HÀM QUẢN TRỊ (ADMIN) ---
 
 /** 🔹 Tạo mới sản phẩm */
-export const createProduct = createAsyncThunk<Product, CreateProduct>(
+export const createProduct = createAsyncThunk<Product, CreateProductInput>(
   "product/create",
-  async (data, { rejectWithValue }) => {
+  async ({ productData, imageFile }, { rejectWithValue }) => {
     try {
-      const response = await productService.create(data);
+      // ⚠️ Gọi productService.create với 2 tham số mới (data và file)
+      const response = await productService.create(productData, imageFile);
       return response;
     } catch (error: any) {
       console.error("❌ [createProduct] Error:", error);

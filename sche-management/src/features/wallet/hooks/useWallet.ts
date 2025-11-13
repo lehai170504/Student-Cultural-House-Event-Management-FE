@@ -41,17 +41,20 @@ export const useWallet = () => {
   const loadTransactions = useCallback(
     async (
       params?: Record<string, any>
-    ): Promise<WalletTransactionResponse> => {
+    ): Promise<WalletTransactionResponse & { error?: string }> => {
       try {
         const result: WalletTransactionResponse = await dispatch(
           fetchWalletTransactions({ params })
         ).unwrap();
+
         return result;
-      } catch (err) {
+      } catch (err: any) {
         console.error("Load transactions failed:", err);
+        // fallback data
         return {
           data: [],
           meta: { currentPage: 1, pageSize: 10, totalPages: 0, totalItems: 0 },
+          error: err?.message || "Unknown error",
         };
       }
     },

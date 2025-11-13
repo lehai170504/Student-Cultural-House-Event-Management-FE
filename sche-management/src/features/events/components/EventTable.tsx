@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, Suspense, lazy, useCallback } from "react";
+import { useRouter } from "next/navigation";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +21,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+
 import {
   Eye,
   CheckSquare,
@@ -29,11 +32,11 @@ import {
   Trash2,
   User,
 } from "lucide-react";
+
 import { useEvents } from "../hooks/useEvents";
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 import { useUserProfileAuth } from "@/hooks/useUserProfileAuth";
 import { EventCheckinDetail, EventForCheckin } from "../types/events";
-import { useRouter } from "next/navigation";
 
 const ViewDetailEvent = lazy(() => import("./ViewDetailEvent"));
 const CreateEventModal = lazy(() => import("./CreateEventModal"));
@@ -54,10 +57,9 @@ export default function EventTable() {
     loadAll,
     pagination,
     submittingCheckin,
-    deleting,
+    deleteEventAndReload,
     approveEventAndReload,
     finalizeEventAndReload,
-    deleteEventAndReload,
     submitCheckinAndNotify,
   } = useEvents();
 
@@ -83,7 +85,7 @@ export default function EventTable() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const keyword = e.target.value;
     setSearch(keyword);
-    loadAll({ page: 1, search: keyword || undefined });
+    loadAll({ page: currentPage || 1, search: keyword || undefined });
   };
 
   const handlePageChange = (page: number) => {
@@ -110,6 +112,7 @@ export default function EventTable() {
   const handleCheckinSubmit = useCallback(
     async (payload: { eventId: string; phoneNumber: string }) => {
       if (!currentCheckinEvent) return;
+
       const fullPayload: EventCheckinDetail & { phoneNumber: string } = {
         checkinId: "",
         eventId: payload.eventId,
@@ -121,6 +124,7 @@ export default function EventTable() {
         depositPaid: 0,
         phoneNumber: payload.phoneNumber,
       };
+
       setProcessingEventId(payload.eventId);
       await submitCheckinAndNotify(fullPayload);
       setIsCheckinModalOpen(false);
@@ -153,6 +157,7 @@ export default function EventTable() {
     const pages = [];
     const maxPagesToShow = 5;
     let startPage, endPage;
+
     if (totalPages <= maxPagesToShow) {
       startPage = 0;
       endPage = totalPages;
@@ -169,6 +174,7 @@ export default function EventTable() {
         endPage = currentPage + half + 1;
       }
     }
+
     for (let i = startPage; i < endPage; i++) pages.push(i);
     return pages;
   };
@@ -183,7 +189,6 @@ export default function EventTable() {
     <main className="min-h-screen bg-gray-50">
       <section className="relative bg-white rounded-2xl shadow p-8 mt-5">
         <div className="container mx-auto px-6">
-          {/* Header */}
           <div className="grid md:grid-cols-2 gap-6 items-center mb-8">
             <div>
               <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -193,6 +198,7 @@ export default function EventTable() {
                 Tổng số: <strong>{totalElements}</strong> sự kiện
               </p>
             </div>
+
             <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
               <Input
                 placeholder="Tìm kiếm sự kiện..."
@@ -211,7 +217,6 @@ export default function EventTable() {
             </div>
           </div>
 
-          {/* Table */}
           <div className="rounded-xl border border-gray-200 overflow-x-auto">
             <Table>
               <TableHeader>
@@ -233,6 +238,7 @@ export default function EventTable() {
                   ))}
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {loadingList ? (
                   <TableRow>
@@ -278,19 +284,19 @@ export default function EventTable() {
                       </TableCell>
                       <TableCell>{getStatusBadge(event.status)}</TableCell>
                       <TableCell className="px-6 py-4 flex gap-2">
-                        {/* Xem chi tiết */}
                         <Button
-                          size="sm"
-                          className="p-2 rounded-full border-2 border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white"
+                          size="icon"
+                          variant="outline"
+                          className="text-orange-500 border-orange-200 hover:bg-orange-50 hover:text-orange-600"
                           onClick={() => setSelectedEvent(event.id)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
 
-                        {/* Chuyển trang chi tiết */}
                         <Button
-                          size="sm"
-                          className="flex items-center gap-2 p-2 rounded-full border-2 border-indigo-500 text-indigo-500 hover:bg-indigo-500 hover:text-white"
+                          size="icon"
+                          variant="outline"
+                          className="text-indigo-500 border-indigo-200 hover:bg-indigo-50 hover:text-indigo-600"
                           onClick={() => {
                             if (authUser?.groups.includes("PARTNERS")) {
                               router.push(`/partner/events/${event.id}`);
@@ -306,17 +312,18 @@ export default function EventTable() {
                           <User className="h-4 w-4" />
                         </Button>
 
-                        {/* Duyệt */}
                         {isAdmin && event.status === "DRAFT" && (
                           <Button
-                            size="sm"
-                            className="p-2 rounded-full border-2 border-blue-500 text-blue-500 hover:bg-blue-100"
+                            size="icon"
+                            variant="outline"
+                            className="text-blue-500 border-blue-200 hover:bg-blue-50 hover:text-blue-600"
                             onClick={() =>
                               approveEventAndReload(event.id, event.title, {
                                 page: currentPage,
                                 search,
                               })
                             }
+                            disabled={isProcessing(event.id)}
                           >
                             {isProcessing(event.id) ? (
                               <RotateCw className="h-4 w-4 animate-spin" />
@@ -326,12 +333,13 @@ export default function EventTable() {
                           </Button>
                         )}
 
-                        {/* Check-in */}
                         {event.status === "ACTIVE" && (
                           <Button
-                            size="sm"
-                            className="p-2 rounded-full border-2 border-green-500 text-green-500 hover:bg-green-100"
+                            size="icon"
+                            variant="outline"
+                            className="text-green-500 border-green-200 hover:bg-green-50 hover:text-green-600"
                             onClick={() => openCheckinModal(event)}
+                            disabled={isCheckingIn(event.id)}
                           >
                             {isCheckingIn(event.id) ? (
                               <RotateCw className="h-4 w-4 animate-spin" />
@@ -341,17 +349,18 @@ export default function EventTable() {
                           </Button>
                         )}
 
-                        {/* Chốt */}
                         {isAdmin && event.status === "ACTIVE" && (
                           <Button
-                            size="sm"
-                            className="p-2 rounded-full border-2 border-purple-500 text-purple-500 hover:bg-purple-100"
+                            size="icon"
+                            variant="outline"
+                            className="text-purple-500 border-purple-200 hover:bg-purple-50 hover:text-purple-600"
                             onClick={() =>
                               finalizeEventAndReload(event.id, event.title, {
                                 page: currentPage,
                                 search,
                               })
                             }
+                            disabled={isProcessing(event.id)}
                           >
                             {isProcessing(event.id) ? (
                               <RotateCw className="h-4 w-4 animate-spin" />
@@ -361,19 +370,20 @@ export default function EventTable() {
                           </Button>
                         )}
 
-                        {/* Xóa */}
-                        {authUser?.groups.includes("PARTNERS") &&
-                          event.status === "DRAFT" && (
+                        {isAdmin &&
+                          event.status !== "CANCELLED" &&
+                          event.status !== "FINALIZED" && (
                             <Button
-                              size="sm"
-                              variant="destructive"
-                              className="p-2 rounded-full bg-red-100 border-2 border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                              size="icon"
+                              variant="outline"
+                              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
                               onClick={() =>
                                 deleteEventAndReload(event.id, event.title, {
                                   page: currentPage,
                                   search,
                                 })
                               }
+                              disabled={isProcessing(event.id)}
                             >
                               {isProcessing(event.id) ? (
                                 <RotateCw className="h-4 w-4 animate-spin" />
@@ -390,52 +400,50 @@ export default function EventTable() {
             </Table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 0 && (
-            <div className="flex justify-between items-center mt-6 flex-wrap">
-              <div className="text-sm text-gray-600 mb-2 md:mb-0">
-                Hiển thị {filteredEvents.length}/{totalElements} sự kiện.
-              </div>
-              <Pagination>
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      className={
-                        currentPage === 0 || loadingList
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                  {getPageNumbers().map((page) => (
-                    <PaginationItem key={page}>
-                      <PaginationLink
-                        isActive={page === currentPage}
-                        onClick={() => handlePageChange(page)}
-                      >
-                        {page + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  <PaginationItem>
-                    <PaginationNext
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      className={
-                        isLastPage || loadingList
-                          ? "pointer-events-none opacity-50"
-                          : ""
-                      }
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
+          <div className="flex justify-between items-center mt-6 flex-wrap">
+            <div className="text-sm text-gray-600 mb-2 md:mb-0">
+              Hiển thị {filteredEvents.length}/{totalElements} sự kiện.
             </div>
-          )}
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    className={
+                      currentPage === 0 || loadingList
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+
+                {getPageNumbers().map((page) => (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      isActive={page === currentPage}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page + 1}
+                    </PaginationLink>
+                  </PaginationItem>
+                ))}
+
+                <PaginationItem>
+                  <PaginationNext
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    className={
+                      isLastPage || loadingList
+                        ? "pointer-events-none opacity-50"
+                        : ""
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
         </div>
       </section>
 
-      {/* Modal chi tiết, tạo, checkin */}
       <Suspense fallback={<div>Đang tải...</div>}>
         {selectedEvent && (
           <ViewDetailEvent
@@ -444,6 +452,7 @@ export default function EventTable() {
             onClose={() => setSelectedEvent(null)}
           />
         )}
+
         {isCreateModalOpen && (
           <CreateEventModal
             open={isCreateModalOpen}
@@ -452,6 +461,7 @@ export default function EventTable() {
             partnerId={userId.toString()}
           />
         )}
+
         {isCheckinModalOpen && currentCheckinEvent && (
           <CheckinPhoneNumberDialog
             open={isCheckinModalOpen}

@@ -92,6 +92,33 @@ export const useEvents = () => {
     [dispatch]
   );
 
+  const cancelEventById = useCallback(
+    async (id: string) => {
+      const currentEventDetail = await dispatch(fetchEventById(id)).unwrap();
+
+      // Kiểm tra dữ liệu
+      if (!currentEventDetail || !currentEventDetail.id) {
+        throw new Error("Không tìm thấy sự kiện để hủy (CANCEL).");
+      }
+      const {
+        id: _,
+        partnerId: __,
+        createdAt: ___,
+        updatedAt: ____,
+        ...updatableFields
+      } = currentEventDetail as any;
+
+      const fullUpdatePayload: UpdateEvent = {
+        ...updatableFields,
+        status: "CANCELLED",
+      };
+      return await dispatch(
+        updateEvent({ id, data: fullUpdatePayload })
+      ).unwrap();
+    },
+    [dispatch]
+  );
+
   const finalizeEventById = useCallback(
     async (eventId: string) => {
       return await dispatch(finalizeEvent(eventId)).unwrap();
@@ -104,6 +131,21 @@ export const useEvents = () => {
       return await dispatch(approveEvent(eventId)).unwrap();
     },
     [dispatch]
+  );
+
+  const deleteEventAndReload = useCallback(
+    async (eventId: string, title: string, params?: any) => {
+      try {
+        await cancelEventById(eventId);
+        await loadAll(params);
+        toast.success(`Đã hủy (Soft Delete) sự kiện: ${title}`);
+      } catch (error) {
+        toast.error(
+          (error as any)?.message || `Hủy sự kiện ${title} thất bại.`
+        );
+      }
+    },
+    [cancelEventById, loadAll]
   );
 
   const submitCheckinDetailData = useCallback(
@@ -182,21 +224,6 @@ export const useEvents = () => {
       }
     },
     [finalizeEventById, loadAll]
-  );
-
-  const deleteEventAndReload = useCallback(
-    async (eventId: string, title: string, params?: any) => {
-      try {
-        await deleteEventById(eventId);
-        await loadAll(params);
-        toast.success(`Đã xóa sự kiện: ${title}`);
-      } catch (error) {
-        toast.error(
-          (error as any)?.message || `Xóa sự kiện ${title} thất bại.`
-        );
-      }
-    },
-    [deleteEventById, loadAll]
   );
 
   const submitCheckinAndNotify = useCallback(

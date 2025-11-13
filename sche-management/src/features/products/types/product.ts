@@ -24,7 +24,7 @@ export interface ProductListResponse {
   metadata: ProductMetadata;
 }
 
-export interface CreateProduct {
+export interface CreateProductData {
   type: ProductType;
   title: string;
   description: string;
@@ -33,6 +33,11 @@ export interface CreateProduct {
   imageUrl?: string;
 }
 
-export type UpdateProduct = Partial<CreateProduct>;
+export interface CreateProductInput {
+  productData: CreateProductData;
+  imageFile: File | null;
+}
+
+export type UpdateProduct = Partial<CreateProductData>;
 
 export type ProductReponse = Product;

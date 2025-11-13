@@ -1,22 +1,27 @@
 "use client";
 
-import { FC } from "react";
-import { Formik, Form, Field, ErrorMessage } from "formik";
+import { FC, useRef } from "react";
+import { Formik, Form, Field, ErrorMessage, FormikHelpers } from "formik";
 import * as Yup from "yup";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import type { CreateProduct, ProductType } from "../types/product";
+import type { CreateProductData, ProductType } from "../types/product";
+
+interface FormSubmitValues {
+  productData: CreateProductData;
+  imageFile: File | null;
+}
 
 interface Props {
-  initialValues: CreateProduct;
-  onSubmit: (values: CreateProduct) => Promise<void>;
+  initialValues: CreateProductData;
+  onSubmit: (values: FormSubmitValues) => Promise<void>;
   saving: boolean;
 }
 
 const validationSchema = Yup.object({
   title: Yup.string().required("Tên sản phẩm là bắt buộc"),
-  description: Yup.string(),
+  description: Yup.string().nullable(),
   unitCost: Yup.number()
     .min(1, "Giá phải lớn hơn 0")
     .required("Giá sản phẩm là bắt buộc"),
@@ -24,17 +29,41 @@ const validationSchema = Yup.object({
     .min(0, "Tồn kho không được âm")
     .required("Tồn kho là bắt buộc"),
   type: Yup.mixed<ProductType>().oneOf(["VOUCHER", "MERCH", "SERVICE", "GIFT"]),
-  imageUrl: Yup.string().url("URL không hợp lệ").nullable(),
 });
 
 export const ProductForm: FC<Props> = ({ initialValues, onSubmit, saving }) => {
+  const fileRef = useRef<File | null>(null);
+
+  const handleFormikSubmit = async (
+    values: CreateProductData,
+    actions: FormikHelpers<CreateProductData>
+  ) => {
+    const submitData: FormSubmitValues = {
+      productData: values,
+      imageFile: fileRef.current,
+    };
+
+    await onSubmit(submitData);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.currentTarget.files
+      ? event.currentTarget.files[0]
+      : null;
+    fileRef.current = file;
+  };
+
+  const formikInitialValues: CreateProductData = {
+    ...initialValues,
+  };
+
   return (
     <Formik
-      initialValues={initialValues}
+      initialValues={formikInitialValues}
       validationSchema={validationSchema}
-      onSubmit={onSubmit}
+      onSubmit={handleFormikSubmit}
     >
-      {({ handleChange }) => (
+      {() => (
         <Form className="space-y-4">
           {/* Tiêu đề */}
           <div>
@@ -89,59 +118,54 @@ export const ProductForm: FC<Props> = ({ initialValues, onSubmit, saving }) => {
             />
           </div>
 
-          {/* Giá */}
-          <div>
-            <Label htmlFor="unitCost">Giá (Coins)</Label>
-            <Field
-              id="unitCost"
-              name="unitCost"
-              type="number"
-              min={1}
-              as={Input}
-              placeholder="Nhập giá sản phẩm"
-            />
-            <ErrorMessage
-              name="unitCost"
-              component="p"
-              className="text-red-500 text-sm"
-            />
+          <div className="flex gap-4">
+            {/* Giá */}
+            <div className="flex-1">
+              <Label htmlFor="unitCost">Giá (Coins)</Label>
+              <Field
+                id="unitCost"
+                name="unitCost"
+                type="number"
+                min={1}
+                as={Input}
+                placeholder="Giá"
+              />
+              <ErrorMessage
+                name="unitCost"
+                component="p"
+                className="text-red-500 text-sm"
+              />
+            </div>
+
+            {/* Tồn kho */}
+            <div className="flex-1">
+              <Label htmlFor="totalStock">Tồn kho</Label>
+              <Field
+                id="totalStock"
+                name="totalStock"
+                type="number"
+                min={0}
+                as={Input}
+                placeholder="Số lượng"
+              />
+              <ErrorMessage
+                name="totalStock"
+                component="p"
+                className="text-red-500 text-sm"
+              />
+            </div>
           </div>
 
-          {/* Tồn kho */}
           <div>
-            <Label htmlFor="totalStock">Tồn kho</Label>
-            <Field
-              id="totalStock"
-              name="totalStock"
-              type="number"
-              min={1}
-              as={Input}
-              placeholder="Nhập số lượng tồn kho"
-            />
-            <ErrorMessage
-              name="totalStock"
-              component="p"
-              className="text-red-500 text-sm"
+            <Label htmlFor="imageFile">Ảnh sản phẩm</Label>
+            <Input
+              id="imageFile"
+              name="imageFile"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
             />
           </div>
-
-          {/* Ảnh URL */}
-          <div>
-            <Label htmlFor="imageUrl">Ảnh (URL)</Label>
-            <Field
-              id="imageUrl"
-              name="imageUrl"
-              as={Input}
-              placeholder="https://..."
-            />
-            <ErrorMessage
-              name="imageUrl"
-              component="p"
-              className="text-red-500 text-sm"
-            />
-          </div>
-
-          {/* Nút hành động */}
           <div className="flex justify-end gap-2 mt-6">
             <Button
               type="submit"

@@ -12,7 +12,7 @@ import {
   fetchLowStockProducts,
 } from "../thunks/productThunks";
 import { clearError, resetList, resetDetail } from "../slices/productSlice";
-import type { CreateProduct, UpdateProduct } from "../types/product";
+import type { CreateProductInput, UpdateProduct } from "../types/product";
 import type { FetchProductsParams } from "../services/productService";
 
 export const useProducts = () => {
@@ -72,7 +72,7 @@ export const useProducts = () => {
 
   /** 🔹 Tạo mới sản phẩm */
   const createNewProduct = useCallback(
-    async (data: CreateProduct): Promise<boolean> => {
+    async (data: CreateProductInput): Promise<boolean> => {
       const result = await dispatch(createProduct(data));
       return createProduct.fulfilled.match(result);
     },
