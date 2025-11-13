@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, Suspense, lazy, useCallback } from "react";
+import { useState, Suspense, lazy, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -185,6 +186,35 @@ export default function EventTable() {
     currentCheckinEvent?.id === eventId &&
     isCheckinModalOpen;
 
+  // 🕒 Kiểm tra sự kiện đã hết 1 tiếng mà vẫn ACTIVE -> nhắc admin chốt
+  useEffect(() => {
+    if (!isAdmin || !Array.isArray(list) || list.length === 0) return;
+
+    const now = new Date();
+    list.forEach((event) => {
+      if (event.status === "ACTIVE" && event.endTime) {
+        const end = new Date(event.endTime);
+        const diffHours = (now.getTime() - end.getTime()) / (1000 * 60 * 60);
+
+        if (diffHours >= 1 && diffHours < 1.1) {
+          toast.warning(
+            `Sự kiện "${event.title}" đã kết thúc hơn 1 tiếng. Hãy chốt (Finalize) ngay.`,
+            {
+              action: {
+                label: "Chốt ngay",
+                onClick: () =>
+                  finalizeEventAndReload(event.id, event.title, {
+                    page: currentPage,
+                    search,
+                  }),
+              },
+            }
+          );
+        }
+      }
+    });
+  }, [isAdmin, list, finalizeEventAndReload, currentPage, search]);
+
   return (
     <main className="min-h-screen bg-gray-50">
       <section className="relative bg-white rounded-2xl shadow p-8 mt-5">
@@ -302,10 +332,6 @@ export default function EventTable() {
                               router.push(`/partner/events/${event.id}`);
                             } else if (isAdmin) {
                               router.push(`/admin/events/${event.id}`);
-                            } else {
-                              console.warn(
-                                "Người dùng không có quyền truy cập trang chi tiết"
-                              );
                             }
                           }}
                         >
@@ -370,28 +396,26 @@ export default function EventTable() {
                           </Button>
                         )}
 
-                        {isAdmin &&
-                          event.status !== "CANCELLED" &&
-                          event.status !== "FINALIZED" && (
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
-                              onClick={() =>
-                                deleteEventAndReload(event.id, event.title, {
-                                  page: currentPage,
-                                  search,
-                                })
-                              }
-                              disabled={isProcessing(event.id)}
-                            >
-                              {isProcessing(event.id) ? (
-                                <RotateCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </Button>
-                          )}
+                        {isAdmin && event.status === "DRAFT" && (
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                            onClick={() =>
+                              deleteEventAndReload(event.id, event.title, {
+                                page: currentPage,
+                                search,
+                              })
+                            }
+                            disabled={isProcessing(event.id)}
+                          >
+                            {isProcessing(event.id) ? (
+                              <RotateCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))

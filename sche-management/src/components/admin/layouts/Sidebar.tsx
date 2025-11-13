@@ -13,8 +13,6 @@ import {
   LayoutDashboard,
   Calendar,
   Users,
-  Settings,
-  Bell,
   BarChart3,
   Gift,
   MessageCircle,
@@ -59,7 +57,6 @@ const menuSections = [
         href: "/admin/transactions",
         icon: BarChart3,
       },
-      { label: "Cài đặt", href: "/admin/settings", icon: Settings },
     ],
   },
 ];

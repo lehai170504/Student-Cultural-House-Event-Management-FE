@@ -73,10 +73,20 @@ const validationSchema = Yup.object({
       "is-valid-time",
       "Thời gian không hợp lệ",
       (value) => !!value && !Number.isNaN(new Date(value).getTime())
+    )
+    .test(
+      "is-future-start",
+      "Thời gian bắt đầu phải sau thời điểm hiện tại",
+      (value) => {
+        if (!value) return true;
+        const start = new Date(value);
+        const now = new Date();
+        return start > now;
+      }
     ),
   endTime: Yup.string()
     .required("Thời gian kết thúc là bắt buộc")
-    .test(
+    .test(  
       "is-valid-time",
       "Thời gian không hợp lệ",
       (value) => !!value && !Number.isNaN(new Date(value).getTime())
