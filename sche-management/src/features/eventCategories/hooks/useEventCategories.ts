@@ -33,16 +33,6 @@ export const useEventCategories = () => {
     const res: any = await dispatch(fetchAllEventCategories()).unwrap();
 
     if (Array.isArray(res)) {
-      res.sort((a, b) => {
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-
-        // Nếu createdAt bằng nhau, fallback so sánh id (string) theo Unicode
-        if (timeB === timeA) {
-          return a.id.localeCompare(b.id);
-        }
-        return timeB - timeA;
-      });
     }
 
     return res;
@@ -58,27 +48,24 @@ export const useEventCategories = () => {
 
   /** 🔸 Tạo mới danh mục */
   const createCategory = useCallback(
-    async (data: CreateEventCategory) => {
-      const result = await dispatch(createEventCategory(data));
-      return result;
+    (data: CreateEventCategory) => {
+      return dispatch(createEventCategory(data));
     },
     [dispatch]
   );
 
   /** 🔸 Cập nhật danh mục */
   const updateCategory = useCallback(
-    async (id: string, data: UpdateEventCategory) => {
-      const result = await dispatch(updateEventCategory({ id, data }));
-      return result;
+    (id: string, data: UpdateEventCategory) => {
+      return dispatch(updateEventCategory({ id, data }));
     },
     [dispatch]
   );
 
   /** 🔸 Xoá danh mục */
   const deleteCategoryById = useCallback(
-    async (id: string) => {
-      const result = await dispatch(deleteEventCategory(id));
-      return result;
+    (id: string) => {
+      return dispatch(deleteEventCategory(id));
     },
     [dispatch]
   );
@@ -95,8 +82,7 @@ export const useEventCategories = () => {
 
   /** 🔸 Tự động load danh sách khi mount */
   useEffect(() => {
-    // loadAll() có thể gọi thủ công khi component mount
-    // loadAll();
+    loadAll();
   }, []);
 
   return {

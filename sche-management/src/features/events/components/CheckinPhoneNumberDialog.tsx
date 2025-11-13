@@ -1,3 +1,4 @@
+// src/features/partner/components/CheckinPhoneNumberDialog.tsx (Đã thêm Validation)
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,6 +24,39 @@ interface CheckinDialogProps {
   submitting: boolean;
 }
 
+// Hàm làm sạch và chuẩn hóa số điện thoại
+const cleanPhoneNumber = (phone: string) => {
+  // Loại bỏ mọi ký tự không phải số, ngoại trừ dấu cộng (+) ở đầu
+  const cleaned = phone.replace(/[^\d+]/g, "");
+  // Chuẩn hóa, loại bỏ dấu cộng ở giữa hoặc cuối nếu có
+  return cleaned.replace(/(.)\+/g, "$1").replace(/^\++/g, "+");
+};
+
+// Hàm kiểm tra định dạng và độ dài
+const validatePhoneNumber = (phone: string) => {
+  const cleaned = cleanPhoneNumber(phone);
+
+  if (!cleaned) {
+    return "Vui lòng nhập số điện thoại.";
+  }
+
+  // Loại bỏ dấu '+' ở đầu để kiểm tra độ dài
+  const digits = cleaned.replace(/^\+/, "").replace(/\s/g, "");
+
+  // Quy tắc kiểm tra số điện thoại (Ví dụ cơ bản cho VN: 9-11 chữ số)
+  if (digits.length < 9 || digits.length > 15) {
+    return "Số điện thoại phải có từ 9 đến 15 chữ số.";
+  }
+
+  // Quy tắc kiểm tra ký tự (chỉ cho phép số, khoảng trắng, và dấu + ở đầu)
+  const phoneRegex = /^\+?[\d\s]+$/;
+  if (!phoneRegex.test(phone.trim())) {
+    return "Số điện thoại chứa ký tự không hợp lệ.";
+  }
+
+  return null; // Trả về null nếu hợp lệ
+};
+
 export default function CheckinPhoneNumberDialog({
   open,
   event,
@@ -31,23 +65,45 @@ export default function CheckinPhoneNumberDialog({
   submitting,
 }: CheckinDialogProps) {
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [error, setError] = useState<string | null>(null); // Thêm state cho lỗi validation
 
-  // Reset phoneNumber mỗi khi modal mở hoặc đóng
+  // Reset state và lỗi mỗi khi modal mở hoặc đóng
   useEffect(() => {
-    if (!open) setPhoneNumber("");
+    if (!open) {
+      setPhoneNumber("");
+      setError(null);
+    }
   }, [open]);
+
+  // Xóa lỗi khi người dùng thay đổi input
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPhoneNumber(e.target.value);
+    if (error) setError(null); // Xóa lỗi khi bắt đầu nhập
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phoneNumber.trim()) {
-      toast.error("Vui lòng nhập số điện thoại.");
+
+    // 1. Chạy Validation
+    const validationError = validatePhoneNumber(phoneNumber);
+
+    if (validationError) {
+      setError(validationError);
+      toast.error(validationError); // Hiển thị lỗi dưới dạng toast
       return;
     }
-    onSubmit({ eventId: event.id, phoneNumber: phoneNumber.trim() });
+
+    setError(null); // Xóa lỗi nếu validation thành công
+
+    // 2. Chuẩn hóa số điện thoại (chỉ giữ lại số, có thể bao gồm '+' ở đầu) trước khi submit
+    const cleanedPhone = cleanPhoneNumber(phoneNumber);
+
+    onSubmit({ eventId: event.id, phoneNumber: cleanedPhone });
   };
 
   const handleClose = () => {
     setPhoneNumber("");
+    setError(null);
     onClose();
   };
 
@@ -66,16 +122,21 @@ export default function CheckinPhoneNumberDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-2 py-4">
             <Input
               id="phone"
               type="tel"
               placeholder="Ví dụ: 0901 234 567"
               value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              className="col-span-4 border-2 border-green-300 focus-visible:ring-green-500 text-lg"
+              onChange={handleInputChange} // Sử dụng hàm mới
+              className={`col-span-4 border-2 focus-visible:ring-green-500 text-lg ${
+                error ? "border-red-500" : "border-green-300"
+              }`}
               disabled={submitting}
             />
+            {error && ( // Hiển thị lỗi ngay dưới input
+              <p className="text-red-500 text-sm mt-1">{error}</p>
+            )}
           </div>
 
           <DialogFooter className="mt-4 pt-4 border-t border-gray-100">
