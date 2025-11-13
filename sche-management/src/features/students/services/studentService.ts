@@ -116,16 +116,27 @@ export const studentService = {
   async completeProfile(data: CompleteProfileRequest): Promise<StudentProfile> {
     try {
       const formData = new FormData();
-      formData.append("phoneNumber", data.phoneNumber);
 
-      if (data.avatarUrl && data.avatarUrl.trim()) {
-        formData.append("avatarUrl", data.avatarUrl.trim());
+      const payload: Record<string, string> = {
+        phoneNumber: data.phoneNumber,
+      };
+
+      if (data.avatarPath && data.avatarPath.trim()) {
+        payload.avatarPath = data.avatarPath.trim();
+      }
+
+      formData.append("data", JSON.stringify(payload));
+
+      if (data.avatarFile instanceof File) {
+        formData.append("image", data.avatarFile, data.avatarFile.name);
       }
 
       const res = await axiosInstance.post<any>(
         "/students/me/complete-profile",
-        formData
+        formData,
+        { timeout: 60000 }
       );
+
       // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
       const apiData = res.data?.data ?? res.data;
 

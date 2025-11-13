@@ -7,6 +7,8 @@ import '../../config/api_config.dart' as app_config;
 import '../events/events_page.dart';
 import '../gifts/gifts_page.dart';
 import '../gifts/gift_models.dart';
+import '../notifications/notifications_page.dart';
+import '../../services/notification_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -28,10 +30,12 @@ class _HomePageState extends State<HomePage> {
 
   final AuthService _authService = AuthService();
   final ApiClient _apiClient = ApiClient();
+  final NotificationService _notificationService = NotificationService();
 
   // Dynamic data
   String _userName = '';
   int _totalPoints = 0;
+  int _unreadNotificationCount = 0;
 
   final List<HeroSlide> _heroSlides = [
     HeroSlide(
@@ -101,14 +105,40 @@ class _HomePageState extends State<HomePage> {
 
     if (_isSignedIn) {
       await _loadProfile();
+      _loadUnreadNotificationCount();
+      _setupNotificationListener();
     } else {
       setState(() {
         _userName = '';
         _totalPoints = 0;
+        _unreadNotificationCount = 0;
       });
     }
 
     await Future.wait([_loadEvents(), _loadGifts()]);
+  }
+
+  void _setupNotificationListener() {
+    _notificationService.onUnreadCountChanged = (count) {
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = count;
+        });
+      }
+    };
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final count = await _notificationService.getUnreadCount();
+      if (mounted) {
+        setState(() {
+          _unreadNotificationCount = count;
+        });
+      }
+    } catch (e) {
+      safePrint('❌ Error loading unread notification count: $e');
+    }
   }
 
   Widget _buildHeaderCard(BuildContext context) {
@@ -170,6 +200,68 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Notification bell
+                  Stack(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                          ),
+                        ),
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.of(context)
+                                .push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const NotificationsPage(),
+                                  ),
+                                )
+                                .then((_) {
+                                  // Reload unread count when returning
+                                  _loadUnreadNotificationCount();
+                                });
+                          },
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                      if (_unreadNotificationCount > 0)
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 18,
+                              minHeight: 18,
+                            ),
+                            child: Text(
+                              _unreadNotificationCount > 9
+                                  ? '9+'
+                                  : '$_unreadNotificationCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
