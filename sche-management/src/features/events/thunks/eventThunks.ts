@@ -132,7 +132,16 @@ export const fetchEventAttendees = createAsyncThunk<
   { rejectValue: string }
 >("events/fetchAttendees", async ({ eventId, params }, { rejectWithValue }) => {
   try {
-    return await eventService.getAttendees(eventId, params);
+    const res = await eventService.getAttendees(eventId, params);
+    return {
+      data: res.data || [],
+      meta: res.meta || {
+        currentPage: 1,
+        pageSize: 0,
+        totalPages: 0,
+        totalItems: 0,
+      },
+    };
   } catch (err: any) {
     return rejectWithValue(
       getErrorMessage(err, "Lỗi khi tải danh sách người tham dự")

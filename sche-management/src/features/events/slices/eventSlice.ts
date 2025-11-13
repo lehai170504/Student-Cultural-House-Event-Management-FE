@@ -1,3 +1,4 @@
+// ✅ eventSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import type {
   Event,
@@ -33,8 +34,11 @@ interface EventState {
   registering: boolean;
   sendingFeedback: boolean;
   checkingIn: boolean;
+
+  /** 🔹 Attendees */
   loadingAttendees: boolean;
-  attendees: AttendeesResponse | null;
+  attendees: any[]; // chỉ giữ danh sách attendees
+  attendeesMeta: AttendeesResponse["meta"] | null;
 
   finalizing: boolean;
   approving: boolean;
@@ -61,8 +65,10 @@ const initialState: EventState = {
   registering: false,
   sendingFeedback: false,
   checkingIn: false,
+
   loadingAttendees: false,
-  attendees: null,
+  attendees: [],
+  attendeesMeta: null,
 
   finalizing: false,
   approving: false,
@@ -94,7 +100,7 @@ const eventSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Fetch all events
+      // 🔹 Fetch all events
       .addCase(fetchAllEvents.pending, (state) => {
         state.loadingList = true;
       })
@@ -114,13 +120,12 @@ const eventSlice = createSlice({
           state.error = null;
         }
       )
-
       .addCase(fetchAllEvents.rejected, (state, action) => {
         state.loadingList = false;
         state.error = action.payload || null;
       })
 
-      // Fetch event detail
+      // 🔹 Fetch event detail
       .addCase(fetchEventById.pending, (state) => {
         state.loadingDetail = true;
       })
@@ -137,7 +142,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Create event
+      // 🔹 Create event
       .addCase(createEvent.pending, (state) => {
         state.saving = true;
       })
@@ -151,7 +156,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Update event
+      // 🔹 Update event
       .addCase(updateEvent.pending, (state) => {
         state.saving = true;
       })
@@ -168,7 +173,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Delete event
+      // 🔹 Delete event
       .addCase(deleteEvent.pending, (state) => {
         state.deleting = true;
       })
@@ -185,7 +190,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Register / Feedback / Check-in
+      // 🔹 Register / Feedback / Check-in
       .addCase(registerForEvent.pending, (state) => {
         state.registering = true;
       })
@@ -217,7 +222,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Fetch attendees
+      // 🔹 Fetch attendees (fix theo type mới)
       .addCase(fetchEventAttendees.pending, (state) => {
         state.loadingAttendees = true;
       })
@@ -225,7 +230,8 @@ const eventSlice = createSlice({
         fetchEventAttendees.fulfilled,
         (state, action: PayloadAction<AttendeesResponse>) => {
           state.loadingAttendees = false;
-          state.attendees = action.payload;
+          state.attendees = action.payload.data || [];
+          state.attendeesMeta = action.payload.meta || null;
         }
       )
       .addCase(fetchEventAttendees.rejected, (state, action) => {
@@ -233,7 +239,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Finalize event
+      // 🔹 Finalize event
       .addCase(finalizeEvent.pending, (state) => {
         state.finalizing = true;
       })
@@ -252,7 +258,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Approve event
+      // 🔹 Approve event
       .addCase(approveEvent.pending, (state) => {
         state.approving = true;
       })
@@ -272,7 +278,7 @@ const eventSlice = createSlice({
         state.error = action.payload || null;
       })
 
-      // Check-in by phone
+      // 🔹 Check-in by phone
       .addCase(checkinByPhoneNumber.pending, (state) => {
         state.submittingCheckin = true;
       })

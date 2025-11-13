@@ -8,9 +8,6 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
-  registerForEvent,
-  sendEventFeedback,
-  checkinEvent,
   fetchEventAttendees,
   finalizeEvent,
   checkinByPhoneNumber,
@@ -50,7 +47,7 @@ export const useEvents = () => {
   const { list: categories = [], loadingList: loadingCategories } =
     useAppSelector((state) => state.eventCategory);
 
-  // 📦 --- CÁC HÀM CƠ BẢN (GIỮ NGUYÊN) ---
+  // 📦 --- CÁC HÀM CƠ BẢN ---
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
       const res = await dispatch(fetchAllEvents(params)).unwrap();
@@ -118,6 +115,28 @@ export const useEvents = () => {
       return await dispatch(checkinByPhoneNumber(checkinPayload)).unwrap();
     },
     [dispatch]
+  );
+
+  /** ✅ TẢI DANH SÁCH NGƯỜI THAM DỰ */
+  const loadEventAttendees = useCallback(
+    async (eventId: string, params?: Record<string, any>) => {
+      return await dispatch(fetchEventAttendees({ eventId, params })).unwrap();
+    },
+    [dispatch]
+  );
+
+  /** ✅ TẢI DANH SÁCH NGƯỜI THAM DỰ CÓ TOAST */
+  const loadEventAttendeesWithToast = useCallback(
+    async (eventId: string, params?: Record<string, any>) => {
+      try {
+        await loadEventAttendees(eventId, params);
+      } catch (error) {
+        toast.error(
+          (error as any)?.message || "Không thể tải danh sách người tham dự."
+        );
+      }
+    },
+    [loadEventAttendees]
   );
 
   // 📦 --- HỖ TRỢ KHÁC ---
@@ -233,6 +252,8 @@ export const useEvents = () => {
     finalizeEventById,
     approveEventById,
     submitCheckinDetailData,
+    loadEventAttendees,
+    loadEventAttendeesWithToast,
 
     // Utility
     resetEventDetail,

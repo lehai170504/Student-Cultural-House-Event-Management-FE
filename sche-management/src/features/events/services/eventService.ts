@@ -161,7 +161,17 @@ export const eventService = {
         `${endpoint}/${eventId}/attendees`,
         { params }
       );
-      return res.data;
+
+      // ✅ Đảm bảo dữ liệu trả về đúng định dạng
+      return {
+        data: res.data.data || [],
+        meta: res.data.meta || {
+          currentPage: 1,
+          pageSize: 0,
+          totalPages: 0,
+          totalItems: 0,
+        },
+      };
     } catch (error) {
       console.error(
         `❌ [getAttendees] Lỗi khi lấy attendees cho event ID ${eventId}:`,

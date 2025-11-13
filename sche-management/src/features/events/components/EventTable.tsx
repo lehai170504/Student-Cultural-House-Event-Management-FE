@@ -27,11 +27,13 @@ import {
   ThumbsUp,
   Lock,
   Trash2,
+  User,
 } from "lucide-react";
 import { useEvents } from "../hooks/useEvents";
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 import { useUserProfileAuth } from "@/hooks/useUserProfileAuth";
 import { EventCheckinDetail, EventForCheckin } from "../types/events";
+import { useRouter } from "next/navigation";
 
 const ViewDetailEvent = lazy(() => import("./ViewDetailEvent"));
 const CreateEventModal = lazy(() => import("./CreateEventModal"));
@@ -40,10 +42,11 @@ const CheckinPhoneNumberDialog = lazy(
 );
 
 export default function EventTable() {
-  const { user } = useUserProfile(); // giữ user.id để gửi xuống DB
-  const { user: authUser, isAdmin, isManager } = useUserProfileAuth(); // phân quyền UI
-
+  const { user } = useUserProfile();
+  const { user: authUser, isAdmin } = useUserProfileAuth();
   const userId = user?.id || "";
+
+  const router = useRouter();
 
   const {
     list = [],
@@ -282,6 +285,25 @@ export default function EventTable() {
                           onClick={() => setSelectedEvent(event.id)}
                         >
                           <Eye className="h-4 w-4" />
+                        </Button>
+
+                        {/* Chuyển trang chi tiết */}
+                        <Button
+                          size="sm"
+                          className="flex items-center gap-2 p-2 rounded-full border-2 border-indigo-500 text-indigo-500 hover:bg-indigo-500 hover:text-white"
+                          onClick={() => {
+                            if (authUser?.groups.includes("PARTNERS")) {
+                              router.push(`/partner/events/${event.id}`);
+                            } else if (isAdmin) {
+                              router.push(`/admin/events/${event.id}`);
+                            } else {
+                              console.warn(
+                                "Người dùng không có quyền truy cập trang chi tiết"
+                              );
+                            }
+                          }}
+                        >
+                          <User className="h-4 w-4" />
                         </Button>
 
                         {/* Duyệt */}
