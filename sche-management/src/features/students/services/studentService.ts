@@ -1,4 +1,5 @@
 import axiosInstance from "@/config/axiosInstance";
+import type { Event } from "@/features/events/types/events";
 import {
   UniversityUser,
   StudentResponse,
@@ -61,7 +62,6 @@ export const studentService = {
       // Fallback: giả sử responseData là PaginatedResponse trực tiếp
       return responseData as PaginatedResponse<UniversityUser>;
     } catch (error) {
-      console.error("❌ [getAll] Error fetching university users:", error);
       throw error;
     }
   },
@@ -78,10 +78,6 @@ export const studentService = {
       );
       return res.data;
     } catch (error) {
-      console.error(
-        `❌ [updateStatus] Error updating University User status id=${id}:`,
-        error
-      );
       throw error;
     }
   },
@@ -105,13 +101,13 @@ export const studentService = {
         phoneNumber: apiData.phoneNumber,
         email: apiData.email || null,
         avatarUrl: apiData.avatarUrl || null,
+        walletId: apiData.walletId ?? null,
         status: apiData.status || "ACTIVE",
         createdAt: apiData.createdAt || null,
       };
 
       return profile;
     } catch (error) {
-      console.error("❌ [getProfile] Lỗi khi lấy thông tin profile:", error);
       throw error;
     }
   },
@@ -141,11 +137,11 @@ export const studentService = {
         phoneNumber: apiData.phoneNumber,
         email: apiData.email || null,
         avatarUrl: apiData.avatarUrl || null,
+        walletId: apiData.walletId ?? null,
         status: apiData.status || "ACTIVE",
         createdAt: apiData.createdAt || null,
       };
     } catch (error) {
-      console.error("❌ [completeProfile] Lỗi khi hoàn thiện profile:", error);
       throw error;
     }
   },
@@ -153,7 +149,35 @@ export const studentService = {
   /** 🔹 Cập nhật thông tin profile của student */
   async updateProfile(data: UpdateProfileRequest): Promise<StudentProfile> {
     try {
-      const res = await axiosInstance.put<any>("/students/me", data);
+      // Validate file size nếu có
+      if (data.avatarFile) {
+        const maxSize = 5 * 1024 * 1024; // 5MB
+        if (data.avatarFile.size > maxSize) {
+          throw new Error("Kích thước file không được vượt quá 5MB");
+        }
+      }
+
+      // Tạo FormData để gửi file + JSON data
+      const formData = new FormData();
+
+      const payload: Record<string, string> = {};
+
+      if (data.fullName !== undefined) {
+        payload.fullName = data.fullName;
+      }
+
+      if (data.phoneNumber !== undefined) {
+        payload.phoneNumber = data.phoneNumber;
+      }
+
+      formData.append("data", JSON.stringify(payload));
+
+      if (data.avatarFile) {
+        formData.append("image", data.avatarFile);
+      }
+
+      const res = await axiosInstance.put<any>("/students/me", formData);
+      
       // BE trả về data trực tiếp hoặc wrap trong { data: {...} }
       const apiData = res.data?.data ?? res.data;
 
@@ -165,12 +189,43 @@ export const studentService = {
         phoneNumber: apiData.phoneNumber,
         email: apiData.email || null,
         avatarUrl: apiData.avatarUrl || null,
+        walletId: apiData.walletId ?? null,
         status: apiData.status || "ACTIVE",
         createdAt: apiData.createdAt || null,
       };
-    } catch (error) {
-      console.error("❌ [updateProfile] Lỗi khi cập nhật profile:", error);
+    } catch (error: any) {
       throw error;
+    }
+  },
+
+  /** 🔹 Lấy danh sách sự kiện của student hiện tại */
+  async getMyEvents(params?: {
+    page?: number;
+    size?: number;
+  }): Promise<Event[]> {
+    try {
+      const queryParams: Record<string, any> = {
+        page: params?.page ?? 1,
+        size: params?.size ?? 10,
+      };
+
+      const res = await axiosInstance.get<any>("/students/me/events", {
+        params: queryParams,
+      });
+
+      const payload = res?.data?.data ?? res?.data;
+
+      if (Array.isArray(payload)) {
+        return payload as Event[];
+      }
+
+      if (Array.isArray(payload?.data)) {
+        return payload.data as Event[];
+      }
+
+      return [];
+    } catch (error) {
+      return [];
     }
   },
 };

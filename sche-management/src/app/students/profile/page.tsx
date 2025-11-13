@@ -22,7 +22,8 @@ export default function StudentProfilePage() {
   // Form state for edit profile
   const [editFullName, setEditFullName] = useState("");
   const [editPhoneNumber, setEditPhoneNumber] = useState("");
-  const [editAvatarUrl, setEditAvatarUrl] = useState("");
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   
   // Get email from auth profile
@@ -59,7 +60,8 @@ export default function StudentProfilePage() {
     if (profile) {
       setEditFullName(profile.fullName);
       setEditPhoneNumber(profile.phoneNumber);
-      setEditAvatarUrl(profile.avatarUrl || "");
+      setEditAvatarFile(null);
+      setEditAvatarPreview(profile.avatarUrl || null);
       setEditError(null);
       setShowEditDialog(true);
     }
@@ -81,10 +83,17 @@ export default function StudentProfilePage() {
       const updatedProfile = await studentService.updateProfile({
         fullName: editFullName.trim(),
         phoneNumber: editPhoneNumber.trim(),
-        avatarUrl: editAvatarUrl.trim() || undefined,
+        avatarFile: editAvatarFile || undefined,
       });
       
       setProfile(updatedProfile);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("student-profile-updated", {
+            detail: updatedProfile,
+          })
+        );
+      }
       setShowEditDialog(false);
       toast.success("Cập nhật hồ sơ thành công!", {
         description: "Thông tin của bạn đã được lưu.",
@@ -148,12 +157,16 @@ export default function StudentProfilePage() {
         open={showEditDialog}
         fullName={editFullName}
         phoneNumber={editPhoneNumber}
-        avatarUrl={editAvatarUrl}
+        avatarFile={editAvatarFile}
+        avatarPreview={editAvatarPreview}
         formError={editError}
         submitting={submitting}
         onFullNameChange={setEditFullName}
         onPhoneNumberChange={setEditPhoneNumber}
-        onAvatarUrlChange={setEditAvatarUrl}
+        onAvatarFileChange={(file, preview) => {
+          setEditAvatarFile(file);
+          setEditAvatarPreview(preview);
+        }}
         onClose={() => setShowEditDialog(false)}
         onSubmit={handleUpdateProfile}
       />

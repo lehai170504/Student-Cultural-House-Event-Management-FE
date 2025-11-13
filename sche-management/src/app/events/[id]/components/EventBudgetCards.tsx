@@ -1,11 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Coins } from "lucide-react";
 import { motion } from "framer-motion";
-import type { Event } from "@/features/events/types/events";
-
-interface EventBudgetCardsProps {
-  event: Event;
-}
+import type { EventBudgetCardsProps } from "@/features/events/types/events";
 
 export default function EventBudgetCards({ event }: EventBudgetCardsProps) {
   const budgetItems = [

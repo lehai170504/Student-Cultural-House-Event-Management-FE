@@ -1,24 +1,13 @@
 import { motion } from "framer-motion";
 import EventCard from "./EventCard";
 import EventCardSkeleton from "./EventCardSkeleton";
-import type { Event } from "@/features/events/types/events";
-
-interface EventsGridProps {
-  events: Event[];
-  showSkeleton: boolean;
-  skeletonCount: number;
-  searchTerm: string;
-  selectedCategory: string | null;
-  selectedStatus: null | "ACTIVE" | "FINISHED";
-}
+import type { EventsGridProps } from "@/features/events/types/events";
 
 export default function EventsGrid({
   events,
-  showSkeleton,
+  loading,
   skeletonCount,
-  searchTerm,
-  selectedCategory,
-  selectedStatus,
+  queryKey,
 }: EventsGridProps) {
   return (
     <motion.div
@@ -26,9 +15,9 @@ export default function EventsGrid({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
-      key={searchTerm + selectedCategory + (selectedStatus || "all")}
+      key={queryKey}
     >
-      {showSkeleton ? (
+      {loading ? (
         // Show skeleton when loading
         Array.from({ length: skeletonCount }).map((_, idx) => (
           <EventCardSkeleton key={`skeleton-${idx}`} index={idx} />

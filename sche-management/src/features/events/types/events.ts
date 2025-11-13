@@ -1,5 +1,6 @@
 // src/features/events/types/events.ts
-import { EventCategory } from "@/features/eventCategories/types/eventCategories";
+import type { ChangeEvent, FormEvent } from "react";
+import type { EventCategory } from "@/features/eventCategories/types/eventCategories";
 
 export interface Event {
   id: string;
@@ -207,4 +208,84 @@ export interface EventForCheckin {
   title: string;
   studentId: string;
   studentName: string;
+}
+
+// UI specific props
+export interface EventsSearchBarProps {
+  searchTerm: string;
+  onSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  selectedStatus: null | "ACTIVE" | "FINISHED";
+  onStatusFilter: (status: null | "ACTIVE" | "FINISHED") => void;
+}
+
+export interface CategoryFiltersProps {
+  categories: EventCategory[];
+  selectedCategory: string | null;
+  categoryIdToCount: Record<string, number>;
+  totalCount: number;
+  onCategoryFilter: (categoryId: string | null) => void;
+}
+
+export interface EventCardProps {
+  event: Event;
+  index: number;
+}
+
+export interface EventCardSkeletonProps {
+  index: number;
+}
+
+export interface EventsGridProps {
+  events: Event[];
+  loading: boolean;
+  skeletonCount: number;
+  queryKey: string;
+}
+
+export interface EventsPaginationProps {
+  currentPage: number;
+  totalPages: number;
+  isLastPage: boolean;
+  loadingList: boolean;
+  onPageChange: (page: number) => void;
+  getPageNumbers: () => number[];
+}
+
+export interface EventDetailHeaderProps {
+  status: string;
+  hasRegistered: boolean;
+  registering: boolean;
+  onRegister: () => void;
+  onGoToFeedback: () => void;
+  onGoBack: () => void;
+}
+
+export interface EventDetailInfoProps {
+  event: Event;
+}
+
+export interface EventBudgetCardsProps {
+  event: Event;
+}
+
+export interface EventInfoCardsProps {
+  event: Event;
+  startDate: string;
+  endDate: string;
+  maxAttendees: number;
+}
+
+export interface EventFeedbackFormProps {
+  rating: string;
+  comments: string;
+  sendingFeedback: boolean;
+  onRatingChange: (rating: string) => void;
+  onCommentsChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+  onSubmit: (event: FormEvent) => void;
+}
+
+export interface EventFeedbackListProps {
+  feedbacks: EventFeedbackResponse[];
+  loadingFeedbacks: boolean;
+  currentStudentId: string | null;
 }

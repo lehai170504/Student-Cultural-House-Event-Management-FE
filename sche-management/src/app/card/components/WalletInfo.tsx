@@ -1,7 +1,4 @@
-interface WalletInfoProps {
-  memberName: string;
-  ownerType: string | undefined;
-}
+import type { WalletInfoProps } from "@/features/wallet/types/wallet";
 
 export default function WalletInfo({ memberName, ownerType }: WalletInfoProps) {
   return (

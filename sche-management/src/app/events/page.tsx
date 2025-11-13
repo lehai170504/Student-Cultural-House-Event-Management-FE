@@ -443,11 +443,9 @@ export default function EventsPage() {
 
           <EventsGrid
             events={filteredEvents}
-            showSkeleton={showSkeleton}
+            loading={showSkeleton}
             skeletonCount={skeletonItems.length}
-            searchTerm={searchTerm}
-            selectedCategory={selectedCategory}
-            selectedStatus={selectedStatus}
+            queryKey={`${searchTerm}-${selectedCategory ?? "all"}-${selectedStatus ?? "all"}`}
           />
         </div>
       </section>

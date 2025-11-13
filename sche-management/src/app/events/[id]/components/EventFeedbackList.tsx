@@ -2,22 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
-
-interface Feedback {
-  id: number;
-  studentId: number;
-  studentName?: string;
-  rating: number;
-  comments?: string;
-  sentimentLabel?: string;
-  createdAt?: string;
-}
-
-interface EventFeedbackListProps {
-  feedbacks: Feedback[];
-  loadingFeedbacks: boolean;
-  currentStudentId: string | null;
-}
+import type { EventFeedbackListProps } from "@/features/events/types/events";
 
 export default function EventFeedbackList({
   feedbacks,

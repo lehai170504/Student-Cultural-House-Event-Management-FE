@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 import '../../services/api_client.dart';
+import '../../services/auth_service.dart';
 import '../../config/api_config.dart' as app_config;
 import '../events/events_page.dart'; // Import Event class
 
@@ -22,14 +23,16 @@ class EventHistoryPage extends StatefulWidget {
 
 class _EventHistoryPageState extends State<EventHistoryPage> {
   final ApiClient _apiClient = ApiClient();
+  final AuthService _authService = AuthService();
   bool _isLoading = true;
   List<Event> _registeredEvents = [];
   String? _error;
+  bool _isSignedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _loadRegisteredEvents();
+    _checkAuthStatus();
 
     // Register this instance to the static reload method
     EventHistoryPage._currentInstance = this;
@@ -41,7 +44,28 @@ class _EventHistoryPageState extends State<EventHistoryPage> {
     super.dispose();
   }
 
+  Future<void> _checkAuthStatus() async {
+    final signedIn = await _authService.isSignedIn();
+    if (!mounted) return;
+
+    setState(() {
+      _isSignedIn = signedIn;
+    });
+
+    if (signedIn) {
+      await _loadRegisteredEvents();
+    } else {
+      setState(() {
+        _isLoading = false;
+        _registeredEvents = [];
+        _error = null;
+      });
+    }
+  }
+
   Future<void> _loadRegisteredEvents({bool refresh = false}) async {
+    if (!_isSignedIn) return;
+
     if (refresh) {
       setState(() {
         _isLoading = true;
@@ -112,6 +136,53 @@ class _EventHistoryPageState extends State<EventHistoryPage> {
   }
 
   Widget _buildBody() {
+    if (!_isSignedIn) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.lock_outlined,
+                size: 64,
+                color: Color(0xFF6B7280),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Vui lòng đăng nhập',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Bạn cần đăng nhập để xem lịch sử sự kiện đã tham gia.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).pushNamed('/login'),
+                icon: const Icon(Icons.login),
+                label: const Text('Đăng nhập để tiếp tục'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFB923C),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(
@@ -502,7 +573,11 @@ class _EventHistoryPageState extends State<EventHistoryPage> {
     );
   }
 
-  Future<void> _submitFeedback(int eventId, int rating, String comments) async {
+  Future<void> _submitFeedback(
+    String eventId,
+    int rating,
+    String comments,
+  ) async {
     try {
       safePrint('🔍 Submitting feedback for event $eventId...');
       safePrint('🔍 Rating: $rating, Comments: $comments');

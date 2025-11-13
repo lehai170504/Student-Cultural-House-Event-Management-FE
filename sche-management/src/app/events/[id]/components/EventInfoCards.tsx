@@ -1,14 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { motion } from "framer-motion";
-import type { Event } from "@/features/events/types/events";
-
-interface EventInfoCardsProps {
-  event: Event;
-  startDate: string;
-  endDate: string;
-  maxAttendees: number;
-}
+import type { EventInfoCardsProps } from "@/features/events/types/events";
 
 export default function EventInfoCards({
   event,

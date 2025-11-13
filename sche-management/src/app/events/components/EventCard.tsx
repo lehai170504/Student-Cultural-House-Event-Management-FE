@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Calendar, Clock, ArrowRight } from "lucide-react";
-import type { Event } from "@/features/events/types/events";
+import type { EventCardProps } from "@/features/events/types/events";
 import {
   getEventStatus,
   getStatusColor,
@@ -10,11 +10,6 @@ import {
   formatDate,
   formatTime,
 } from "../utils/eventUtils";
-
-interface EventCardProps {
-  event: Event;
-  index: number;
-}
 
 export default function EventCard({ event, index }: EventCardProps) {
   const status = getEventStatus(event);

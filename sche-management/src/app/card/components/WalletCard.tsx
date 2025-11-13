@@ -3,18 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import WalletHeader from "./WalletHeader";
 import WalletBalance from "./WalletBalance";
 import WalletInfo from "./WalletInfo";
-
-interface WalletCardProps {
-  wallet: {
-    id: number;
-    ownerType: string;
-    balance: number;
-    currency: string;
-  } | null;
-  memberName: string;
-  loading: boolean;
-  numberFormatter: Intl.NumberFormat;
-}
+import type { WalletCardProps } from "@/features/wallet/types/wallet";
 
 export default function WalletCard({
   wallet,

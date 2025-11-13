@@ -1,9 +1,5 @@
 import { motion } from "framer-motion";
-import type { Event } from "@/features/events/types/events";
-
-interface EventDetailInfoProps {
-  event: Event;
-}
+import type { EventDetailInfoProps } from "@/features/events/types/events";
 
 export default function EventDetailInfo({ event }: EventDetailInfoProps) {
   return (

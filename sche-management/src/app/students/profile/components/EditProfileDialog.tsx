@@ -10,12 +10,13 @@ interface EditProfileDialogProps {
   open: boolean;
   fullName: string;
   phoneNumber: string;
-  avatarUrl: string;
+  avatarFile: File | null;
+  avatarPreview: string | null;
   formError: string | null;
   submitting: boolean;
   onFullNameChange: (value: string) => void;
   onPhoneNumberChange: (value: string) => void;
-  onAvatarUrlChange: (value: string) => void;
+  onAvatarFileChange: (file: File | null, preview: string | null) => void;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -24,15 +25,39 @@ export default function EditProfileDialog({
   open,
   fullName,
   phoneNumber,
-  avatarUrl,
+  avatarFile,
+  avatarPreview,
   formError,
   submitting,
   onFullNameChange,
   onPhoneNumberChange,
-  onAvatarUrlChange,
+  onAvatarFileChange,
   onClose,
   onSubmit,
 }: EditProfileDialogProps) {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Vui lòng chọn file ảnh');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Kích thước file không được vượt quá 5MB');
+        return;
+      }
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onAvatarFileChange(file, reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      onAvatarFileChange(null, null);
+    }
+  };
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -69,16 +94,30 @@ export default function EditProfileDialog({
               />
             </div>
 
-            {/* Avatar URL */}
+            {/* Avatar File Upload */}
             <div className="space-y-2">
-              <Label htmlFor="editAvatarUrl">URL Ảnh đại diện</Label>
-              <Input
-                id="editAvatarUrl"
-                type="url"
-                placeholder="Nhập URL ảnh đại diện"
-                value={avatarUrl}
-                onChange={(e) => onAvatarUrlChange(e.target.value)}
-              />
+              <Label htmlFor="editAvatarFile">Ảnh đại diện</Label>
+              <div className="space-y-2">
+                {avatarPreview && (
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200">
+                    <img
+                      src={avatarPreview}
+                      alt="Avatar preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <Input
+                  id="editAvatarFile"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-gray-500">
+                  Chọn file ảnh (JPG, PNG, GIF) - Tối đa 5MB
+                </p>
+              </div>
             </div>
 
             {formError && (

@@ -58,6 +58,7 @@ export interface StudentProfile {
   phoneNumber: string;
   email: string | null;
   avatarUrl: string | null;
+  walletId?: number | null;
   createdAt: string | null;
   status: "ACTIVE" | "INACTIVE" | "SUSPENDED";
 }
@@ -74,5 +75,5 @@ export interface CompleteProfileRequest {
 export interface UpdateProfileRequest {
   fullName?: string;
   phoneNumber?: string;
-  avatarUrl?: string;
+  avatarFile?: File;
 }
