@@ -40,7 +40,45 @@ class ApiClient {
     );
   }
 
-  Future<Map<String, String>> _buildHeaders() async {
+  Future<http.Response> postMultipart(
+    String path, {
+    Map<String, String>? fields,
+    List<http.MultipartFile>? files,
+  }) async {
+    final uri = Uri.parse(_join(baseUrl, path));
+    final headers = await _buildHeaders(removeContentType: true);
+    final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll(headers);
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+    if (files != null && files.isNotEmpty) {
+      request.files.addAll(files);
+    }
+    final streamed = await request.send();
+    return http.Response.fromStream(streamed);
+  }
+
+  Future<http.Response> putMultipart(
+    String path, {
+    Map<String, String>? fields,
+    List<http.MultipartFile>? files,
+  }) async {
+    final uri = Uri.parse(_join(baseUrl, path));
+    final headers = await _buildHeaders(removeContentType: true);
+    final request = http.MultipartRequest('PUT', uri);
+    request.headers.addAll(headers);
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+    if (files != null && files.isNotEmpty) {
+      request.files.addAll(files);
+    }
+    final streamed = await request.send();
+    return http.Response.fromStream(streamed);
+  }
+
+  Future<Map<String, String>> _buildHeaders({bool removeContentType = false}) async {
     final accessToken = await _authService.getAccessToken();
     final idToken = await _authService.getIdToken();
     final headers = Map<String, String>.from(ApiConfig.defaultHeaders);
@@ -50,6 +88,9 @@ class ApiClient {
     }
     if (idToken != null && idToken.isNotEmpty) {
       headers['X-ID-Token'] = idToken;
+    }
+    if (removeContentType) {
+      headers.remove('Content-Type');
     }
     return headers;
   }
