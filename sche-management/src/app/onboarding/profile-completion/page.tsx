@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ChangeEvent } from "react";
 import { useAuth } from "react-oidc-context";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,9 @@ export default function ProfileCompletionPage() {
   const [userType, setUserType] = useState<string>("");
   const [university, setUniversity] = useState<string>("");
   const [phoneNumber, setPhoneNumber] = useState<string>("");
-  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -63,8 +65,34 @@ export default function ProfileCompletionPage() {
       return false;
     if (!phoneNumber.trim()) return false; // PhoneNumber là bắt buộc
     if (!validatePhoneNumber(phoneNumber)) return false; // PhoneNumber phải đúng format
-    // avatarUrl là optional, không cần validate
+    // Avatar là optional, không cần validate
     return true;
+  };
+
+  const handleAvatarInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setAvatarFile(null);
+      setAvatarPreview(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setError("Vui lòng chọn ảnh hợp lệ (JPG, PNG, GIF).");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Ảnh đại diện không được vượt quá 5MB.");
+      return;
+    }
+
+    setError(null);
+    setAvatarFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   // Check authentication
@@ -161,7 +189,7 @@ export default function ProfileCompletionPage() {
         attributesToUpdate
       );
 
-      // Bước 2: Gọi API complete-profile để lưu phoneNumber và avatarUrl vào BE (cho cả sinh viên và người ngoài)
+      // Bước 2: Gọi API complete-profile để lưu phoneNumber và avatar vào BE (cho cả sinh viên và người ngoài)
       try {
         // Normalize phone number trước khi gửi (loại bỏ khoảng trắng, dấu gạch ngang, v.v.)
         const normalizedPhoneNumber = normalizePhoneNumber(phoneNumber);
@@ -173,11 +201,13 @@ export default function ProfileCompletionPage() {
           throw new Error("Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại bắt đầu bằng 03, 05, 07, 08, hoặc 09.");
         }
         
-        await studentService.completeProfile({
+        const result = await studentService.completeProfile({
           phoneNumber: normalizedPhoneNumber, // Gửi normalized phone number
-          avatarUrl: avatarUrl.trim() || undefined, // Avatar có thể để trống
+          avatarFile: avatarFile ?? undefined,
+          avatarPath: avatarPath ?? undefined,
         });
         console.log("✅ [handleSubmit] Profile completed successfully");
+        setAvatarPath(result?.avatarUrl ?? null);
       } catch (apiError: any) {
         console.error("❌ [handleSubmit] Error completing profile on backend:", apiError);
         console.error("❌ [handleSubmit] Error response:", apiError?.response?.data);
@@ -371,22 +401,35 @@ export default function ProfileCompletionPage() {
             )}
           </div>
 
-          {/* Avatar URL (optional for all users) */}
+          {/* Avatar upload (optional) */}
           <div>
             <Label
-              htmlFor="avatarUrl"
+              htmlFor="avatarFile"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              URL Ảnh đại diện <span className="text-gray-500 text-xs">(Tùy chọn)</span>
+              Ảnh đại diện <span className="text-gray-500 text-xs">(Tùy chọn)</span>
             </Label>
-            <Input
-              id="avatarUrl"
-              type="url"
-              placeholder="Nhập URL ảnh đại diện (ví dụ: https://example.com/avatar.jpg) - Có thể để trống"
-              value={avatarUrl}
-              onChange={(e) => setAvatarUrl(e.target.value)}
-              className="w-full"
-            />
+            <div className="space-y-3">
+              {avatarPreview || avatarPath ? (
+                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200">
+                  <img
+                    src={avatarPreview ?? avatarPath ?? ""}
+                    alt="Ảnh đại diện"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : null}
+              <Input
+                id="avatarFile"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarInputChange}
+                className="w-full cursor-pointer"
+              />
+              <p className="text-xs text-gray-500">
+                Chọn ảnh JPG, PNG hoặc GIF tối đa 5MB. Có thể bỏ qua bước này.
+              </p>
+            </div>
           </div>
 
           {/* Error message */}

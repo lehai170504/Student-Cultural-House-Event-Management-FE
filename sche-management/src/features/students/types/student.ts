@@ -69,7 +69,8 @@ export interface StudentProfileResponse {
 
 export interface CompleteProfileRequest {
   phoneNumber: string;
-  avatarUrl?: string | null;
+  avatarFile?: File | null;
+  avatarPath?: string | null;
 }
 
 export interface UpdateProfileRequest {
