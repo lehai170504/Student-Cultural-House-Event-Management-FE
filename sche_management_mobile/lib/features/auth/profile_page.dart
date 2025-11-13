@@ -10,6 +10,7 @@ import '../../services/api_client.dart';
 import '../../config/api_config.dart' as app_config;
 import '../wallet/wallet_page.dart';
 import '../history/event_history_page.dart';
+import '../notifications/notifications_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -46,6 +47,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? _avatarPath;
   String? _universityName;
   int _totalPoints = 0;
+  int _unreadNotificationCount = 0;
 
   // Onboarding form fields
   String? _selectedUserType;
@@ -75,6 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadUnreadNotificationCount();
   }
 
   @override
@@ -826,6 +829,25 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final response = await _apiClient.get(app_config.ApiConfig.unreadCount);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final count = body is Map<String, dynamic>
+            ? (body['count'] ?? 0)
+            : (body ?? 0);
+        if (mounted) {
+          setState(() {
+            _unreadNotificationCount = count is int ? count : 0;
+          });
+        }
+      }
+    } catch (e) {
+      safePrint('❌ Error loading unread notification count: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -834,6 +856,50 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: const Color(0xFFFB923C),
         foregroundColor: Colors.white,
         actions: [
+          // Notification bell
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () async {
+                  final result = await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsPage(),
+                    ),
+                  );
+                  // Reload unread count when returning from notifications page
+                  _loadUnreadNotificationCount();
+                },
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadNotificationCount > 9
+                          ? '9+'
+                          : '$_unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => _openEditDialog(),

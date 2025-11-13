@@ -40,6 +40,16 @@ class ApiClient {
     );
   }
 
+  Future<http.Response> patch(String path, {Object? body}) async {
+    final headers = await _buildHeaders();
+    final uri = Uri.parse(_join(baseUrl, path));
+    return _http.patch(
+      uri,
+      headers: headers,
+      body: body == null ? null : jsonEncode(body),
+    );
+  }
+
   Future<http.Response> postMultipart(
     String path, {
     Map<String, String>? fields,

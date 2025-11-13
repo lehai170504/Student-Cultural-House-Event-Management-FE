@@ -26,6 +26,12 @@ class ApiConfig {
   static String getWallet(String walletId) => '/wallets/$walletId';
   static const String walletHistory = '/wallets/me/history';
 
+  // Notification endpoints
+  static const String notifications = '/me/broadcasts';
+  static const String unreadCount = '/me/broadcasts/unread-count';
+  static String markAsRead(String deliveryId) =>
+      '/me/broadcasts/$deliveryId/read';
+
   // Headers
   static Map<String, String> get defaultHeaders => {
     'Content-Type': 'application/json',
