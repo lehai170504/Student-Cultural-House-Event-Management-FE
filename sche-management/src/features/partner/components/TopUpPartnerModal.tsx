@@ -35,7 +35,6 @@ export default function TopUpPartnerModal({
   const [amount, setAmount] = useState<number | string>("");
   const [isProcessing, setIsProcessing] = useState(false);
 
-
   useEffect(() => {
     if (open) {
       setAmount("");
@@ -69,7 +68,8 @@ export default function TopUpPartnerModal({
         });
         onTopUpSuccess(partnerName, topUpAmount);
       } else {
-        const errMsg = action?.payload || "Không thể nạp coin. Vui lòng thử lại.";
+        const errMsg =
+          action?.payload || "Không thể nạp coin. Vui lòng thử lại.";
         toast.error("Nạp coin thất bại", { description: String(errMsg) });
       }
     } finally {
@@ -85,8 +85,7 @@ export default function TopUpPartnerModal({
             Nạp Coin cho Đối tác
           </DialogTitle>
           <DialogDescription className="text-gray-600">
-            Thực hiện nạp coin vào ví cho đối tác **{partnerName}** (ID:{" "}
-            {partnerId}).
+            Thực hiện nạp coin vào ví cho đối tác **{partnerName}**.
           </DialogDescription>
         </DialogHeader>
 

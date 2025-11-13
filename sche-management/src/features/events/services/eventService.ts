@@ -210,10 +210,10 @@ export const eventService = {
   /** ✅ 🔹 Duyệt sự kiện (approve) */
   async approveEvent(eventId: string): Promise<EventApproveResponse> {
     try {
-      const res = await axiosInstance.patch<{ data: EventApproveResponse }>(
+      const res = await axiosInstance.patch<EventApproveResponse>(
         `${endpoint2}/${eventId}/approve`
       );
-      return res.data.data;
+      return res.data;
     } catch (error) {
       console.error(
         `❌ [approveEvent] Lỗi khi duyệt event ID ${eventId}:`,

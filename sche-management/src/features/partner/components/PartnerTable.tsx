@@ -19,6 +19,7 @@ import { toast, Toaster } from "sonner";
 
 const CreatePartnerModal = lazy(() => import("./CreatePartnerModal"));
 const TopUpPartnerModal = lazy(() => import("./TopUpPartnerModal"));
+const PartnerWalletDetail = lazy(() => import("./PartnerWalletDetail"));
 
 export default function PartnerTable() {
   const {
@@ -31,8 +32,11 @@ export default function PartnerTable() {
 
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
-  // State lưu trữ partner đang được nạp tiền
   const [topUp, setTopUp] = useState<Partner | null>(null);
+  const [viewWallet, setViewWallet] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const filteredPartners: Partner[] = Array.isArray(list)
     ? list.filter((p: Partner) =>
@@ -49,165 +53,182 @@ export default function PartnerTable() {
       filteredPartners.find((p) => String(p.id) === id)?.name || "Đối tác";
 
     const success = await changePartnerStatus(id, newStatus);
-
     if (success) {
       loadAll();
-      const statusText =
-        newStatus === "ACTIVE" ? "Đã kích hoạt" : "Đã tạm dừng";
-      toast.success(`${partnerName} ${statusText}`, {
-        description: `Trạng thái của đối tác đã được cập nhật thành ${newStatus}.`,
-      });
+      toast.success(
+        `${partnerName} ${
+          newStatus === "ACTIVE" ? "Đã kích hoạt" : "Đã tạm dừng"
+        }`
+      );
     } else {
       toast.error(`Cập nhật trạng thái thất bại`, {
-        description: `Không thể thay đổi trạng thái của đối tác ${partnerName}. Vui lòng thử lại.`,
+        description: `Không thể thay đổi trạng thái của đối tác ${partnerName}.`,
       });
     }
   };
 
   const handleTopUpSuccess = (partnerName: string, amount: number) => {
     setTopUp(null);
-
     loadAll();
-
     const formattedAmount = new Intl.NumberFormat("vi-VN").format(amount);
     toast.success(`Nạp tiền thành công cho ${partnerName}`, {
-      description: `Đã nạp thành công ${formattedAmount} Coin.`,
+      description: `Đã nạp ${formattedAmount} Coin.`,
       duration: 5000,
     });
   };
 
   return (
-    <main className="min-h-screen bg-gray-50">
-      <section className="relative bg-white rounded-2xl shadow p-8 mt-5">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-6 items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                Quản lý đối tác
-              </h1>
-              <p className="text-lg text-gray-600">Quản lý các đối tác</p>
-            </div>
-
-            <div className="flex md:justify-end justify-center gap-4 flex-wrap items-center">
-              <Input
-                placeholder="Tìm kiếm đối tác..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-[200px]"
-              />
-              <Button
-                className="bg-orange-500 hover:bg-orange-600 flex items-center gap-1"
-                onClick={() => setCreating(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Tạo mới
-              </Button>
-            </div>
+    <main className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <section className="bg-white rounded-2xl shadow p-6 md:p-8">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+              Quản lý đối tác
+            </h1>
+            <p className="text-gray-500 mt-1">
+              Danh sách và trạng thái các đối tác
+            </p>
           </div>
 
-          <div className="rounded-xl border">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-100">
-                  <TableHead className="px-6 py-3">STT</TableHead>
-                  <TableHead className="px-6 py-3">Tên đối tác</TableHead>
-                  <TableHead className="px-6 py-3">Loại tổ chức</TableHead>
-                  <TableHead className="px-6 py-3">Email</TableHead>
-                  <TableHead className="px-6 py-3">Số điện thoại</TableHead>
-                  <TableHead className="px-6 py-3">Wallet ID</TableHead>
-                  <TableHead className="px-6 py-3">Ngày tạo</TableHead>
-                  <TableHead className="px-6 py-3">Trạng thái</TableHead>
-                  <TableHead className="px-6 py-3 text-center">
-                    Hành động
+          <div className="flex flex-wrap gap-3 items-center">
+            <Input
+              placeholder="Tìm kiếm đối tác..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full md:w-64"
+            />
+            <Button
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+              onClick={() => setCreating(true)}
+            >
+              <Plus className="h-4 w-4" /> Tạo mới
+            </Button>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto rounded-xl border">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-100">
+                {[
+                  "STT",
+                  "Tên đối tác",
+                  "Loại tổ chức",
+                  "Email",
+                  "Số điện thoại",
+                  "Ngày tạo",
+                  "Trạng thái",
+                  "Hành động",
+                ].map((title) => (
+                  <TableHead
+                    key={title}
+                    className="px-4 py-3 text-left text-gray-700"
+                  >
+                    {title}
                   </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+
+            <TableBody>
+              {loadingList ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="text-center py-6 text-gray-500"
+                  >
+                    Đang tải...
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loadingList ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-6">
-                      Đang tải...
+              ) : filteredPartners.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={9}
+                    className="text-center py-6 text-gray-500"
+                  >
+                    Không có đối tác nào
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredPartners.map((partner, index) => (
+                  <TableRow
+                    key={partner.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <TableCell className="px-4 py-3">{index + 1}</TableCell>
+                    <TableCell className="px-4 py-3 font-medium">
+                      {partner.name}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      {partner.organizationType}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      {partner.contactEmail}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      {partner.contactPhone}
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      {new Date(partner.createdAt).toLocaleDateString()}
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell className="px-4 py-3">
+                      <Button
+                        size="sm"
+                        className={`w-28 flex items-center justify-center gap-1 ${
+                          partner.status === "ACTIVE"
+                            ? "bg-green-600 hover:bg-green-700 text-white"
+                            : "border border-red-500 text-red-600 hover:bg-red-50"
+                        }`}
+                        onClick={() => toggleStatus(partner.id, partner.status)}
+                      >
+                        {partner.status === "ACTIVE" ? (
+                          <>
+                            <CheckCircle className="h-4 w-4" /> Hoạt động
+                          </>
+                        ) : (
+                          <>
+                            <XCircle className="h-4 w-4" /> Tạm dừng
+                          </>
+                        )}
+                      </Button>
+                    </TableCell>
+
+                    {/* Actions */}
+                    <TableCell className="px-4 py-3 flex flex-col md:flex-row gap-2 justify-center">
+                      <Button
+                        size="sm"
+                        className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600 text-white"
+                        onClick={() => setTopUp(partner)}
+                      >
+                        <DollarSign className="h-4 w-4" /> Nạp Coin
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        className="flex items-center gap-1 bg-purple-500 hover:bg-purple-600 text-white"
+                        onClick={() =>
+                          setViewWallet({
+                            id: partner.walletId || "",
+                            name: partner.name,
+                          })
+                        }
+                      >
+                        Xem Số Dư
+                      </Button>
                     </TableCell>
                   </TableRow>
-                ) : filteredPartners.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center py-6">
-                      Không có đối tác nào
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredPartners.map((partner, index) => (
-                    <TableRow key={partner.id}>
-                      <TableCell className="px-6 py-4">{index + 1}</TableCell>
-                      <TableCell className="px-6 py-4">
-                        {partner.name}
-                      </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {partner.organizationType}
-                      </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {partner.contactEmail}
-                      </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {partner.contactPhone}
-                      </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {partner.walletId}
-                      </TableCell>
-                      <TableCell className="px-6 py-4">
-                        {new Date(partner.createdAt).toLocaleDateString()}
-                      </TableCell>
-
-                      <TableCell className="px-6 py-4">
-                        <Button
-                          size="sm"
-                          variant={
-                            partner.status === "ACTIVE" ? "default" : "outline"
-                          }
-                          className={
-                            partner.status === "ACTIVE"
-                              ? "bg-green-600 hover:bg-green-700 text-white w-[120px]"
-                              : "border-red-500 text-red-600 hover:bg-red-50 w-[120px]"
-                          }
-                          onClick={() =>
-                            toggleStatus(partner.id, partner.status)
-                          }
-                        >
-                          <span className="flex items-center justify-center gap-1">
-                            {partner.status === "ACTIVE" ? (
-                              <>
-                                <CheckCircle className="h-4 w-4" /> Hoạt động
-                              </>
-                            ) : (
-                              <>
-                                <XCircle className="h-4 w-4" /> Tạm dừng
-                              </>
-                            )}
-                          </span>
-                        </Button>
-                      </TableCell>
-
-                      <TableCell className="px-6 py-4 text-center">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-1"
-                          onClick={() => setTopUp(partner)}
-                        >
-                          <DollarSign className="h-4 w-4" />
-                          Nạp Coin
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                ))
+              )}
+            </TableBody>
+          </Table>
         </div>
       </section>
 
-      {/* Modal tạo mới */}
+      {/* Modals */}
       {creating && (
         <Suspense fallback={<p>Đang tải...</p>}>
           <CreatePartnerModal
@@ -216,7 +237,6 @@ export default function PartnerTable() {
             onCreate={async (data) => {
               const success = await createNewPartner(data);
               setCreating(false);
-
               if (success) {
                 loadAll();
                 toast.success("Tạo đối tác thành công", {
@@ -224,8 +244,7 @@ export default function PartnerTable() {
                 });
               } else {
                 toast.error("Tạo đối tác thất bại", {
-                  description:
-                    "Đã xảy ra lỗi trong quá trình tạo đối tác. Vui lòng thử lại.",
+                  description: "Lỗi khi tạo đối tác, thử lại.",
                 });
               }
             }}
@@ -233,7 +252,6 @@ export default function PartnerTable() {
         </Suspense>
       )}
 
-      {/* Modal Nạp tiền */}
       {topUp && (
         <Suspense fallback={<p>Đang tải...</p>}>
           <TopUpPartnerModal
@@ -242,6 +260,17 @@ export default function PartnerTable() {
             onTopUpSuccess={handleTopUpSuccess}
             partnerId={topUp.id.toString()}
             partnerName={topUp.name}
+          />
+        </Suspense>
+      )}
+
+      {viewWallet && (
+        <Suspense fallback={<p>Đang tải...</p>}>
+          <PartnerWalletDetail
+            open={!!viewWallet}
+            onClose={() => setViewWallet(null)}
+            walletId={viewWallet.id}
+            partnerName={viewWallet.name}
           />
         </Suspense>
       )}

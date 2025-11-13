@@ -2,16 +2,16 @@
 import axiosInstance from "@/config/axiosInstance";
 import type {
   Wallet,
-  WalletTransaction,
   TransferRequest,
   RollbackRequest,
   RedeemRequest,
   RequestWalletTopUpPartner,
   ResponseWalletTopUpPartner,
+  WalletTransactionResponse,
 } from "../types/wallet";
 
 const endpoint = "/wallets";
-const adminTopupEndpoint = "/admin/wallets/topup";
+const endpoint2 = "/admin/wallets";
 
 export const walletService = {
   async transfer(payload: TransferRequest): Promise<{ message: string }> {
@@ -29,26 +29,37 @@ export const walletService = {
     return res.data;
   },
 
-  async getById(id: number): Promise<Wallet> {
+  async getById(id: string): Promise<Wallet> {
     const res = await axiosInstance.get(`${endpoint}/${id}`);
     return res.data?.data ?? res.data;
   },
 
   async getTransactions(
-    id: number,
     params?: Record<string, any>
-  ): Promise<WalletTransaction[]> {
-    const res = await axiosInstance.get(`${endpoint}/${id}/transactions`, {
-      params,
-    });
-    return res.data?.data ?? res.data;
+  ): Promise<WalletTransactionResponse> {
+    const res = await axiosInstance.get<WalletTransactionResponse>(
+      `${endpoint2}/transactions`,
+      { params }
+    );
+
+    const response: WalletTransactionResponse = {
+      data: Array.isArray(res.data?.data) ? res.data.data : [],
+      meta: res.data?.meta ?? {
+        currentPage: 1,
+        pageSize: 10,
+        totalPages: 1,
+        totalItems: 0,
+      },
+    };
+
+    return response;
   },
 
   async topUpPartner(
-    payload: RequestWalletTopUpPartner // Sử dụng RequestWalletTopUpPartner mới
+    payload: RequestWalletTopUpPartner
   ): Promise<ResponseWalletTopUpPartner> {
     const res = await axiosInstance.post<ResponseWalletTopUpPartner>(
-      adminTopupEndpoint,
+      `${endpoint2}/topup`,
       payload
     );
     return res.data;

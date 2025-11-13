@@ -60,3 +60,13 @@ export interface AuthResponse {
     avatar: string;
   };
 }
+
+export interface PartnerResponse {
+  id: string;
+  name: string;
+  organizationType: string;
+  contactEmail: string;
+  contactPhone: string;
+  walletId: string;
+  status: "ACTIVE" | "INACTIVE";
+}

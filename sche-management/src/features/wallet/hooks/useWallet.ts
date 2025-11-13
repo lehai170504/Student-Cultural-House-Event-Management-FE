@@ -15,28 +15,50 @@ import type {
   RollbackRequest,
   TransferRequest,
   RequestWalletTopUpPartner,
+  WalletTransactionResponse,
 } from "../types/wallet";
 
 export const useWallet = () => {
   const dispatch = useAppDispatch();
-  const { wallet, transactions, loading, error, lastMessage } = useAppSelector(
-    (s) => (s as any).wallet || {}
-  );
+  const {
+    wallet,
+    transactions = [],
+    meta,
+    loading,
+    error,
+    lastMessage,
+  } = useAppSelector((s) => (s as any).wallet || {});
 
+  // ---------------- Wallet ----------------
   const loadWallet = useCallback(
-    (id: number) => {
+    (id: string) => {
       return dispatch(fetchWalletById(id));
     },
     [dispatch]
   );
 
+  // ---------------- Transactions ----------------
   const loadTransactions = useCallback(
-    (id: number, params?: Record<string, any>) => {
-      return dispatch(fetchWalletTransactions({ id, params }));
+    async (
+      params?: Record<string, any>
+    ): Promise<WalletTransactionResponse> => {
+      try {
+        const result: WalletTransactionResponse = await dispatch(
+          fetchWalletTransactions({ params })
+        ).unwrap();
+        return result;
+      } catch (err) {
+        console.error("Load transactions failed:", err);
+        return {
+          data: [],
+          meta: { currentPage: 1, pageSize: 10, totalPages: 0, totalItems: 0 },
+        };
+      }
     },
     [dispatch]
   );
 
+  // ---------------- Transfer ----------------
   const doTransfer = useCallback(
     (payload: TransferRequest) => {
       return dispatch(transferCoins(payload));
@@ -44,6 +66,7 @@ export const useWallet = () => {
     [dispatch]
   );
 
+  // ---------------- Rollback ----------------
   const doRollback = useCallback(
     (payload: RollbackRequest) => {
       return dispatch(rollbackTransaction(payload));
@@ -51,6 +74,7 @@ export const useWallet = () => {
     [dispatch]
   );
 
+  // ---------------- Redeem ----------------
   const doRedeem = useCallback(
     (payload: RedeemRequest) => {
       return dispatch(redeemCoins(payload));
@@ -58,6 +82,7 @@ export const useWallet = () => {
     [dispatch]
   );
 
+  // ---------------- Top Up Partner ----------------
   const doTopUpPartner = useCallback(
     (payload: RequestWalletTopUpPartner) => {
       return dispatch(topUpPartnerCoins(payload));
@@ -68,6 +93,7 @@ export const useWallet = () => {
   return {
     wallet,
     transactions,
+    meta, // ✅ thêm meta
     loading,
     error,
     lastMessage,

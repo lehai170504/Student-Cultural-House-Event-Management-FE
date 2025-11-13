@@ -3,7 +3,7 @@
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, User, CalendarDays, Key } from "lucide-react";
+import { Mail, CalendarDays } from "lucide-react";
 
 export default function Profile() {
   const { user, isLoading, error } = useUserProfile();

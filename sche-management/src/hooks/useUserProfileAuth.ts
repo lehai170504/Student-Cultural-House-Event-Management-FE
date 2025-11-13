@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 export interface UserProfile {
   username: string;
   name: string;
   email: string;
-  role: string;
+  groups: string[];
 }
 
 export function useUserProfileAuth() {
@@ -12,28 +12,47 @@ export function useUserProfileAuth() {
 
   useEffect(() => {
     try {
-      const storedProfile = localStorage.getItem("profile");
+      const authority = process.env.NEXT_PUBLIC_COGNITO_AUTHORITY!;
+      const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID!;
+      const key = `oidc.user:${authority}:${clientId}`;
+
+      const storedProfile =
+        (typeof window !== "undefined" && localStorage.getItem(key)) ||
+        (typeof window !== "undefined" && sessionStorage.getItem(key));
+
       if (!storedProfile) {
-        console.warn("⚠️ Không tìm thấy key 'profile' trong localStorage");
+        console.warn("⚠️ Không tìm thấy key profile trong storage");
         return;
       }
 
-      const profile = JSON.parse(storedProfile);
+      const profile = JSON.parse(storedProfile)?.profile;
+      if (!profile) return;
 
       const userData: UserProfile = {
-        username: profile.username,
-        name: profile.name,
-        email: profile.email,
-        role: profile["cognito:groups"]?.[0] || "USER", // lấy trực tiếp từ cognito:groups
+        username: profile.username || profile["cognito:username"],
+        name: profile.name || profile["name"] || "",
+        email: profile.email || "",
+        groups: Array.isArray(profile["cognito:groups"])
+          ? profile["cognito:groups"]
+          : [],
       };
 
-      console.log("✅ Loaded user profile from localStorage:", userData);
-
       setUser(userData);
+      console.log("✅ Loaded user profile:", userData);
     } catch (error) {
       console.error("❌ Failed to parse user profile:", error);
     }
   }, []);
 
-  return { user };
+  // helper: kiểm tra quyền
+  const isAdmin = useMemo(
+    () => user?.groups.includes("Admin") ?? false,
+    [user]
+  );
+  const isManager = useMemo(
+    () => user?.groups.includes("Manager") ?? false,
+    [user]
+  );
+
+  return { user, isAdmin, isManager };
 }

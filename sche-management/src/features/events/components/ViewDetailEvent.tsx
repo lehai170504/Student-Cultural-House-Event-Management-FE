@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { useEvents } from "../hooks/useEvents";
 import { Button } from "@/components/ui/button";
-import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
+import { useUserProfileAuth } from "@/hooks/useUserProfileAuth";
 import { toast } from "sonner";
 
 interface ViewDetailEventProps {
@@ -32,25 +32,8 @@ export default function ViewDetailEvent({
   open,
   onClose,
 }: ViewDetailEventProps) {
-  const { user } = useUserProfile();
-
-  // 🌟 Check role Cognito
-  function useUserRole(user: any) {
-    return useMemo(() => {
-      const groups = user?.groups || []; // fix từ user.profile
-      if (Array.isArray(groups)) {
-        if (groups.includes("ADMINS") || groups.includes("Admin"))
-          return "ADMIN";
-        if (groups.includes("PARTNERS") || groups.includes("Partner"))
-          return "PARTNER";
-      }
-      return null;
-    }, [user]);
-  }
-
-  const role = useUserRole(user);
-  const isPartner = role === "PARTNER";
-  const isAdmin = role === "ADMIN";
+  const { user: authUser, isAdmin, isManager } = useUserProfileAuth();
+  const isPartner = authUser?.groups.includes("PARTNERS") || false;
 
   const {
     detail,
@@ -143,6 +126,7 @@ export default function ViewDetailEvent({
           <p className="text-center py-10">Đang tải chi tiết...</p>
         ) : (
           <div className="space-y-4 mt-4">
+            {/** Tên sự kiện */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Tên sự kiện
@@ -157,6 +141,7 @@ export default function ViewDetailEvent({
               />
             </div>
 
+            {/** Mô tả */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Mô tả
@@ -171,6 +156,7 @@ export default function ViewDetailEvent({
               />
             </div>
 
+            {/** Địa điểm */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Địa điểm
@@ -185,6 +171,7 @@ export default function ViewDetailEvent({
               />
             </div>
 
+            {/** Thời gian */}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-gray-700 font-medium mb-1">
@@ -214,6 +201,7 @@ export default function ViewDetailEvent({
               </div>
             </div>
 
+            {/** Danh mục */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Danh mục sự kiện
@@ -239,6 +227,7 @@ export default function ViewDetailEvent({
               </Select>
             </div>
 
+            {/** Điểm đăng ký, tổng điểm thưởng, ngân sách */}
             <div>
               <label className="block text-gray-700 font-medium mb-1">
                 Điểm đăng ký

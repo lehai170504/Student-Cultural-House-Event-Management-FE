@@ -4,7 +4,7 @@ export interface Partner {
   organizationType: string;
   contactEmail: string;
   contactPhone: string;
-  walletId: number;
+  walletId: string;
   createdAt: string;
   status: "ACTIVE" | "INACTIVE";
 }

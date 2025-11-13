@@ -1,53 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Wallet, TrendingUp, History, Loader2, AlertCircle } from "lucide-react";
-import axiosInstance from "@/config/axiosInstance";
-import { partnerService } from "@/features/partner/services/partnerService";
+import { useEffect } from "react";
+import { Wallet, History, Loader2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePartners } from "@/features/partner/hooks/usePartners";
+import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 
 export default function PartnerWalletPage() {
-  const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [wallet, setWallet] = useState<any>(null);
-  const [history, setHistory] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading: loadingProfile } = useUserProfile();
+  const {
+    wallet,
+    transactions,
+    loadingWallet,
+    loadingTransactions,
+    loadPartnerWallet,
+    loadPartnerWalletHistory,
+  } = usePartners();
+
+  const partnerId = user?.id || user?.cognitoSub;
 
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const me = await axiosInstance.get("/me");
-        const data = me?.data?.data ?? me?.data;
-        // Backend đã đổi sang UUID (string), lấy id hoặc uuid
-        const pid = data?.id || data?.uuid || data?.sub;
-        // Đảm bảo pid là string (UUID)
-        const partnerIdStr = pid ? String(pid) : null;
-        setPartnerId(partnerIdStr);
-        if (partnerIdStr) {
-          const w = await partnerService.getWallet(partnerIdStr);
-          setWallet(w);
-          const h: any = await partnerService.getWalletHistory(partnerIdStr, { page: 0, size: 20 });
-          // Support both paged response and array
-          const items = Array.isArray(h)
-            ? h
-            : (h?.data?.content ?? h?.content ?? h?.data ?? []);
-          setHistory(items);
-        }
-      } catch (e: any) {
-        setError(e?.response?.data?.message || "Không tải được thông tin ví");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (!partnerId) return;
 
-  const balance = wallet?.balance ?? wallet?.amount ?? wallet?.availableBalance ?? 0;
-  const currency = wallet?.currency || "COIN";
-  const walletIdDisplay = wallet?.id ?? wallet?.walletId ?? partnerId;
-  const ownerType = wallet?.ownerType ?? "-";
+    const loadData = async () => {
+      await loadPartnerWallet(partnerId);
+      await loadPartnerWalletHistory(partnerId, { page: 0, size: 20 });
+    };
+    loadData();
+  }, [partnerId, loadPartnerWallet, loadPartnerWalletHistory]);
+
+  const loading = loadingProfile || loadingWallet || loadingTransactions;
 
   if (loading) {
     return (
@@ -60,15 +42,19 @@ export default function PartnerWalletPage() {
     );
   }
 
-  if (error) {
+  if (!wallet) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800 flex items-center gap-2">
         <AlertCircle className="h-5 w-5" />
-        <p>{error}</p>
+        <p>Không tìm thấy thông tin ví</p>
       </div>
     );
   }
 
+  const balance = wallet?.balance ?? 0;
+  const currency = wallet?.currency || "COIN";
+  const walletIdDisplay = wallet?.id ?? wallet?.walletId ?? partnerId;
+  const ownerType = wallet?.ownerType ?? "-";
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
@@ -96,7 +82,9 @@ export default function PartnerWalletPage() {
           </div>
           <div>
             <p className="text-orange-100 text-sm">Chủ sở hữu</p>
-            <p className="font-semibold text-lg">{ownerType} #{partnerId ?? "-"}</p>
+            <p className="font-semibold text-lg">
+              {ownerType} #{partnerId ?? "-"}
+            </p>
           </div>
         </div>
       </div>
@@ -105,44 +93,66 @@ export default function PartnerWalletPage() {
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex items-center gap-2">
           <History className="h-5 w-5 text-gray-600" />
-          <h3 className="text-xl font-semibold text-gray-900">Lịch sử giao dịch</h3>
+          <h3 className="text-xl font-semibold text-gray-900">
+            Lịch sử giao dịch
+          </h3>
         </div>
-        {history.length === 0 ? (
+        {transactions.length === 0 ? (
           <div className="p-12 text-center">
             <History className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Chưa có giao dịch</h3>
-            <p className="text-gray-600">Lịch sử giao dịch sẽ hiển thị tại đây</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Chưa có giao dịch
+            </h3>
+            <p className="text-gray-600">
+              Lịch sử giao dịch sẽ hiển thị tại đây
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-900">Thời gian</th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-900">Loại giao dịch</th>
-                  <th className="text-right px-6 py-4 font-semibold text-gray-900">Số tiền</th>
-                  <th className="text-left px-6 py-4 font-semibold text-gray-900">Mô tả</th>
+                  <th className="text-left px-6 py-4 font-semibold text-gray-900">
+                    Thời gian
+                  </th>
+                  <th className="text-left px-6 py-4 font-semibold text-gray-900">
+                    Loại giao dịch
+                  </th>
+                  <th className="text-right px-6 py-4 font-semibold text-gray-900">
+                    Số tiền
+                  </th>
+                  <th className="text-left px-6 py-4 font-semibold text-gray-900">
+                    Mô tả
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {history.map((t: any, idx: number) => (
+                {transactions.map((t: any, idx: number) => (
                   <tr key={idx} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 text-sm text-gray-700">
-                      {t.createdAt ? new Date(t.createdAt).toLocaleString("vi-VN") : "-"}
+                      {t.createdAt
+                        ? new Date(t.createdAt).toLocaleString("vi-VN")
+                        : "-"}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn(
-                        "px-2.5 py-1 rounded-full text-xs font-medium",
-                        t.txnType?.includes("TOPUP") && "bg-green-100 text-green-800",
-                        t.txnType?.includes("TRANSFER") && "bg-blue-100 text-blue-800",
-                        t.txnType?.includes("FUND") && "bg-purple-100 text-purple-800",
-                        "bg-gray-100 text-gray-800"
-                      )}>
+                      <span
+                        className={cn(
+                          "px-2.5 py-1 rounded-full text-xs font-medium",
+                          t.txnType?.includes("TOPUP") &&
+                            "bg-green-100 text-green-800",
+                          t.txnType?.includes("TRANSFER") &&
+                            "bg-blue-100 text-blue-800",
+                          t.txnType?.includes("FUND") &&
+                            "bg-purple-100 text-purple-800",
+                          "bg-gray-100 text-gray-800"
+                        )}
+                      >
                         {t.txnType || t.type || t.transactionType || "-"}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-right">
-                      {(t.amount ?? t.value ?? 0).toLocaleString("vi-VN")} {currency}
+                      {(t.amount ?? t.value ?? 0).toLocaleString("vi-VN")}{" "}
+                      {currency}
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-600">
                       {t.referenceType || t.description || "-"}
@@ -157,5 +167,3 @@ export default function PartnerWalletPage() {
     </div>
   );
 }
-
-

@@ -1,9 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { fetchUserProfile } from "../thunks/authThunks";
-import type { AuthResponse } from "@/features/auth/types/auth";
+import { fetchProfile } from "../thunks/authThunks";
 
 export interface AuthState {
-  user: AuthResponse["data"] | null;
+  user: any | null; // có thể là AuthResponse.data hoặc PartnerResponse
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -26,33 +25,34 @@ const authSlice = createSlice({
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
     },
+    logout: (state) => {
+      state.user = null;
+      state.isAuthenticated = false;
+      state.isLoading = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchUserProfile.pending, (state) => {
+      .addCase(fetchProfile.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(
-        fetchUserProfile.fulfilled,
-        (state, action: PayloadAction<AuthResponse["data"]>) => {
-          state.isLoading = false;
-          state.user = action.payload;
-          state.isAuthenticated = true;
-          state.error = null;
-        }
-      )
-      .addCase(
-        fetchUserProfile.rejected,
-        (state, action: PayloadAction<any>) => {
-          state.isLoading = false;
-          state.user = null;
-          state.isAuthenticated = false;
-          state.error = action.payload as string;
-        }
-      );
+      .addCase(fetchProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload; // nhận cả User hoặc Partner
+        state.isAuthenticated = true;
+        state.error = null;
+      })
+      .addCase(fetchProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error =
+          action.payload ?? action.error.message ?? "Lỗi không xác định";
+      });
   },
 });
 
-export const { clearError, setLoading } = authSlice.actions;
+export const { clearError, setLoading, logout } = authSlice.actions;
 export default authSlice.reducer;
