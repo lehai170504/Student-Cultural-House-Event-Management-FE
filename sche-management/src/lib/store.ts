@@ -9,6 +9,7 @@ import productReducer from "@/features/products/slices/productSlice";
 import invoiceReducer from "@/features/invoices/slices/invoiceSlice";
 import walletReducer from "@/features/wallet/slices/walletSlice";
 import feedbackReducer from "@/features/feedback/slices/feedbackSlice";
+import notificationReducer from "@/features/notifications/slices/notificationSlice";
 
 // Store singleton
 export const store = configureStore({
@@ -23,6 +24,7 @@ export const store = configureStore({
     invoice: invoiceReducer,
     wallet: walletReducer,
     feedback: feedbackReducer,
+    notification: notificationReducer,
   },
 });
 
