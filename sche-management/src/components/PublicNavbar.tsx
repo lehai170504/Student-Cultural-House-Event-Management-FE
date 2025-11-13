@@ -115,7 +115,7 @@ export default function PublicNavbar() {
           ) : (
             <Button
               asChild
-              className="bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl px-5"
+              className="bg-gradient-to-r cursor-pointer from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl px-5"
             >
               <Link href="/login">Đăng nhập</Link>
             </Button>

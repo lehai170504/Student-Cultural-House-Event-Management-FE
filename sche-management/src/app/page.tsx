@@ -12,20 +12,13 @@ export default function Home() {
   useEffect(() => setMounted(true), []);
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen mt-20 bg-gray-50">
       <PublicNavbar />
       <RecommendedEventsModal />
       <HeroSection />
-
-      {/* --- Rewards Section --- */}
-      <section className="py-16">
-        <RewardsSection />
-      </section>
-
-      {/* --- Event Categories --- */}
-      <section className="py-16 bg-gray-50">
-        <EventCategoriesSection />
-      </section>
+      <RewardsSection />
+      <EventCategoriesSection />
+     
     </main>
   );
 }

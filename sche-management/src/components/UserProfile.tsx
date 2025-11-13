@@ -53,11 +53,11 @@ export function UserProfile() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="flex items-center gap-2 rounded-full border px-2 py-1 hover:bg-orange-50">
-          <span className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+        <button className="flex cursor-pointer items-center gap-2 rounded-full border px-2 py-1 hover:bg-orange-50">
+          <span className="w-8 h-8 cursor-pointer bg-orange-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
             {avatarLetter}
           </span>
-          <span className="hidden md:inline text-sm font-medium text-gray-800">{displayName}</span>
+          <span className="hidden md:inline cursor-pointer text-sm font-medium text-gray-800">{displayName}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
