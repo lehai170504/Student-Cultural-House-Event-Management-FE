@@ -5,26 +5,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
-interface Transaction {
-  id: number;
-  walletId: number;
-  counterpartyId: number | null;
-  txnType: string;
-  amount: number;
-  referenceType: string;
-  referenceId: number | null;
-  createdAt: string | null;
-}
-
-interface TransactionHistoryProps {
-  history: Transaction[];
-  historyLoading: boolean;
-  historyPage: number;
-  historySize: number;
-  onPageChange: (page: number) => void;
-  numberFormatter: Intl.NumberFormat;
-}
+import type { TransactionHistoryProps } from "@/features/wallet/types/wallet";
 
 export default function TransactionHistory({
   history,
@@ -34,6 +15,12 @@ export default function TransactionHistory({
   onPageChange,
   numberFormatter,
 }: TransactionHistoryProps) {
+  const sortedHistory = [...history].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return dateB - dateA;
+  });
+
   return (
     <div className="mt-10">
       <h2 className="text-xl font-semibold text-gray-800 mb-3">
@@ -59,7 +46,7 @@ export default function TransactionHistory({
                   </td>
                 </tr>
               ) : (
-                history.map((h) => (
+                sortedHistory.map((h) => (
                   <tr key={h.id} className="border-t">
                     <td className="px-4 py-3 font-medium text-gray-800">
                       {h.txnType}

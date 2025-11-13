@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useEvents } from "@/features/events/hooks/useEvents";
-import type { Event } from "@/features/events/types/events";
+import type { Event, EventFeedbackResponse } from "@/features/events/types/events";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import axiosInstance from "@/config/axiosInstance";
+import { eventService } from "@/features/events/services/eventService";
+import { studentService } from "@/features/students/services/studentService";
 import EventDetailHeader from "./components/EventDetailHeader";
 import EventDetailInfo from "./components/EventDetailInfo";
 import EventInfoCards from "./components/EventInfoCards";
@@ -34,7 +35,7 @@ export default function EventDetailPage() {
   const [rating, setRating] = useState<string>("");
   const [comments, setComments] = useState<string>("");
   const [hasRegistered, setHasRegistered] = useState<boolean>(false);
-  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<EventFeedbackResponse[]>([]);
   const [loadingFeedbacks, setLoadingFeedbacks] = useState<boolean>(false);
   const [currentStudentId, setCurrentStudentId] = useState<string | null>(null);
 
@@ -42,13 +43,7 @@ export default function EventDetailPage() {
     if (!eventId) return;
     try {
       setLoadingFeedbacks(true);
-      const res = await axiosInstance.get<any>(`/events/${eventId}/feedback`);
-      const payload = res?.data;
-      const list: any[] = (payload?.data && Array.isArray(payload.data))
-        ? payload.data
-        : Array.isArray(payload)
-        ? payload
-        : [];
+      const list = await eventService.getFeedbacks(eventId);
       setFeedbacks(list);
     } catch (e) {
       setFeedbacks([]);
@@ -60,15 +55,10 @@ export default function EventDetailPage() {
   const checkRegistration = useCallback(async () => {
     if (!eventId) return;
     try {
-      const res = await axiosInstance.get<any>("/students/me/events", {
-        params: { page: 1, size: 1000 },
+      const list = await studentService.getMyEvents({
+        page: 1,
+        size: 1000,
       });
-      const payload = res?.data;
-      const list: any[] = (payload?.data && Array.isArray(payload.data))
-        ? payload.data
-        : Array.isArray(payload)
-        ? payload
-        : [];
       const found = list.some((e: any) => String(e?.id) === String(eventId));
       setHasRegistered(found);
     } catch (e) {
@@ -78,10 +68,9 @@ export default function EventDetailPage() {
 
   const loadCurrentStudent = useCallback(async () => {
     try {
-      const res = await axiosInstance.get<any>("/me");
-      const apiData = res?.data?.data ?? res?.data;
-      if (apiData?.id) {
-        setCurrentStudentId(String(apiData.id));
+      const profile = await studentService.getProfile();
+      if (profile?.id) {
+        setCurrentStudentId(String(profile.id));
       } else {
         setCurrentStudentId(null);
       }

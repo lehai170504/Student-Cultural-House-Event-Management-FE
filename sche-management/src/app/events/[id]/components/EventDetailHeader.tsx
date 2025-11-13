@@ -3,15 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import { getStatusColor, getStatusText } from "@/app/events/utils/eventUtils";
-
-interface EventDetailHeaderProps {
-  status: string;
-  hasRegistered: boolean;
-  registering: boolean;
-  onRegister: () => void;
-  onGoToFeedback: () => void;
-  onGoBack: () => void;
-}
+import type { EventDetailHeaderProps } from "@/features/events/types/events";
 
 export default function EventDetailHeader({
   status,

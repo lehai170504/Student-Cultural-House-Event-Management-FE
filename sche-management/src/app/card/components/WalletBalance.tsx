@@ -1,9 +1,4 @@
-interface WalletBalanceProps {
-  balance: number | null;
-  currency: string;
-  loading: boolean;
-  numberFormatter: Intl.NumberFormat;
-}
+import type { WalletBalanceProps } from "@/features/wallet/types/wallet";
 
 export default function WalletBalance({
   balance,

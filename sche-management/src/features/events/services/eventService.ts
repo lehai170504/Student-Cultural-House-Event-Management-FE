@@ -137,6 +137,27 @@ export const eventService = {
     }
   },
 
+  /** 🔹 Lấy danh sách feedback của sự kiện */
+  async getFeedbacks(eventId: string): Promise<EventFeedbackResponse[]> {
+    try {
+      const res = await axiosInstance.get<any>(`${endpoint}/${eventId}/feedback`);
+      const payload = res?.data?.data ?? res?.data ?? [];
+      if (Array.isArray(payload)) {
+        return payload;
+      }
+      if (Array.isArray(payload?.data)) {
+        return payload.data;
+      }
+      return [];
+    } catch (error) {
+      console.error(
+        `❌ [getFeedbacks] Lỗi khi lấy feedback cho event ID ${eventId}:`,
+        error
+      );
+      return [];
+    }
+  },
+
   /** 🔹 Check-in sự kiện */
   async checkin(data: EventCheckinRequest): Promise<EventCheckinResponse> {
     try {

@@ -1,13 +1,7 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-
-interface EventsSearchBarProps {
-  searchTerm: string;
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  selectedStatus: null | "ACTIVE" | "FINISHED";
-  onStatusFilter: (status: null | "ACTIVE" | "FINISHED") => void;
-}
+import type { EventsSearchBarProps } from "@/features/events/types/events";
 
 export default function EventsSearchBar({
   searchTerm,

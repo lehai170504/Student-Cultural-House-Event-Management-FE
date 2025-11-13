@@ -1,18 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-
-interface Category {
-  id: string;
-  name: string;
-}
-
-interface CategoryFiltersProps {
-  categories: Category[];
-  selectedCategory: string | null;
-  categoryIdToCount: Record<string, number>;
-  totalCount: number;
-  onCategoryFilter: (categoryId: string | null) => void;
-}
+import type { CategoryFiltersProps } from "@/features/events/types/events";
 
 export default function CategoryFilters({
   categories,

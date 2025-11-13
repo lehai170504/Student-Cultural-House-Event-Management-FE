@@ -6,15 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Star } from "lucide-react";
 import { motion } from "framer-motion";
-
-interface EventFeedbackFormProps {
-  rating: string;
-  comments: string;
-  sendingFeedback: boolean;
-  onRatingChange: (rating: string) => void;
-  onCommentsChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-  onSubmit: (e: React.FormEvent) => void;
-}
+import type { EventFeedbackFormProps } from "@/features/events/types/events";
 
 export default function EventFeedbackForm({
   rating,

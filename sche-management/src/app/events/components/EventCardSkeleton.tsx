@@ -1,9 +1,6 @@
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface EventCardSkeletonProps {
-  index: number;
-}
+import type { EventCardSkeletonProps } from "@/features/events/types/events";
 
 export default function EventCardSkeleton({ index }: EventCardSkeletonProps) {
   return (

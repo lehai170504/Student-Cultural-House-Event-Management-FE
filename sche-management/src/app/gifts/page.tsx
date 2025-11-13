@@ -12,10 +12,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Gift, Search, Filter, Star, ChevronLeft, ChevronRight, Zap, Clock, Loader2 } from "lucide-react";
 import PublicNavbar from "@/components/PublicNavbar";
-import { useProducts } from "@/features/products/hooks/useProducts";
 import { productService } from "@/features/products/services/productService";
 import type { Product } from "@/features/products/types/product";
-import axiosInstance from "@/config/axiosInstance";
+import { studentService } from "@/features/students/services/studentService";
+import { walletService } from "@/features/wallet/services/walletService";
 
 type RewardCategory = "voucher" | "gift";
 
@@ -94,14 +94,12 @@ export default function GiftsPage() {
   const loadUserPoints = useCallback(async () => {
     try {
       setLoadingPoints(true);
-      const meRes = await axiosInstance.get<any>("/me");
-      const meData = meRes?.data?.data ?? meRes?.data ?? {};
-      const walletId = meData?.walletId;
-      
+      const profile = await studentService.getProfile();
+      const walletId = profile?.walletId ?? null;
+
       if (walletId) {
-        const wRes = await axiosInstance.get<any>(`/wallets/${walletId}`);
-        const wData = wRes?.data?.data ?? wRes?.data ?? {};
-        setUserPoints(Number(wData?.balance ?? 0));
+        const wallet = await walletService.getById(Number(walletId));
+        setUserPoints(Number(wallet?.balance ?? 0));
       } else {
         setUserPoints(0);
       }
@@ -269,29 +267,10 @@ export default function GiftsPage() {
 
   return (
     <main className="min-h-screen bg-gray-50">
-      {/* Header */}
       <PublicNavbar />
-      <section className="py-10 mt-20 bg-gradient-to-r from-orange-50 to-white border-b">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-center gap-2 mb-3">
-            <Gift className="h-6 w-6 text-orange-500" />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Khu vực đổi quà</h1>
-          </div>
-          <p className="text-center text-gray-600">
-            {loadingPoints ? (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Đang tải...
-              </span>
-            ) : (
-              <>Bạn đang có <span className="font-semibold text-gray-900">{userPoints.toLocaleString("vi-VN")}</span> điểm</>
-            )}
-          </p>
-        </div>
-      </section>
 
       {/* Search & Filter */}
-      <section className="py-6 bg-white">
+      <section className="py-6 mt-25 bg-white">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
             {/* Search */}

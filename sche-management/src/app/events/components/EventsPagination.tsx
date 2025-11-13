@@ -6,15 +6,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
-interface EventsPaginationProps {
-  currentPage: number;
-  totalPages: number;
-  isLastPage: boolean;
-  loadingList: boolean;
-  onPageChange: (page: number) => void;
-  getPageNumbers: () => number[];
-}
+import type { EventsPaginationProps } from "@/features/events/types/events";
 
 export default function EventsPagination({
   currentPage,
