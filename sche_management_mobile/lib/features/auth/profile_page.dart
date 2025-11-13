@@ -17,13 +17,16 @@ class ProfilePage extends StatefulWidget {
 
 // University model
 class University {
-  final int id;
+  final String id;
   final String name;
 
   University({required this.id, required this.name});
 
   factory University.fromJson(Map<String, dynamic> json) {
-    return University(id: json['id'] as int, name: json['name'] as String);
+    return University(
+      id: (json['id'] ?? json['universityId']).toString(),
+      name: json['name'] as String,
+    );
   }
 }
 

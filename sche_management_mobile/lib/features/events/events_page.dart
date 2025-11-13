@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'dart:convert';
 import '../../services/api_client.dart';
+import '../../services/auth_service.dart';
 import '../../config/api_config.dart' as app_config;
 
 class EventsPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class EventsPage extends StatefulWidget {
 
 class _EventsPageState extends State<EventsPage> {
   final ApiClient _apiClient = ApiClient();
+  final AuthService _authService = AuthService();
   final ScrollController _scrollController = ScrollController();
   bool _isLoading = true;
   List<Event> _events = [];
@@ -20,17 +22,50 @@ class _EventsPageState extends State<EventsPage> {
   int _currentPage = 1;
   final int _pageSize = 10;
   bool _hasMore = true;
-  Set<int> _registeredEventIds = {};
+  bool _isSignedIn = false;
+  bool _authChecked = false;
+  Set<String> _registeredEventIds = {};
 
   @override
   void initState() {
     super.initState();
-    _loadEvents();
-    _loadRegisteredEvents();
     _scrollController.addListener(_onScroll);
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final signedIn = await _authService.isSignedIn();
+    if (!mounted) return;
+
+    setState(() {
+      _isSignedIn = signedIn;
+      _authChecked = true;
+      _isLoading = true;
+      _error = null;
+      _currentPage = 1;
+      _events = [];
+      _hasMore = true;
+    });
+
+    await _loadEvents(refresh: true);
+
+    if (signedIn) {
+      await _loadRegisteredEvents();
+    } else {
+      setState(() {
+        _registeredEventIds = {};
+      });
+    }
   }
 
   Future<void> _loadRegisteredEvents() async {
+    if (!_isSignedIn) {
+      setState(() {
+        _registeredEventIds = {};
+      });
+      return;
+    }
+
     try {
       safePrint('🔍 Loading registered events list...');
       final response = await _apiClient.get(app_config.ApiConfig.studentEvents);
@@ -47,7 +82,7 @@ class _EventsPageState extends State<EventsPage> {
         final eventsData = dataMap['content'] ?? dataMap['events'] ?? [];
 
         final registeredIds = (eventsData as List)
-            .map((e) => e['id'] as int)
+            .map((e) => (e['id'] ?? e['eventId']).toString())
             .toSet();
 
         setState(() {
@@ -55,6 +90,12 @@ class _EventsPageState extends State<EventsPage> {
         });
 
         safePrint('✅ Loaded ${registeredIds.length} registered event IDs');
+      } else if (response.statusCode == 401) {
+        safePrint('⚠️ Registered events API returned 401.');
+        setState(() {
+          _isSignedIn = false;
+          _registeredEventIds = {};
+        });
       } else if (response.statusCode == 404) {
         safePrint('⚠️ No registered events endpoint, clearing list');
         setState(() {
@@ -89,6 +130,10 @@ class _EventsPageState extends State<EventsPage> {
         _events = [];
         _hasMore = true;
       });
+    } else {
+      setState(() {
+        _isLoading = true;
+      });
     }
 
     try {
@@ -106,15 +151,23 @@ class _EventsPageState extends State<EventsPage> {
         final data = json['data'] ?? json['content'] ?? [];
         final meta = json['meta'] ?? {};
 
-        final events = (data as List).map((e) => Event.fromJson(e)).toList();
+        final events =
+            (data as List)
+                .map((e) => Event.fromJson(e as Map<String, dynamic>))
+                .where((event) => event.status.toUpperCase() == 'ACTIVE')
+                .toList()
+              ..sort((a, b) => a.startTime.compareTo(b.startTime));
 
         setState(() {
           _events.addAll(events);
-          _isLoading = false;
+          _events.sort((a, b) => a.startTime.compareTo(b.startTime));
           _hasMore = (meta['currentPage'] ?? 0) < (meta['totalPages'] ?? 0);
+          _isLoading = false;
         });
 
-        safePrint('✅ Loaded ${events.length} events. Total: ${_events.length}');
+        safePrint(
+          '✅ Loaded ${events.length} active events. Total: ${_events.length}',
+        );
       } else {
         throw Exception('Failed to load events: ${response.statusCode}');
       }
@@ -135,6 +188,16 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Future<void> _registerForEvent(Event event) async {
+    if (!_isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để đăng ký sự kiện.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     try {
       safePrint('🔍 Registering for event ${event.id}...');
       final response = await _apiClient.post(
@@ -158,19 +221,97 @@ class _EventsPageState extends State<EventsPage> {
             ),
           );
         }
+      } else if (response.statusCode == 401) {
+        safePrint('⚠️ Register API returned 401.');
+        setState(() {
+          _isSignedIn = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       } else {
-        throw Exception('Failed to register: ${response.statusCode}');
+        final message =
+            _extractErrorMessage(response.body) ??
+            'Không thể đăng ký sự kiện (mã ${response.statusCode}).';
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(message),
+              backgroundColor: const Color(0xFFDC2626),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
       }
     } catch (e) {
       safePrint('❌ Error registering for event: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Lỗi: ${e.toString()}'),
+            content: const Text('Không thể đăng ký sự kiện. Vui lòng thử lại.'),
             backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
+    }
+  }
+
+  String? _extractErrorMessage(String body) {
+    if (body.trim().isEmpty) return null;
+    try {
+      final decoded = jsonDecode(body);
+      if (decoded is Map<String, dynamic>) {
+        for (final key in ['message', 'error', 'detail', 'reason']) {
+          final value = decoded[key];
+          if (value is String && value.trim().isNotEmpty) {
+            return value;
+          }
+        }
+      } else if (decoded is List) {
+        final first = decoded.first;
+        if (first is String) return first;
+        if (first is Map<String, dynamic>) {
+          for (final key in ['message', 'error', 'detail', 'reason']) {
+            final value = first[key];
+            if (value is String && value.trim().isNotEmpty) {
+              return value;
+            }
+          }
+        }
+      } else if (decoded is String && decoded.trim().isNotEmpty) {
+        return decoded;
+      }
+    } catch (_) {
+      // ignore JSON parse errors
+    }
+    if (body.length <= 200) {
+      return body;
+    }
+    return null;
+  }
+
+  Future<void> _handleRefresh() async {
+    if (!_authChecked) {
+      await _bootstrap();
+      return;
+    }
+
+    _currentPage = 1;
+    _hasMore = true;
+    _error = null;
+    _events = [];
+
+    await _loadEvents(refresh: true);
+
+    if (_isSignedIn) {
+      await _loadRegisteredEvents();
     }
   }
 
@@ -183,7 +324,7 @@ class _EventsPageState extends State<EventsPage> {
         foregroundColor: Colors.white,
       ),
       body: RefreshIndicator(
-        onRefresh: () => _loadEvents(refresh: true),
+        onRefresh: _handleRefresh,
         color: const Color(0xFFFB923C),
         child: _buildBody(),
       ),
@@ -238,79 +379,81 @@ class _EventsPageState extends State<EventsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Event Image
-              ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20),
+              Container(
+                decoration: BoxDecoration(
+                  color: event.statusColor.withOpacity(0.08),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
                 ),
-                child: Container(
-                  height: 180,
-                  width: double.infinity,
-                  color: const Color(0xFFE5E7EB),
-                  child: event.bannerImageUrl != null
-                      ? Image.network(
-                          event.bannerImageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: const Color(0xFFE5E7EB),
-                              child: const Icon(
-                                Icons.event_rounded,
-                                size: 48,
-                                color: Color(0xFF9CA3AF),
-                              ),
-                            );
-                          },
-                        )
-                      : const Icon(
-                          Icons.event_rounded,
-                          size: 48,
-                          color: Color(0xFF9CA3AF),
-                        ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 6,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.event_available_rounded,
+                        color: event.statusColor,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            event.status,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: event.statusColor,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            event.formattedDate,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              // Event Info
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            event.title,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF111827),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: event.statusColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            event.status,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: event.statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      event.title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF111827),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     if (event.description != null &&
                         event.description!.isNotEmpty) ...[
                       Text(
@@ -324,24 +467,6 @@ class _EventsPageState extends State<EventsPage> {
                       ),
                       const SizedBox(height: 12),
                     ],
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today,
-                          size: 16,
-                          color: Color(0xFFFB923C),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          event.formattedDate,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
                     Row(
                       children: [
                         const Icon(
@@ -364,10 +489,10 @@ class _EventsPageState extends State<EventsPage> {
                       ],
                     ),
                     if (event.category != null) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
+                          horizontal: 10,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
@@ -395,6 +520,14 @@ class _EventsPageState extends State<EventsPage> {
   }
 
   Widget _buildBody() {
+    if (!_authChecked) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFB923C)),
+        ),
+      );
+    }
+
     if (_isLoading && _events.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(
@@ -483,14 +616,19 @@ class _EventsPageState extends State<EventsPage> {
       builder: (context) => _EventDetailModal(
         event: event,
         isRegistered: isRegistered,
+        isSignedIn: _isSignedIn,
         onRegister: () => _registerForEvent(event),
+        onLoginRequested: () {
+          Navigator.of(context).pop();
+          Navigator.of(context).pushNamed('/login');
+        },
       ),
     );
   }
 }
 
 class Event {
-  final int id;
+  final String id;
   final String title;
   final String? description;
   final String location;
@@ -498,6 +636,7 @@ class Event {
   final DateTime endTime;
   final String? bannerImageUrl;
   final String? category;
+  final String status;
 
   Event({
     required this.id,
@@ -508,11 +647,12 @@ class Event {
     required this.endTime,
     this.bannerImageUrl,
     this.category,
+    required this.status,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'] as int,
+      id: (json['id'] ?? json['eventId']).toString(),
       title: json['title'] as String,
       description: json['description'] as String?,
       location: json['location'] as String,
@@ -520,55 +660,52 @@ class Event {
       endTime: DateTime.parse(json['endTime'] as String),
       bannerImageUrl: json['bannerImageUrl'] as String?,
       category: json['category']?['name'] as String?,
+      status: json['status'] as String,
     );
   }
 
   String get formattedDate {
-    final months = [
-      '1',
-      '2',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
-      '10',
-      '11',
-      '12',
-    ];
-    return '${startTime.day}/${months[startTime.month - 1]}/${startTime.year} ${startTime.hour.toString().padLeft(2, '0')}:${startTime.minute.toString().padLeft(2, '0')}';
-  }
-
-  String get status {
-    final now = DateTime.now();
-    if (now.isBefore(startTime)) return 'Sắp diễn ra';
-    if (now.isAfter(endTime)) return 'Đã kết thúc';
-    return 'Đang diễn ra';
+    final local = startTime.toLocal();
+    final month = local.month.toString().padLeft(2, '0');
+    final day = local.day.toString().padLeft(2, '0');
+    final hour = local.hour.toString().padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
+    return '$day/$month/${local.year} $hour:$minute';
   }
 
   Color get statusColor {
     switch (status) {
-      case 'Sắp diễn ra':
-        return const Color(0xFFF59E0B);
-      case 'Đang diễn ra':
+      case 'ACTIVE':
         return const Color(0xFF10B981);
+      case 'UPCOMING':
+        return const Color(0xFFF59E0B);
+      case 'COMPLETED':
+        return const Color(0xFF6B7280);
       default:
         return const Color(0xFF6B7280);
     }
   }
+
+  bool get hasStarted => DateTime.now().isAfter(startTime);
+
+  bool get isUpcoming => DateTime.now().isBefore(startTime);
+
+  bool get canRegister => status.toUpperCase() == 'ACTIVE' && isUpcoming;
 }
 
 class _EventDetailModal extends StatelessWidget {
   final Event event;
   final VoidCallback onRegister;
   final bool isRegistered;
+  final bool isSignedIn;
+  final VoidCallback onLoginRequested;
 
   const _EventDetailModal({
     required this.event,
     required this.onRegister,
     required this.isRegistered,
+    required this.isSignedIn,
+    required this.onLoginRequested,
   });
 
   @override
@@ -794,26 +931,47 @@ class _EventDetailModal extends StatelessWidget {
                       const SizedBox(height: 24),
                       // Action Buttons
                       ElevatedButton.icon(
-                        onPressed: isRegistered
-                            ? null
-                            : () {
+                        onPressed:
+                            _resolveButtonEnabled(
+                              isRegistered: isRegistered,
+                              isSignedIn: isSignedIn,
+                              event: event,
+                            )
+                            ? () {
                                 Navigator.of(context).pop();
-                                onRegister();
-                              },
+                                if (!isSignedIn) {
+                                  onLoginRequested();
+                                } else {
+                                  onRegister();
+                                }
+                              }
+                            : null,
                         icon: Icon(
-                          isRegistered
-                              ? Icons.check_circle
-                              : Icons.event_available,
+                          _resolveButtonIcon(
+                            isRegistered: isRegistered,
+                            isSignedIn: isSignedIn,
+                            event: event,
+                          ),
                         ),
                         label: Text(
-                          isRegistered ? 'Đã đăng ký' : 'Đăng ký tham gia',
+                          _resolveButtonLabel(
+                            isRegistered: isRegistered,
+                            isSignedIn: isSignedIn,
+                            event: event,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isRegistered
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFFB923C),
+                          backgroundColor: _resolveButtonColor(
+                            isRegistered: isRegistered,
+                            isSignedIn: isSignedIn,
+                            event: event,
+                          ),
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor: const Color(0xFF10B981),
+                          disabledBackgroundColor: _resolveButtonColor(
+                            isRegistered: isRegistered,
+                            isSignedIn: isSignedIn,
+                            event: event,
+                          ),
                           minimumSize: const Size(double.infinity, 56),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -830,4 +988,48 @@ class _EventDetailModal extends StatelessWidget {
       },
     );
   }
+}
+
+bool _resolveButtonEnabled({
+  required bool isRegistered,
+  required bool isSignedIn,
+  required Event event,
+}) {
+  if (isRegistered) return false;
+  if (event.hasStarted) return false;
+  if (!isSignedIn) return true;
+  return event.canRegister;
+}
+
+IconData _resolveButtonIcon({
+  required bool isRegistered,
+  required bool isSignedIn,
+  required Event event,
+}) {
+  if (isRegistered) return Icons.check_circle;
+  if (event.hasStarted) return Icons.schedule;
+  if (!isSignedIn) return Icons.lock_open;
+  return Icons.event_available;
+}
+
+String _resolveButtonLabel({
+  required bool isRegistered,
+  required bool isSignedIn,
+  required Event event,
+}) {
+  if (isRegistered) return 'Đã đăng ký';
+  if (event.hasStarted) return 'Đã bắt đầu';
+  if (!isSignedIn) return 'Đăng nhập để đăng ký';
+  return 'Đăng ký tham gia';
+}
+
+Color _resolveButtonColor({
+  required bool isRegistered,
+  required bool isSignedIn,
+  required Event event,
+}) {
+  if (isRegistered) return const Color(0xFF10B981);
+  if (event.hasStarted) return const Color(0xFFD1D5DB);
+  if (!isSignedIn) return const Color(0xFFFB923C);
+  return const Color(0xFFFB923C);
 }

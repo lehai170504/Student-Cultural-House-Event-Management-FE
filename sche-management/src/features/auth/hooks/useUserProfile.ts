@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
-import { fetchUserProfile } from "../thunks/authThunks";
-import { clearError as clearAuthError, setLoading as setAuthLoading } from "../slices/authSlice";
+import { fetchProfile } from "../thunks/authThunks";
+import {
+  clearError as clearAuthError,
+  setLoading as setAuthLoading,
+} from "../slices/authSlice";
 
 /** 🔹 Hook quản lý profile user */
 export const useUserProfile = () => {
@@ -15,7 +18,7 @@ export const useUserProfile = () => {
 
   /** 🔸 Load thông tin user */
   const loadProfile = useCallback(async () => {
-    await dispatch(fetchUserProfile());
+    await dispatch(fetchProfile());
   }, [dispatch]);
 
   /** 🔸 Xoá lỗi */

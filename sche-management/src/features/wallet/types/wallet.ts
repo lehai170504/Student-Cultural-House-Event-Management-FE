@@ -1,37 +1,61 @@
 export interface Wallet {
-  id: number;
-  userId: number;
+  id: string;
+  userId: string;
   balance: number;
   currency: string;
   createdAt: string;
-  updatedAt: string;
+  ownerType?: "STUDENT" | "EVENT" | "ADMIN" | "PARTNER";
+  walletId?: string;
 }
 
 export interface WalletTransaction {
-  id: number;
-  walletId: number;
-  type: "TRANSFER_IN" | "TRANSFER_OUT" | "REDEEM" | "ROLLBACK" | string;
+  id: string;
+  walletId: string;
+  counterpartyId: string | null;
+  txnType:
+    | "TRANSFER_IN"
+    | "TRANSFER_OUT"
+    | "REDEEM"
+    | "ROLLBACK"
+    | "EVENT_FUNDING"
+    | "ADMIN_TOPUP"
+    | string;
   amount: number;
-  description?: string;
-  createdAt: string;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  createdAt: string | null;
 }
 
+export interface PaginationMeta {
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  totalItems: number;
+}
+
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+export type WalletTransactionResponse = PaginatedResponse<WalletTransaction>;
+
 export interface TransferRequest {
-  fromWalletId: number;
-  toWalletId: number;
+  fromWalletId: string;
+  toWalletId: string;
   amount: number;
   description?: string;
 }
 
 export interface RollbackRequest {
-  transactionId: number;
+  transactionId: string;
   reason?: string;
 }
 
 export interface RedeemRequest {
-  walletId: number;
+  walletId: string;
   amount: number;
-  productId?: number;
+  productId?: string;
   description?: string;
 }
 
@@ -41,13 +65,13 @@ export interface RequestWalletTopUpPartner {
 }
 
 export interface ResponseWalletTopUpPartner {
-  id: number;
-  walletId: number;
-  counterpartyId: number;
+  id: string;
+  walletId: string;
+  counterpartyId: string;
   txnType: string;
   amount: number;
   referenceType: string;
-  referenceId: number | null;
+  referenceId: string | null;
   createdAt: string;
 }
 

@@ -9,6 +9,7 @@ import type {
   RedeemRequest,
   RequestWalletTopUpPartner,
   ResponseWalletTopUpPartner,
+  WalletTransactionResponse,
 } from "../types/wallet";
 
 export const transferCoins = createAsyncThunk<
@@ -64,7 +65,7 @@ export const topUpPartnerCoins = createAsyncThunk<
 
 export const fetchWalletById = createAsyncThunk<
   Wallet,
-  number,
+  string,
   { rejectValue: string }
 >("wallet/getById", async (id, { rejectWithValue }) => {
   try {
@@ -75,12 +76,12 @@ export const fetchWalletById = createAsyncThunk<
 });
 
 export const fetchWalletTransactions = createAsyncThunk<
-  WalletTransaction[],
-  { id: number; params?: Record<string, any> },
+  WalletTransactionResponse, // trả về cả data + meta
+  { params?: Record<string, any> },
   { rejectValue: string }
->("wallet/getTransactions", async ({ id, params }, { rejectWithValue }) => {
+>("wallet/getTransactions", async ({ params }, { rejectWithValue }) => {
   try {
-    return await walletService.getTransactions(id, params);
+    return await walletService.getTransactions(params);
   } catch (e: any) {
     return rejectWithValue(
       e?.response?.data?.message || "Get transactions failed"

@@ -1,9 +1,5 @@
 import axiosInstance from "@/config/axiosInstance";
-import type {
-  Partner,
-  CreatePartner,
-  PartnerRepsonse,
-} from "@/features/partner/types/partner";
+import type { Partner, CreatePartner } from "@/features/partner/types/partner";
 import type { Wallet, WalletTransaction } from "@/features/wallet/types/wallet";
 import type { PaginatedResponse, PaginationParams } from "@/utils/apiResponse";
 

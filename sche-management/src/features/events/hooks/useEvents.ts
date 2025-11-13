@@ -8,13 +8,12 @@ import {
   createEvent,
   updateEvent,
   deleteEvent,
-  registerForEvent,
-  sendEventFeedback,
-  checkinEvent,
   fetchEventAttendees,
   finalizeEvent,
   checkinByPhoneNumber,
   approveEvent,
+  registerForEvent,
+  sendEventFeedback,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
 import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
@@ -22,7 +21,9 @@ import type {
   CreateEvent,
   UpdateEvent,
   EventCheckinDetail,
+  EventFeedbackRequest,
 } from "../types/events";
+import { toast } from "sonner";
 
 export const useEvents = () => {
   const dispatch = useAppDispatch();
@@ -49,10 +50,10 @@ export const useEvents = () => {
   const { list: categories = [], loadingList: loadingCategories } =
     useAppSelector((state) => state.eventCategory);
 
+  // 📦 --- CÁC HÀM CƠ BẢN ---
   const loadAll = useCallback(
     async (params?: Record<string, any>) => {
       const res = await dispatch(fetchAllEvents(params)).unwrap();
-
       if (res?.data && Array.isArray(res.data)) {
         return res.data
           .filter((item) => item?.createdAt)
@@ -61,7 +62,6 @@ export const useEvents = () => {
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
       }
-
       return [];
     },
     [dispatch]
@@ -95,50 +95,6 @@ export const useEvents = () => {
     [dispatch]
   );
 
-  const resetEventDetail = useCallback(() => {
-    dispatch(resetDetail());
-  }, [dispatch]);
-
-  const resetEventPagination = useCallback(() => {
-    dispatch(resetPagination());
-  }, [dispatch]);
-
-  const clearEventError = useCallback(() => {
-    dispatch(clearError());
-  }, [dispatch]);
-
-  const loadCategories = useCallback(async () => {
-    await dispatch(fetchAllEventCategories()).unwrap();
-  }, [dispatch]);
-
-  const registerForEventByStudent = useCallback(
-    async (eventId: string, studentId: string) => {
-      return await dispatch(registerForEvent({ eventId, studentId })).unwrap();
-    },
-    [dispatch]
-  );
-
-  const sendFeedbackForEvent = useCallback(
-    async (eventId: string, data: { rating: number; comments: string }) => {
-      return await dispatch(sendEventFeedback({ eventId, data })).unwrap();
-    },
-    [dispatch]
-  );
-
-  const checkinForEvent = useCallback(
-    async (data: { eventId: string; phoneNumber: string }) => {
-      return await dispatch(checkinEvent(data)).unwrap();
-    },
-    [dispatch]
-  );
-
-  const loadEventAttendees = useCallback(
-    async (eventId: string, params?: Record<string, any>) => {
-      return await dispatch(fetchEventAttendees({ eventId, params })).unwrap();
-    },
-    [dispatch]
-  );
-
   const finalizeEventById = useCallback(
     async (eventId: string) => {
       return await dispatch(finalizeEvent(eventId)).unwrap();
@@ -149,6 +105,20 @@ export const useEvents = () => {
   const approveEventById = useCallback(
     async (eventId: string) => {
       return await dispatch(approveEvent(eventId)).unwrap();
+    },
+    [dispatch]
+  );
+
+  const registerForEventByStudent = useCallback(
+    async (eventId: string, studentId: string) => {
+      return await dispatch(registerForEvent({ eventId, studentId })).unwrap();
+    },
+    [dispatch]
+  );
+
+  const sendFeedbackForEvent = useCallback(
+    async (eventId: string, data: EventFeedbackRequest) => {
+      return await dispatch(sendEventFeedback({ eventId, data })).unwrap();
     },
     [dispatch]
   );
@@ -164,23 +134,123 @@ export const useEvents = () => {
     [dispatch]
   );
 
+  /** ✅ TẢI DANH SÁCH NGƯỜI THAM DỰ */
+  const loadEventAttendees = useCallback(
+    async (eventId: string, params?: Record<string, any>) => {
+      return await dispatch(fetchEventAttendees({ eventId, params })).unwrap();
+    },
+    [dispatch]
+  );
+
+  /** ✅ TẢI DANH SÁCH NGƯỜI THAM DỰ CÓ TOAST */
+  const loadEventAttendeesWithToast = useCallback(
+    async (eventId: string, params?: Record<string, any>) => {
+      try {
+        await loadEventAttendees(eventId, params);
+      } catch (error) {
+        toast.error(
+          (error as any)?.message || "Không thể tải danh sách người tham dự."
+        );
+      }
+    },
+    [loadEventAttendees]
+  );
+
+  // 📦 --- HỖ TRỢ KHÁC ---
+  const resetEventDetail = useCallback(
+    () => dispatch(resetDetail()),
+    [dispatch]
+  );
+  const resetEventPagination = useCallback(
+    () => dispatch(resetPagination()),
+    [dispatch]
+  );
+  const clearEventError = useCallback(() => dispatch(clearError()), [dispatch]);
+  const loadCategories = useCallback(async () => {
+    await dispatch(fetchAllEventCategories()).unwrap();
+  }, [dispatch]);
+
+  // 📦 --- HÀM WRAPPER CÓ TOAST + RELOAD ---
+  const approveEventAndReload = useCallback(
+    async (eventId: string, title: string, params?: any) => {
+      try {
+        await approveEventById(eventId);
+        await loadAll(params);
+        toast.success(`Đã duyệt sự kiện: ${title}`);
+      } catch (error) {
+        toast.error(
+          (error as any)?.message || `Duyệt sự kiện ${title} thất bại.`
+        );
+      }
+    },
+    [approveEventById, loadAll]
+  );
+
+  const finalizeEventAndReload = useCallback(
+    async (eventId: string, title: string, params?: any) => {
+      try {
+        await finalizeEventById(eventId);
+        await loadAll(params);
+        toast.success(`Đã chốt (Finalize) sự kiện: ${title}`);
+      } catch (error) {
+        toast.error(
+          (error as any)?.message || `Chốt sự kiện ${title} thất bại.`
+        );
+      }
+    },
+    [finalizeEventById, loadAll]
+  );
+
+  const deleteEventAndReload = useCallback(
+    async (eventId: string, title: string, params?: any) => {
+      try {
+        await deleteEventById(eventId);
+        await loadAll(params);
+        toast.success(`Đã xóa sự kiện: ${title}`);
+      } catch (error) {
+        toast.error(
+          (error as any)?.message || `Xóa sự kiện ${title} thất bại.`
+        );
+      }
+    },
+    [deleteEventById, loadAll]
+  );
+
+  const submitCheckinAndNotify = useCallback(
+    async (data: EventCheckinDetail & { phoneNumber: string }) => {
+      try {
+        const result = await submitCheckinDetailData(data);
+        toast.success(
+          `Check-in thành công cho sự kiện ${data.eventTitle} (${data.phoneNumber})`
+        );
+        return result;
+      } catch (error) {
+        toast.error((error as any)?.message || "Check-in thất bại.");
+        throw error;
+      }
+    },
+    [submitCheckinDetailData]
+  );
+
+  // 📦 --- AUTO LOAD LẦN ĐẦU ---
   useEffect(() => {
     loadAll({ page: 1, size: 10 }).catch(console.error);
     loadCategories().catch(console.error);
   }, [loadAll, loadCategories]);
 
+  // 📦 --- TRẢ VỀ ---
   return {
     list,
     detail,
     attendees,
+    pagination,
     error,
-    eventCategories: categories,
 
+    // Loading states
     loadingList,
     loadingDetail,
     saving,
     deleting,
-    loadingCategories,
     registering,
     sendingFeedback,
     checkingIn,
@@ -188,24 +258,35 @@ export const useEvents = () => {
     finalizing,
     submittingCheckin,
     approving,
+    loadingCategories,
 
-    pagination,
-
+    // Basic API
     loadAll,
     loadDetail,
     createNewEvent,
     updateExistingEvent,
     deleteEventById,
+    finalizeEventById,
+    approveEventById,
+    submitCheckinDetailData,
+    loadEventAttendees,
+    loadEventAttendeesWithToast,
+
+    // Utility
     resetEventDetail,
     resetEventPagination,
     clearEventError,
     loadCategories,
+
+    // Smart Actions (toast + reload)
+    approveEventAndReload,
+    finalizeEventAndReload,
+    deleteEventAndReload,
+    submitCheckinAndNotify,
     registerForEventByStudent,
     sendFeedbackForEvent,
-    checkinForEvent,
-    loadEventAttendees,
-    finalizeEventById,
-    approveEventById,
-    submitCheckinDetailData,
+
+    // Event categories
+    eventCategories: categories,
   };
 };

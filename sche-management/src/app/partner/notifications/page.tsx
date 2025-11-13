@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { Bell, Send, Loader2, MessageSquare } from "lucide-react";
-import axiosInstance from "@/config/axiosInstance";
-import { partnerService } from "@/features/partner/services/partnerService";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,43 +14,33 @@ import {
 // @ts-ignore
 import { toast } from "sonner";
 
+import { usePartners } from "@/features/partner/hooks/usePartners";
+import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
+
 export default function PartnerNotificationsPage() {
-  const [partnerId, setPartnerId] = useState<string | null>(null);
-  const [events, setEvents] = useState<any[]>([]);
+  const { user } = useUserProfile();
+  const { loadPartnerEvents, broadcast, events, loadingEvents } = usePartners({
+    autoLoad: false,
+  });
+
   const [selected, setSelected] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
+  // Lấy partnerId từ user profile
+  const partnerId = user?.id || null;
+
+  // Load events khi có partnerId
   useEffect(() => {
-    const load = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const me = await axiosInstance.get("/me");
-        const data = me?.data?.data ?? me?.data;
-        // Backend đã đổi sang UUID (string), lấy id hoặc uuid
-        const pid = data?.id || data?.uuid || data?.sub;
-        // Đảm bảo pid là string (UUID)
-        const partnerIdStr = pid ? String(pid) : null;
-        setPartnerId(partnerIdStr);
-        if (partnerIdStr) {
-          const list: any = await partnerService.getEvents(partnerIdStr, { page: 0, size: 50 });
-          setEvents(Array.isArray(list) ? list : (list?.content ?? []));
-        }
-      } catch (e: any) {
-        setError(e?.response?.data?.message || "Không tải được sự kiện");
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, []);
+    if (!partnerId) return;
+    loadPartnerEvents(partnerId, { page: 0, size: 50 }).catch((err) => {
+      toast.error(err?.toString() || "Không tải được sự kiện");
+    });
+  }, [partnerId, loadPartnerEvents]);
 
   const handleSend = async () => {
     if (!partnerId) return;
-    const eventId = selected; // Giữ nguyên string vì có thể là UUID
+    const eventId = selected;
     if (!eventId) {
       toast.warning("Vui lòng chọn sự kiện");
       return;
@@ -61,13 +49,14 @@ export default function PartnerNotificationsPage() {
       toast.warning("Vui lòng nhập nội dung");
       return;
     }
+
     setSending(true);
     try {
-      await partnerService.broadcast(partnerId, { eventId, messageContent: message.trim() });
+      await broadcast(partnerId, { eventId, messageContent: message.trim() });
       toast.success("Đã gửi thông báo tới người tham dự");
       setMessage("");
-    } catch (e: any) {
-      toast.error(e?.response?.data?.message || "Gửi thông báo thất bại");
+    } catch (err: any) {
+      toast.error(err?.toString() || "Gửi thông báo thất bại");
     } finally {
       setSending(false);
     }
@@ -80,19 +69,17 @@ export default function PartnerNotificationsPage() {
           <Bell className="h-8 w-8 text-orange-500" />
           Tạo thông báo sự kiện
         </h2>
-        <p className="text-gray-600 mt-1">Gửi thông báo tới những người tham gia sự kiện</p>
+        <p className="text-gray-600 mt-1">
+          Gửi thông báo tới những người tham gia sự kiện
+        </p>
       </div>
 
-      {loading ? (
+      {loadingEvents ? (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <Loader2 className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-2" />
             <p className="text-gray-600">Đang tải danh sách sự kiện...</p>
           </div>
-        </div>
-      ) : error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-          <p>{error}</p>
         </div>
       ) : (
         <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-6">
@@ -100,7 +87,11 @@ export default function PartnerNotificationsPage() {
             <label className="block text-sm font-semibold text-gray-900 mb-2">
               Chọn sự kiện <span className="text-red-500">*</span>
             </label>
-            <Select value={selected} onValueChange={setSelected} disabled={sending}>
+            <Select
+              value={selected}
+              onValueChange={setSelected}
+              disabled={sending}
+            >
               <SelectTrigger className="w-full h-11">
                 <SelectValue placeholder="Chọn một sự kiện từ danh sách" />
               </SelectTrigger>
@@ -171,5 +162,3 @@ export default function PartnerNotificationsPage() {
     </div>
   );
 }
-
-

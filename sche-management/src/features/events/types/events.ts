@@ -114,51 +114,36 @@ export interface EventCheckinResponse {
   rewardAmount: number;
 }
 
-// ✅ 4. Danh sách người tham dự
+// ✅ Attendee (theo JSON mới)
 export interface Attendee {
   id: string;
-  universityId: string;
-  universityName: string;
   fullName: string;
   phoneNumber: string;
   email: string;
   avatarUrl: string;
-  createdAt: string; // ISO string
+  createdAt: string | null;
+  status: "ACTIVE" | "INACTIVE" | string;
+  universityId: string;
+  universityName: string;
+  walletId: string;
+  balance: number;
+  currency: string;
 }
 
-// ✅ Paged Attendees response
-export interface AttendeesResponse {
-  totalElements: number;
+// ✅ Meta info (theo meta trong JSON)
+export interface AttendeeMeta {
+  currentPage: number;
+  pageSize: number;
   totalPages: number;
-  size: number;
-  content: Attendee[];
-  number: number;
-  sort: {
-    direction: string;
-    nullHandling: string;
-    ascending: boolean;
-    property: string;
-    ignoreCase: boolean;
-  }[];
-  numberOfElements: number;
-  pageable: {
-    offset: number;
-    sort: {
-      direction: string;
-      nullHandling: string;
-      ascending: boolean;
-      property: string;
-      ignoreCase: boolean;
-    }[];
-    pageNumber: number;
-    pageSize: number;
-    paged: boolean;
-    unpaged: boolean;
-  };
-  first: boolean;
-  last: boolean;
-  empty: boolean;
+  totalItems: number;
 }
+
+// ✅ Full API response
+export interface AttendeesResponse {
+  data: Attendee[];
+  meta: AttendeeMeta;
+}
+
 export interface EventFinalizeResponse {
   id: string;
   partnerId: string;

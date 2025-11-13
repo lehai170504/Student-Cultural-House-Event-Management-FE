@@ -182,7 +182,17 @@ export const eventService = {
         `${endpoint}/${eventId}/attendees`,
         { params }
       );
-      return res.data;
+
+      // ✅ Đảm bảo dữ liệu trả về đúng định dạng
+      return {
+        data: res.data.data || [],
+        meta: res.data.meta || {
+          currentPage: 1,
+          pageSize: 0,
+          totalPages: 0,
+          totalItems: 0,
+        },
+      };
     } catch (error) {
       console.error(
         `❌ [getAttendees] Lỗi khi lấy attendees cho event ID ${eventId}:`,
@@ -231,10 +241,10 @@ export const eventService = {
   /** ✅ 🔹 Duyệt sự kiện (approve) */
   async approveEvent(eventId: string): Promise<EventApproveResponse> {
     try {
-      const res = await axiosInstance.patch<{ data: EventApproveResponse }>(
+      const res = await axiosInstance.patch<EventApproveResponse>(
         `${endpoint2}/${eventId}/approve`
       );
-      return res.data.data;
+      return res.data;
     } catch (error) {
       console.error(
         `❌ [approveEvent] Lỗi khi duyệt event ID ${eventId}:`,

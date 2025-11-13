@@ -4,6 +4,8 @@ import type {
   Wallet,
   WalletTransaction,
   ResponseWalletTopUpPartner,
+  WalletTransactionResponse,
+  PaginationMeta,
 } from "../types/wallet";
 import {
   fetchWalletById,
@@ -17,6 +19,7 @@ import {
 interface WalletState {
   wallet: Wallet | null;
   transactions: WalletTransaction[];
+  meta?: PaginationMeta; // thêm meta cho phân trang
   loading: boolean;
   error: string | null;
   lastMessage?: string | null;
@@ -25,6 +28,7 @@ interface WalletState {
 const initialState: WalletState = {
   wallet: null,
   transactions: [],
+  meta: undefined,
   loading: false,
   error: null,
   lastMessage: null,
@@ -43,6 +47,7 @@ const walletSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      // ---------------- Wallet ----------------
       .addCase(fetchWalletById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -59,15 +64,17 @@ const walletSlice = createSlice({
         state.error = (action.payload as string) || "Get wallet failed";
       })
 
+      // -------------- Transactions ----------------
       .addCase(fetchWalletTransactions.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(
         fetchWalletTransactions.fulfilled,
-        (state, action: PayloadAction<WalletTransaction[]>) => {
+        (state, action: PayloadAction<WalletTransactionResponse>) => {
           state.loading = false;
-          state.transactions = action.payload;
+          state.transactions = action.payload.data; // mảng transactions
+          state.meta = action.payload.meta; // thông tin phân trang
         }
       )
       .addCase(fetchWalletTransactions.rejected, (state, action) => {
@@ -75,27 +82,40 @@ const walletSlice = createSlice({
         state.error = (action.payload as string) || "Get transactions failed";
       })
 
-      .addCase(transferCoins.fulfilled, (state, action) => {
-        state.lastMessage = action.payload.message;
-      })
+      // ---------------- Transfer ----------------
+      .addCase(
+        transferCoins.fulfilled,
+        (state, action: PayloadAction<{ message: string }>) => {
+          state.lastMessage = action.payload.message;
+        }
+      )
       .addCase(transferCoins.rejected, (state, action) => {
         state.error = (action.payload as string) || "Transfer failed";
       })
 
-      .addCase(rollbackTransaction.fulfilled, (state, action) => {
-        state.lastMessage = action.payload.message;
-      })
+      // ---------------- Rollback ----------------
+      .addCase(
+        rollbackTransaction.fulfilled,
+        (state, action: PayloadAction<{ message: string }>) => {
+          state.lastMessage = action.payload.message;
+        }
+      )
       .addCase(rollbackTransaction.rejected, (state, action) => {
         state.error = (action.payload as string) || "Rollback failed";
       })
 
-      .addCase(redeemCoins.fulfilled, (state, action) => {
-        state.lastMessage = action.payload.message;
-      })
+      // ---------------- Redeem ----------------
+      .addCase(
+        redeemCoins.fulfilled,
+        (state, action: PayloadAction<{ message: string }>) => {
+          state.lastMessage = action.payload.message;
+        }
+      )
       .addCase(redeemCoins.rejected, (state, action) => {
         state.error = (action.payload as string) || "Redeem failed";
       })
 
+      // ---------------- Top Up Partner ----------------
       .addCase(
         topUpPartnerCoins.fulfilled,
         (state, action: PayloadAction<ResponseWalletTopUpPartner>) => {

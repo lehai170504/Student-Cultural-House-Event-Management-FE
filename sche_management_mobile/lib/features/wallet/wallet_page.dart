@@ -14,7 +14,7 @@ class WalletPage extends StatefulWidget {
 class _WalletPageState extends State<WalletPage> {
   final ApiClient _apiClient = ApiClient();
   bool _isLoading = true;
-  int? _walletId;
+  String? _walletId;
   double _balance = 0.0;
   List<Transaction> _transactions = [];
   String? _error;
@@ -46,11 +46,11 @@ class _WalletPageState extends State<WalletPage> {
         final profileJson =
             jsonDecode(profileResponse.body) as Map<String, dynamic>;
         final profileData = profileJson['data'] ?? profileJson;
-        _walletId = profileData['walletId'] as int?;
+        _walletId = profileData['walletId']?.toString();
 
         safePrint('📥 Wallet ID: $_walletId');
 
-        if (_walletId != null) {
+        if (_walletId != null && _walletId!.isNotEmpty) {
           // Load wallet details
           safePrint('🔍 Loading wallet details...');
           final walletResponse = await _apiClient.get(
@@ -383,7 +383,7 @@ class _WalletPageState extends State<WalletPage> {
 }
 
 class Transaction {
-  final int id;
+  final String id;
   final String description;
   final DateTime createdAt;
   final double amount;
@@ -421,7 +421,7 @@ class Transaction {
     }
 
     return Transaction(
-      id: json['id'] as int,
+      id: (json['id'] ?? json['transactionId']).toString(),
       description: description,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)

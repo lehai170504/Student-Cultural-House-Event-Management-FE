@@ -5,6 +5,8 @@ import 'dart:convert';
 import '../../services/api_client.dart';
 import '../../config/api_config.dart' as app_config;
 import '../events/events_page.dart';
+import '../gifts/gifts_page.dart';
+import '../gifts/gift_models.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,7 +18,13 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   PageController _heroController = PageController();
   int _currentHeroSlide = 0;
+  bool _isLoading = true;
   bool _isSignedIn = false;
+
+  final List<_HomeEvent> _events = [];
+
+  final List<Gift> _gifts = [];
+  bool _loadingGifts = true;
 
   final AuthService _authService = AuthService();
   final ApiClient _apiClient = ApiClient();
@@ -24,8 +32,6 @@ class _HomePageState extends State<HomePage> {
   // Dynamic data
   String _userName = '';
   int _totalPoints = 0;
-  bool _loadingEvents = true;
-  List<_HomeEvent> _events = [];
 
   final List<HeroSlide> _heroSlides = [
     HeroSlide(
@@ -85,9 +91,420 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _checkAuthStatus();
     _startAutoSlide();
-    _loadEvents();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _checkAuthStatus();
+    if (!mounted) return;
+
+    if (_isSignedIn) {
+      await _loadProfile();
+    } else {
+      setState(() {
+        _userName = '';
+        _totalPoints = 0;
+      });
+    }
+
+    await Future.wait([_loadEvents(), _loadGifts()]);
+  }
+
+  Widget _buildHeaderCard(BuildContext context) {
+    final greeting = _userName.isNotEmpty
+        ? 'Chào, $_userName'
+        : 'Chào mừng bạn';
+    final pointsLabel = _isSignedIn
+        ? '${_totalPoints.toString()} coin'
+        : 'Đăng nhập để tích coin';
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFA726), Color(0xFFFF7043)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFFA726).withOpacity(0.35),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          greeting,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Tham gia các hoạt động văn hóa, nghệ thuật và giao lưu với cộng đồng sinh viên',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.9),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Image.asset(
+                      'assets/images/LogoRMBG.png',
+                      height: 42,
+                      width: 42,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.stars_rounded, color: Colors.white),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              pointsLabel,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  TextButton(
+                    onPressed: () {
+                      if (_isSignedIn) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const EventsPage()),
+                        );
+                      } else {
+                        Navigator.of(context).pushNamed('/login');
+                      }
+                    },
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 10,
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Text(
+                      _isSignedIn ? 'Khám phá sự kiện' : 'Đăng nhập ngay',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCarousel() {
+    if (_heroSlides.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 260,
+            child: PageView.builder(
+              controller: _heroController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentHeroSlide = index % _heroSlides.length;
+                });
+              },
+              itemCount: null,
+              itemBuilder: (context, index) {
+                final slideIndex = index % _heroSlides.length;
+                return _buildHeroSlide(_heroSlides[slideIndex]);
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildHeroIndicators(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroIndicators() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(
+        _heroSlides.length,
+        (index) => AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          height: 6,
+          width: index == _currentHeroSlide ? 22 : 8,
+          decoration: BoxDecoration(
+            color: index == _currentHeroSlide
+                ? const Color(0xFFFB923C)
+                : const Color(0xFFE5E7EB),
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionsSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Tính năng nổi bật',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildQuickAction(
+                  icon: Icons.event_available_rounded,
+                  title: 'Sự kiện',
+                  subtitle: 'Xem tất cả',
+                  color: const Color(0xFFFB923C),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const EventsPage())),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildQuickAction(
+                  icon: Icons.card_giftcard_rounded,
+                  title: 'Đổi quà',
+                  subtitle: 'Cửa hàng',
+                  color: const Color(0xFF8B5CF6),
+                  onTap: () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const GiftsPage())),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingEventsSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              Text(
+                'Sự kiện sắp tới',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFFB923C)),
+                ),
+              ),
+            )
+          else if (_events.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'Chưa có sự kiện nào được mở đăng ký.',
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+            )
+          else
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _events.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  return _buildUpcomingCard(context, _events[index]);
+                },
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingCard(BuildContext context, _HomeEvent event) {
+    return InkWell(
+      onTap: () => Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const EventsPage())),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 220,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: event.statusColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Text(
+                      event.statusLabel,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: event.statusColor,
+                      ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.calendar_today_rounded,
+                    size: 18,
+                    color: Color(0xFFFB923C),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                event.title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${event.formattedDate} • ${_formatTimeRange(event)}',
+                style: const TextStyle(fontSize: 13, color: Color(0xFF6B7280)),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.location_on_rounded,
+                    size: 16,
+                    color: Color(0xFF8B5CF6),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      event.location,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF6B7280),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _checkAuthStatus() async {
@@ -96,16 +513,6 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _isSignedIn = signedIn;
       });
-
-      // If signed in, load profile to get points
-      if (signedIn) {
-        _loadProfile();
-      } else {
-        // If not signed in, set points to 0
-        setState(() {
-          _totalPoints = 0;
-        });
-      }
     }
   }
 
@@ -133,6 +540,15 @@ class _HomePageState extends State<HomePage> {
             '✅ Updated: userName=$_userName, totalPoints=$_totalPoints',
           );
         }
+      } else if (res.statusCode == 401) {
+        safePrint('⚠️ Profile requires authentication (401).');
+        if (mounted) {
+          setState(() {
+            _isSignedIn = false;
+            _userName = '';
+            _totalPoints = 0;
+          });
+        }
       } else {
         safePrint('⚠️ Profile not found (status: ${res.statusCode})');
       }
@@ -143,28 +559,135 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadEvents() async {
     try {
-      setState(() => _loadingEvents = true);
+      setState(() => _isLoading = true);
       final res = await _apiClient.get(
-        '${app_config.ApiConfig.events}?page=1&size=5',
+        '${app_config.ApiConfig.events}?page=1&size=20',
       );
       if (res.statusCode == 200) {
         final json = jsonDecode(res.body) as Map<String, dynamic>;
         final data = json['data'] ?? json['content'] ?? [];
-        final list = (data as List)
+        final now = DateTime.now();
+        final raw = (data as List)
             .map((e) => _HomeEvent.fromJson(e as Map<String, dynamic>))
+            .where((event) => event.isActive)
             .toList();
+
+        final filtered =
+            raw.where((event) {
+              final isOngoing =
+                  now.isAfter(event.startTime) && now.isBefore(event.endTime);
+              final isUpcoming = now.isBefore(event.startTime);
+              return isOngoing || isUpcoming;
+            }).toList()..sort((a, b) {
+              final aOngoing =
+                  now.isAfter(a.startTime) && now.isBefore(a.endTime);
+              final bOngoing =
+                  now.isAfter(b.startTime) && now.isBefore(b.endTime);
+              if (aOngoing != bOngoing) {
+                return aOngoing ? -1 : 1;
+              }
+              return a.startTime.compareTo(b.startTime);
+            });
+
         if (mounted) {
           setState(() {
-            _events = list;
-            _loadingEvents = false;
+            _events
+              ..clear()
+              ..addAll(filtered.take(10));
+            _isLoading = false;
           });
         }
       } else {
-        if (mounted) setState(() => _loadingEvents = false);
+        if (mounted) setState(() => _isLoading = false);
+        safePrint('⚠️ Failed to load home events (status: ${res.statusCode})');
       }
-    } catch (_) {
-      if (mounted) setState(() => _loadingEvents = false);
+    } catch (err) {
+      safePrint('⚠️ Failed to load home events: $err');
+      if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadGifts() async {
+    try {
+      setState(() => _loadingGifts = true);
+      final endpoints = [
+        '${app_config.ApiConfig.products}?category=GIFT&isActive=true&sortBy=createdAt&order=desc&limit=8&offset=0',
+        '${app_config.ApiConfig.products}?category=VOUCHER&isActive=true&sortBy=createdAt&order=desc&limit=8&offset=0',
+      ];
+      final responses = await Future.wait(
+        endpoints.map((path) => _apiClient.get(path)),
+      );
+
+      final combined = <Gift>[];
+      for (final response in responses) {
+        if (response.statusCode == 200) {
+          final decoded = jsonDecode(response.body);
+          final list = _extractGiftList(
+            decoded,
+          ).whereType<Map<String, dynamic>>().map(Gift.fromJson).toList();
+          combined.addAll(list);
+        } else {
+          safePrint('⚠️ Failed to load gifts (status: ${response.statusCode})');
+        }
+      }
+
+      final unique =
+          {for (final gift in combined) gift.id: gift}.values.toList()..sort(
+            (a, b) => (a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+                .compareTo(
+                  b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+                ),
+          );
+
+      if (mounted) {
+        setState(() {
+          _gifts
+            ..clear()
+            ..addAll(unique.reversed.take(6));
+          _loadingGifts = false;
+        });
+      }
+    } catch (err) {
+      safePrint('⚠️ Failed to load gifts: $err');
+      if (mounted) setState(() => _loadingGifts = false);
+    }
+  }
+
+  List<dynamic> _extractGiftList(dynamic source) {
+    if (source == null) return [];
+    if (source is List) return source;
+    if (source is Map<String, dynamic>) {
+      final candidates = [
+        source['data'],
+        source['content'],
+        source['items'],
+        source['products'],
+        source['result'],
+      ];
+      for (final candidate in candidates) {
+        if (candidate is List) return candidate;
+      }
+      for (final value in source.values) {
+        if (value is List) return value;
+      }
+    }
+    return [];
+  }
+
+  Future<void> _refreshHome() async {
+    await _checkAuthStatus();
+    if (!mounted) return;
+
+    if (_isSignedIn) {
+      await _loadProfile();
+    } else {
+      setState(() {
+        _userName = '';
+        _totalPoints = 0;
+      });
+    }
+
+    await Future.wait([_loadEvents(), _loadGifts()]);
   }
 
   void _startAutoSlide() {
@@ -188,298 +711,30 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFB),
-      body: CustomScrollView(
-        slivers: [
-          // App Bar
-          SliverAppBar(
-            expandedHeight: 140,
-            floating: false,
-            pinned: true,
-            elevation: 0,
-            flexibleSpace: Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFFB923C), Color(0xFFF97316)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFB923C).withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                centerTitle: false,
-                title: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Image.asset(
-                        'assets/images/LogoRMBG.png',
-                        height: 36,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        _userName.isNotEmpty
-                            ? 'Chào, $_userName'
-                            : 'Chào ní nha',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 22,
-                          letterSpacing: 0.5,
-                          shadows: [
-                            Shadow(
-                              color: Colors.black26,
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
-                            ),
-                          ],
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      backgroundColor: const Color(0xFFF6F7FB),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: const Color(0xFFFB923C),
+          onRefresh: _refreshHome,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeaderCard(context),
+                const SizedBox(height: 20),
+                _buildHeroCarousel(),
+                const SizedBox(height: 24),
+                _buildQuickActionsSection(context),
+                const SizedBox(height: 24),
+                _buildUpcomingEventsSection(context),
+                const SizedBox(height: 24),
+                _buildGiftHighlightsSection(context),
+                const SizedBox(height: 32),
+              ],
             ),
           ),
-
-          // Hero Carousel Section
-          SliverToBoxAdapter(
-            child: Container(
-              height: 360,
-              margin: const EdgeInsets.symmetric(vertical: 16),
-              child: PageView.builder(
-                controller: _heroController,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentHeroSlide = index % _heroSlides.length;
-                  });
-                },
-                itemCount: null, // Infinite scroll
-                itemBuilder: (context, index) {
-                  final slideIndex = index % _heroSlides.length;
-                  return _buildHeroSlide(_heroSlides[slideIndex]);
-                },
-              ),
-            ),
-          ),
-
-          // Dots indicator
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _heroSlides.length,
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: index == _currentHeroSlide ? 32 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: index == _currentHeroSlide
-                          ? const Color(0xFFFB923C)
-                          : const Color(0xFFE5E7EB),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          // Login Banner (nếu chưa đăng nhập)
-          if (!_isSignedIn)
-            SliverToBoxAdapter(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFB923C), Color(0xFFF97316)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFFB923C).withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Đăng nhập để tích coin',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Tham gia sự kiện và đổi quà hấp dẫn',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pushNamed('/login');
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFFFB923C),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Đăng nhập',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // Quick Actions
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Tính năng nổi bật',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildQuickAction(
-                          icon: Icons.event_available_rounded,
-                          title: 'Sự kiện',
-                          subtitle: 'Xem tất cả',
-                          color: const Color(0xFFFB923C),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildQuickAction(
-                          icon: Icons.card_giftcard_rounded,
-                          title: 'Đổi quà',
-                          subtitle: 'Cửa hàng',
-                          color: const Color(0xFF8B5CF6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Coming Events (from API)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Sự kiện sắp tới',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (_loadingEvents)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFFFB923C),
-                          ),
-                        ),
-                      ),
-                    )
-                  else if (_events.isEmpty)
-                    const Text(
-                      'Chưa có sự kiện',
-                      style: TextStyle(color: Color(0xFF6B7280)),
-                    )
-                  else
-                    SizedBox(
-                      height: 270,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _events.length,
-                        itemBuilder: (context, i) {
-                          final e = _events[i];
-                          return _buildEventCard(
-                            title: e.title,
-                            date: e.formattedDate,
-                            location: e.location,
-                            image:
-                                e.bannerImageUrl ??
-                                'https://source.unsplash.com/300x200/?event',
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -636,6 +891,7 @@ class _HomePageState extends State<HomePage> {
     required String title,
     required String subtitle,
     required Color color,
+    VoidCallback? onTap,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -658,13 +914,7 @@ class _HomePageState extends State<HomePage> {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            if (title == 'Sự kiện') {
-              Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const EventsPage()));
-            }
-          },
+          onTap: onTap,
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(18),
@@ -716,6 +966,7 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
+                const Icon(Icons.chevron_right, color: Color(0xFFCBD5F5)),
               ],
             ),
           ),
@@ -724,198 +975,82 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildEventCard({
-    required String title,
-    required String date,
-    required String location,
-    required String image,
-  }) {
-    return Container(
-      width: 290,
-      margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            spreadRadius: -2,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              height: 130,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    const Color(0xFF6366F1).withOpacity(0.2),
-                    const Color(0xFF8B5CF6).withOpacity(0.2),
-                  ],
+  Widget _buildGiftHighlightsSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Quà tặng nổi bật',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF111827),
                 ),
               ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network(
-                    image,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: const Color(0xFFE5E7EB),
-                        child: const Icon(
-                          Icons.image_rounded,
-                          size: 40,
-                          color: Color(0xFF9CA3AF),
-                        ),
-                      );
-                    },
-                  ),
-                  // Dark overlay for text readability
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withOpacity(0.6),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Event badge
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFB923C),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFFB923C).withOpacity(0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Text(
-                        'Mới',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+              TextButton(
+                onPressed: () => Navigator.of(
+                  context,
+                ).push(MaterialPageRoute(builder: (_) => const GiftsPage())),
+                child: const Text('Xem tất cả'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_loadingGifts)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B5CF6)),
+                ),
+              ),
+            )
+          else if (_gifts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Text(
+                'Chưa có quà tặng khả dụng.',
+                style: TextStyle(color: Color(0xFF6B7280)),
+              ),
+            )
+          else
+            SizedBox(
+              height: 200,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _gifts.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final gift = _gifts[index];
+                  return _GiftHighlightCard(gift: gift);
+                },
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
-                      letterSpacing: 0.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(
-                          Icons.calendar_today_rounded,
-                          size: 14,
-                          color: Color(0xFFFB923C),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        date,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF6B7280),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(
-                          Icons.location_on_rounded,
-                          size: 14,
-                          color: Color(0xFF8B5CF6),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          location,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF6B7280),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
+  }
+
+  String _formatTimeRange(_HomeEvent event) {
+    String fmt(DateTime dt) =>
+        '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+    return '${fmt(event.startTime)} - ${fmt(event.endTime)}';
   }
 }
 
 // Minimal event model for HomePage
 class _HomeEvent {
-  final int id;
+  final String id;
   final String title;
   final String location;
   final DateTime startTime;
   final DateTime endTime;
+  final String status;
   final String? bannerImageUrl;
 
   _HomeEvent({
@@ -924,17 +1059,21 @@ class _HomeEvent {
     required this.location,
     required this.startTime,
     required this.endTime,
+    required this.status,
     this.bannerImageUrl,
   });
 
   factory _HomeEvent.fromJson(Map<String, dynamic> json) => _HomeEvent(
-    id: json['id'] as int,
+    id: (json['id'] ?? json['eventId']).toString(),
     title: json['title'] as String,
     location: json['location'] as String,
     startTime: DateTime.parse(json['startTime'] as String),
     endTime: DateTime.parse(json['endTime'] as String),
+    status: (json['status'] ?? '').toString().toUpperCase(),
     bannerImageUrl: json['bannerImageUrl'] as String?,
   );
+
+  bool get isActive => status == 'ACTIVE';
 
   String get formattedDate {
     final months = [
@@ -951,7 +1090,24 @@ class _HomeEvent {
       '11',
       '12',
     ];
-    return '${startTime.day}/${months[startTime.month - 1]}/${startTime.year}';
+    return '${startTime.day.toString().padLeft(2, '0')}/${months[startTime.month - 1]}/${startTime.year}';
+  }
+
+  String get statusLabel => status;
+
+  Color get statusColor {
+    switch (status) {
+      case 'ACTIVE':
+        return const Color(0xFF10B981);
+      case 'DRAFT':
+        return const Color(0xFF3B82F6);
+      case 'FINISH':
+        return const Color(0xFF6B7280);
+      case 'CANCEL':
+        return const Color(0xFFDC2626);
+      default:
+        return const Color(0xFF9CA3AF);
+    }
   }
 }
 
@@ -971,4 +1127,88 @@ class HeroSlide {
     required this.gradient,
     required this.icon,
   });
+}
+
+class _GiftHighlightCard extends StatelessWidget {
+  const _GiftHighlightCard({required this.gift});
+
+  final Gift gift;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 200,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                gift.categoryLabel,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF8B5CF6),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              gift.name,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF111827),
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              gift.description ?? 'Quà tặng hấp dẫn dành cho bạn.',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(
+                  Icons.stars_rounded,
+                  size: 18,
+                  color: Color(0xFFFB923C),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${gift.requiredPoints} coin',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFFFB923C),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

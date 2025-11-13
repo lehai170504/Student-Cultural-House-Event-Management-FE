@@ -18,6 +18,7 @@ import {
   FileSearch,
   BarChart3,
   Gift,
+  MessageCircle,
 } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
@@ -33,13 +34,18 @@ const menuSections = [
       { label: "Sự kiện", href: "/admin/events", icon: Calendar },
       { label: "Người dùng", href: "/admin/users", icon: Users },
       { label: "Quà tặng", href: "/admin/product", icon: Gift },
+      { label: "Đánh giá", href: "/admin/feedback", icon: MessageCircle },
     ],
   },
   {
     title: "Hệ thống",
     items: [
       { label: "Thông báo", href: "/admin/notifications", icon: Bell },
-      { label: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
+      {
+        label: "Giao dịch ví",
+        href: "/admin/transactions",
+        icon: BarChart3,
+      },
       { label: "Cài đặt", href: "/admin/settings", icon: Settings },
     ],
   },
