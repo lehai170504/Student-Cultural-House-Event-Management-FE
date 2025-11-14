@@ -34,7 +34,7 @@ export default function WalletHeader() {
         </div>
         <div>
           <div className="text-sm font-medium text-slate-800">
-            Student Cultural House
+            Nguyen Do Minh Quan
           </div>
           <div className="text-xs text-slate-600">Ví điện tử</div>
         </div>
