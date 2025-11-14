@@ -11,8 +11,55 @@ class AuthService {
   Future<bool> isSignedIn() async {
     try {
       final session = await Amplify.Auth.fetchAuthSession();
-      return session.isSignedIn;
-    } catch (_) {
+      if (session.isSignedIn) {
+        // Ensure tokens are saved
+        await _saveTokens();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      safePrint('❌ Error checking sign in status: $e');
+      return false;
+    }
+  }
+
+  /// Check if token is expired and refresh if needed
+  Future<bool> ensureValidSession() async {
+    try {
+      final session = await Amplify.Auth.fetchAuthSession();
+      if (!session.isSignedIn) {
+        return false;
+      }
+
+      // Try to refresh session to get new tokens if needed
+      if (session is CognitoAuthSession) {
+        try {
+          // Save current tokens first
+          await _saveTokens();
+
+          // Check if tokens are valid by trying to get them
+          final accessToken = await getAccessToken();
+          if (accessToken != null && accessToken.isNotEmpty) {
+            return true;
+          }
+
+          // If no tokens, try to get fresh session
+          final refreshedSession = await Amplify.Auth.fetchAuthSession();
+          if (refreshedSession.isSignedIn) {
+            await _saveTokens();
+            return true;
+          }
+          return false;
+        } catch (e) {
+          safePrint('⚠️ Failed to refresh session: $e');
+          // If refresh fails, check if we still have valid tokens
+          final accessToken = await getAccessToken();
+          return accessToken != null && accessToken.isNotEmpty;
+        }
+      }
+      return true;
+    } catch (e) {
+      safePrint('❌ Error ensuring valid session: $e');
       return false;
     }
   }

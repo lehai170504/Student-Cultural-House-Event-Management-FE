@@ -176,6 +176,10 @@ class _MainNavigationState extends State<MainNavigation>
             if (index == 3) {
               EventHistoryPage.reload();
             }
+            // Reload ProfilePage when switching to it to refresh balance
+            if (index == 4) {
+              ProfilePage.reload();
+            }
             setState(() {
               _currentIndex = index;
             });

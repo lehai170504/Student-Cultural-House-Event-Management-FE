@@ -14,13 +14,6 @@ import '../notifications/notifications_page.dart';
 import '../feedback/feedbacks_page.dart';
 import '../gifts/redeem_history_page.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
-
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
 // University model
 class University {
   final String id;
@@ -33,6 +26,21 @@ class University {
       id: (json['id'] ?? json['universityId']).toString(),
       name: json['name'] as String,
     );
+  }
+}
+
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+
+  // Static reference to current instance
+  static _ProfilePageState? _currentInstance;
+
+  // Method to reload from outside
+  static void reload() {
+    _currentInstance?._loadUserInfo();
   }
 }
 
@@ -78,12 +86,15 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
+    // Register this instance to the static reload method
+    ProfilePage._currentInstance = this;
     _loadUserInfo();
     _loadUnreadNotificationCount();
   }
 
   @override
   void dispose() {
+    ProfilePage._currentInstance = null;
     _editNameController.dispose();
     _editPhoneController.dispose();
     super.dispose();
