@@ -41,7 +41,7 @@ export default function GiftHistoryPage() {
         // Load stats
         setLoadingStats(true);
         try {
-          const stats = await ProductService.getRedeemStats();
+          const stats = await InvoiceService.getRedeemStats();
           setTopProducts(stats.topProducts || []);
         } catch (statsError) {
           console.error("Error loading stats:", statsError);
