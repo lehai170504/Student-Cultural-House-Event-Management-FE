@@ -69,6 +69,7 @@ const initialState: EventState = {
   registering: false,
   sendingFeedback: false,
   updatingFeedback: false,
+  deletingFeedback: false,
   checkingIn: false,
 
   loadingAttendees: false,
