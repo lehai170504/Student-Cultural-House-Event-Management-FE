@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Gift, Star, Users, Clock, Zap, TrendingUp, Loader2 } from "lucide-react";
+import {
+  Gift,
+  Star,
+  Users,
+  Clock,
+  Zap,
+  TrendingUp,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { productService } from "@/features/products/services/productService";
@@ -48,7 +56,8 @@ const convertProductToReward = (
     name: product.title,
     description: product.description,
     points: product.unitCost,
-    image: product.imageUrl || "https://via.placeholder.com/400x300?text=No+Image",
+    image:
+      product.imageUrl || "https://via.placeholder.com/400x300?text=No+Image",
     category: mapProductTypeToCategory(product.type),
     stock: product.totalStock,
     popular: topProductIds?.has(product.id) || false, // Check if product is in top products
@@ -72,28 +81,33 @@ export default function RewardsSection() {
       // Lấy danh sách top products từ API /products/top
       // Format: [{ productId, totalRedeem, title, totalCoins }]
       const topProducts = await productService.getTopRedeemed();
-      
+
       // Lấy 3 products đầu tiên (bán chạy nhất)
-      const top3ProductIds = topProducts.slice(0, 3).map((p) => p.productId);
+      const top3ProductIds = topProducts.slice(0, 3).map((p) => p.id);
 
       // Lấy thông tin đầy đủ của 3 products này
       const productDetails = await Promise.all(
-        top3ProductIds.map((productId) => 
+        top3ProductIds.map((productId) =>
           productService.getById(productId).catch(() => null)
         )
       );
 
       // Filter chỉ lấy products hợp lệ (active, có stock, và là GIFT hoặc VOUCHER)
-      const validProducts = productDetails.filter((p): p is Product => 
-        p !== null && 
-        p.isActive === true && 
-        (p.type === "GIFT" || p.type === "VOUCHER") && 
-        p.totalStock > 0
+      const validProducts = productDetails.filter(
+        (p): p is Product =>
+          p !== null &&
+          p.isActive === true &&
+          (p.type === "GIFT" || p.type === "VOUCHER") &&
+          p.totalStock > 0
       );
 
       setProducts(validProducts);
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách quà");
+      setError(
+        e?.response?.data?.message ||
+          e?.message ||
+          "Không tải được danh sách quà"
+      );
       setProducts([]);
     } finally {
       setLoading(false);
@@ -104,10 +118,10 @@ export default function RewardsSection() {
   const loadTopProducts = useCallback(async () => {
     try {
       const topProducts = await productService.getTopRedeemed();
-      
+
       // API /products/top trả về format: [{ productId, totalRedeem, title, totalCoins }]
       // Lưu danh sách productIds của sản phẩm phổ biến để hiển thị badge
-      const topIds = new Set(topProducts.map((p) => p.productId));
+      const topIds = new Set(topProducts.map((p) => p.id));
       setTopProductIds(topIds);
     } catch (e: any) {
       // Nếu có lỗi, set empty set để không hiển thị badge "Phổ biến"
@@ -123,7 +137,7 @@ export default function RewardsSection() {
 
   // Convert products to rewards
   const rewards: Reward[] = useMemo(() => {
-    return products.map((product, index) => 
+    return products.map((product, index) =>
       convertProductToReward(product, index, topProductIds)
     );
   }, [products, topProductIds]);
@@ -201,7 +215,9 @@ export default function RewardsSection() {
           {loading ? (
             <div className="col-span-full flex items-center justify-center py-16">
               <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-              <span className="ml-3 text-gray-600">Đang tải danh sách quà...</span>
+              <span className="ml-3 text-gray-600">
+                Đang tải danh sách quà...
+              </span>
             </div>
           ) : error ? (
             <div className="col-span-full text-center py-16 text-red-600">
@@ -216,81 +232,81 @@ export default function RewardsSection() {
             </div>
           ) : (
             rewards.map((reward, index) => (
-            <div
-              key={reward.id}
-              className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-orange-100 transition-all duration-500 hover:-translate-y-2 animate-fadeInUp"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              {/* Image */}
-              <div className="relative h-56 overflow-hidden">
-                <img
-                  src={reward.image}
-                  alt={reward.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+              <div
+                key={reward.id}
+                className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-orange-100 transition-all duration-500 hover:-translate-y-2 animate-fadeInUp"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Image */}
+                <div className="relative h-56 overflow-hidden">
+                  <img
+                    src={reward.image}
+                    alt={reward.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
-                <div className="absolute top-4 left-4 flex flex-row gap-2 flex-wrap">
-                  {reward.popular && (
-                    <Badge className="bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-current" /> Phổ biến
-                    </Badge>
-                  )}
-                  {reward.lowStock && (
-                    <Badge className="bg-gradient-to-r from-red-500 to-pink-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
-                      Sắp hết hàng
-                    </Badge>
-                  )}
-                </div>
-
-                <Badge className="absolute top-4 right-4 bg-white/90 text-foreground shadow-md backdrop-blur-sm border-0">
-                  {reward.category}
-                </Badge>
-
-                <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-md flex items-center gap-1">
-                  <Zap className="w-4 h-4 text-orange-500" />
-                  <span className="font-semibold text-foreground text-sm">
-                    {reward.points.toLocaleString("vi-VN")}
-                  </span>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
-                  {reward.name}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                  {reward.description}
-                </p>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Clock className="w-4 h-4" />
-                    <span>Còn {reward.stock}</span>
+                  <div className="absolute top-4 left-4 flex flex-row gap-2 flex-wrap">
+                    {reward.popular && (
+                      <Badge className="bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
+                        <Star className="w-4 h-4 fill-current" /> Phổ biến
+                      </Badge>
+                    )}
+                    {reward.lowStock && (
+                      <Badge className="bg-gradient-to-r from-red-500 to-pink-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
+                        Sắp hết hàng
+                      </Badge>
+                    )}
                   </div>
 
-                  {reward.stock === 0 ? (
-                    <Button
-                      size="sm"
-                      className="rounded-xl transition-all duration-300 bg-muted text-muted-foreground cursor-not-allowed"
-                      disabled
-                    >
-                      Hết hàng
-                    </Button>
-                  ) : (
-                    <Link href="/gifts">
+                  <Badge className="absolute top-4 right-4 bg-white/90 text-foreground shadow-md backdrop-blur-sm border-0">
+                    {reward.category}
+                  </Badge>
+
+                  <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-md flex items-center gap-1">
+                    <Zap className="w-4 h-4 text-orange-500" />
+                    <span className="font-semibold text-foreground text-sm">
+                      {reward.points.toLocaleString("vi-VN")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
+                    {reward.name}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    {reward.description}
+                  </p>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Clock className="w-4 h-4" />
+                      <span>Còn {reward.stock}</span>
+                    </div>
+
+                    {reward.stock === 0 ? (
                       <Button
                         size="sm"
-                        className="rounded-xl transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                        className="rounded-xl transition-all duration-300 bg-muted text-muted-foreground cursor-not-allowed"
+                        disabled
                       >
-                        Đổi ngay
+                        Hết hàng
                       </Button>
-                    </Link>
-                  )}
+                    ) : (
+                      <Link href="/gifts">
+                        <Button
+                          size="sm"
+                          className="rounded-xl transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg hover:scale-105"
+                        >
+                          Đổi ngay
+                        </Button>
+                      </Link>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
             ))
           )}
         </div>
