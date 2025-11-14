@@ -18,6 +18,8 @@ interface Props {
     imageUrl: string;
     createdAt: string;
   };
+  imageFile: File | null;
+  setImageFile: (file: File | null) => void;
   onSubmit: (
     values: Omit<
       {
@@ -27,10 +29,11 @@ interface Props {
         unitCost: number;
         totalStock: number;
         isActive: boolean;
-        imageUrl: string;
+        imageFile?: File;
       },
       "createdAt"
-    >
+    >,
+    imageFile?: File
   ) => Promise<void>;
   saving: boolean;
   isEditing: boolean;
@@ -51,6 +54,8 @@ export const ProductDetailForm: FC<Props> = ({
   onSubmit,
   saving,
   isEditing,
+  imageFile,
+  setImageFile,
 }) => {
   return (
     <Formik
@@ -59,39 +64,47 @@ export const ProductDetailForm: FC<Props> = ({
       enableReinitialize
       onSubmit={async (values) => {
         const { createdAt, ...payload } = values;
-        await onSubmit({ ...payload, isActive: values.isActive === "true" });
+        await onSubmit(
+          { ...payload, isActive: values.isActive === "true" },
+          imageFile ?? undefined
+        );
       }}
     >
-      {({ values }) => (
+      {({ values, setFieldValue }) => (
         <Form className="space-y-4 mt-4">
           {/* Hình ảnh */}
           <div>
             <label className="block text-gray-700 font-medium mb-1">
               Hình ảnh sản phẩm
             </label>
-            {values.imageUrl ? (
+            {values.imageUrl && !imageFile ? (
               <img
                 src={values.imageUrl}
+                alt={values.title}
+                className="w-48 h-48 rounded-lg object-cover mb-2"
+              />
+            ) : imageFile ? (
+              <img
+                src={URL.createObjectURL(imageFile)}
                 alt={values.title}
                 className="w-48 h-48 rounded-lg object-cover mb-2"
               />
             ) : (
               <p className="text-gray-400 italic">(Không có hình ảnh)</p>
             )}
+
             {isEditing && (
-              <div className="flex flex-col gap-1">
-                <Field
-                  name="imageUrl"
-                  type="text"
-                  placeholder="Nhập URL hình ảnh..."
-                  className="w-full border rounded-md p-2 text-sm"
-                />
-                <ErrorMessage
-                  name="imageUrl"
-                  component="p"
-                  className="text-red-500 text-xs"
-                />
-              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setImageFile(file);
+                  if (file)
+                    setFieldValue("imageUrl", URL.createObjectURL(file));
+                }}
+                className="mt-1"
+              />
             )}
           </div>
 
@@ -193,7 +206,7 @@ export const ProductDetailForm: FC<Props> = ({
                 type="number"
                 as={Input}
                 readOnly={!isEditing}
-                min={1}
+                min={0}
                 className={
                   isEditing
                     ? "text-right"

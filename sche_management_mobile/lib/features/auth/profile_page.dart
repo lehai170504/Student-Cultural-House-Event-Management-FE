@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:io';
 import 'package:amplify_flutter/amplify_flutter.dart';
 import 'package:amplify_auth_cognito/amplify_auth_cognito.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import '../../services/auth_service.dart';
 import '../../services/api_client.dart';
 import '../../config/api_config.dart' as app_config;
 import '../wallet/wallet_page.dart';
 import '../history/event_history_page.dart';
+import '../notifications/notifications_page.dart';
+import '../feedback/feedbacks_page.dart';
+import '../gifts/redeem_history_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -40,31 +46,46 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userEmail = '';
   String _phoneNumber = '';
   String? _avatarUrl;
+  String? _avatarPath;
   String? _universityName;
   int _totalPoints = 0;
+  int _unreadNotificationCount = 0;
 
   // Onboarding form fields
   String? _selectedUserType;
   String? _selectedUniversity;
   List<University> _universities = [];
   bool _loadingUniversities = false;
+  XFile? _onboardingAvatarFile;
+  String? _onboardingAvatarPreview;
 
   // Edit form fields
   final TextEditingController _editNameController = TextEditingController();
   final TextEditingController _editPhoneController = TextEditingController();
-  final TextEditingController _editAvatarController = TextEditingController();
+  final ImagePicker _imagePicker = ImagePicker();
+  XFile? _editAvatarFile;
+  String? _editAvatarPreview;
+
+  String _normalizePhoneNumber(String phone) =>
+      phone.replaceAll(RegExp(r'\D'), '');
+
+  bool _isValidPhoneNumber(String phone) {
+    final normalized = _normalizePhoneNumber(phone);
+    const pattern = r'^(03|05|07|08|09)\d{8}$';
+    return RegExp(pattern).hasMatch(normalized);
+  }
 
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadUnreadNotificationCount();
   }
 
   @override
   void dispose() {
     _editNameController.dispose();
     _editPhoneController.dispose();
-    _editAvatarController.dispose();
     super.dispose();
   }
 
@@ -88,6 +109,7 @@ class _ProfilePageState extends State<ProfilePage> {
             _userEmail = data['email'] as String? ?? '';
             _phoneNumber = data['phoneNumber'] as String? ?? '';
             _avatarUrl = data['avatarUrl'] as String?;
+            _avatarPath = _avatarUrl;
             _universityName = data['universityName'] as String?;
             _totalPoints = (data['balance'] as num?)?.toInt() ?? 0;
             _isLoading = false;
@@ -188,14 +210,15 @@ class _ProfilePageState extends State<ProfilePage> {
     _selectedUserType = null;
     _selectedUniversity = null;
     _editPhoneController.text = '';
-    _editAvatarController.text = '';
+    _onboardingAvatarFile = null;
+    _onboardingAvatarPreview = null;
     _loadUniversities();
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
+        builder: (context, setStateDialog) => AlertDialog(
           title: const Text('Hoàn tất hồ sơ'),
           content: SingleChildScrollView(
             child: Column(
@@ -219,7 +242,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   ],
                   onChanged: (value) {
-                    setState(() {
+                    setStateDialog(() {
                       _selectedUserType = value;
                       if (value != 'sinh viên') {
                         _selectedUniversity = null;
@@ -258,7 +281,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     onChanged: _loadingUniversities
                         ? null
                         : (value) {
-                            setState(() {
+                            setStateDialog(() {
                               _selectedUniversity = value;
                             });
                           },
@@ -276,13 +299,90 @@ class _ProfilePageState extends State<ProfilePage> {
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
-                // Avatar URL
-                TextField(
-                  controller: _editAvatarController,
-                  decoration: const InputDecoration(
-                    labelText: 'URL Avatar (tùy chọn)',
-                    border: OutlineInputBorder(),
-                  ),
+                // Avatar uploader (optional)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Ảnh đại diện (tùy chọn)',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_onboardingAvatarPreview != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(60),
+                        child: Image.file(
+                          File(_onboardingAvatarPreview!),
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 120,
+                        height: 120,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(60),
+                          color: const Color(0xFFF3F4F6),
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 48,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final picked = await _imagePicker.pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 1024,
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              _onboardingAvatarFile = picked;
+                              _onboardingAvatarPreview = picked.path;
+                            });
+                          }
+                        } catch (e) {
+                          safePrint('❌ Error picking image: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Không thể mở thư viện ảnh. Vui lòng thử lại sau khi khởi động lại ứng dụng.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.upload_file),
+                      label: Text(
+                        _onboardingAvatarFile == null
+                            ? 'Chọn ảnh'
+                            : 'Chọn ảnh khác',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFB923C),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    if (_onboardingAvatarFile != null)
+                      TextButton(
+                        onPressed: () {
+                          setStateDialog(() {
+                            _onboardingAvatarFile = null;
+                            _onboardingAvatarPreview = null;
+                          });
+                        },
+                        child: const Text('Gỡ ảnh'),
+                      ),
+                  ],
                 ),
               ],
             ),
@@ -370,15 +470,9 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (_selectedUserType == 'sinh viên' && _selectedUniversity != null) {
-        // Ensure university starts with "Trường"
-        var universityValue = _selectedUniversity!.trim();
-        if (!universityValue.toLowerCase().startsWith('trường')) {
-          universityValue = 'Trường $universityValue';
-        }
-
         final universityResult = await Amplify.Auth.updateUserAttribute(
           userAttributeKey: const CognitoUserAttributeKey.custom('university'),
-          value: universityValue,
+          value: _selectedUniversity!.trim(),
         );
         safePrint(
           '✅ Updated university: ${universityResult.nextStep.updateAttributeStep}',
@@ -392,20 +486,59 @@ class _ProfilePageState extends State<ProfilePage> {
 
       // Bước 2: Gọi API complete-profile để lưu phoneNumber và avatarUrl vào BE
       safePrint('📝 Gọi API complete profile...');
-      safePrint(
-        '📝 Request body: {phoneNumber: ${_editPhoneController.text.trim()}, avatarUrl: ${_editAvatarController.text.trim()}}',
-      );
-      final response = await _apiClient.post(
+      final phoneRaw = _editPhoneController.text.trim();
+      if (!_isValidPhoneNumber(phoneRaw)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Số điện thoại không hợp lệ'),
+              backgroundColor: Color(0xFFDC2626),
+            ),
+          );
+        }
+        return;
+      }
+
+      final normalizedPhoneNumber = _normalizePhoneNumber(phoneRaw);
+      final payload = <String, String>{'phoneNumber': normalizedPhoneNumber};
+      if (_avatarPath != null &&
+          _avatarPath!.isNotEmpty &&
+          _onboardingAvatarFile == null) {
+        payload['avatarPath'] = _avatarPath!;
+      }
+
+      final files = <http.MultipartFile>[];
+      if (_onboardingAvatarFile != null) {
+        files.add(
+          await http.MultipartFile.fromPath(
+            'image',
+            _onboardingAvatarFile!.path,
+          ),
+        );
+      }
+
+      final response = await _apiClient.postMultipart(
         app_config.ApiConfig.completeProfile,
-        body: {
-          'phoneNumber': _editPhoneController.text.trim(),
-          'avatarUrl': _editAvatarController.text.trim(),
-        },
+        fields: {'data': jsonEncode(payload)},
+        files: files,
       );
       safePrint('✅ Complete profile response: ${response.statusCode}');
       safePrint('✅ Response body: ${response.body}');
 
       if (response.statusCode == 200 || response.statusCode == 201) {
+        final body = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : null;
+        final data = body is Map<String, dynamic>
+            ? (body['data'] ?? body)
+            : null;
+        if (data is Map<String, dynamic>) {
+          _avatarUrl = data['avatarUrl'] as String? ?? _avatarUrl;
+          _avatarPath = _avatarUrl;
+          _phoneNumber = data['phoneNumber'] as String? ?? _phoneNumber;
+          _userName = data['fullName'] as String? ?? _userName;
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -414,6 +547,12 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           );
         }
+
+        setState(() {
+          _onboardingAvatarFile = null;
+          _onboardingAvatarPreview = null;
+        });
+
         await _loadUserInfo();
       } else {
         safePrint('⚠️ Complete profile status code: ${response.statusCode}');
@@ -452,82 +591,229 @@ class _ProfilePageState extends State<ProfilePage> {
   void _openEditDialog() {
     _editNameController.text = _userName;
     _editPhoneController.text = _phoneNumber;
-    _editAvatarController.text = _avatarUrl ?? '';
+    _editAvatarFile = null;
+    _editAvatarPreview = _avatarUrl;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Chỉnh sửa thông tin'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _editNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Họ tên',
-                  border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Chỉnh sửa thông tin'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _editNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Họ tên',
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _editPhoneController,
-                decoration: const InputDecoration(
-                  labelText: 'Số điện thoại',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _editPhoneController,
+                  decoration: const InputDecoration(
+                    labelText: 'Số điện thoại',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: TextInputType.phone,
                 ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _editAvatarController,
-                decoration: const InputDecoration(
-                  labelText: 'URL Avatar',
-                  border: OutlineInputBorder(),
+                const SizedBox(height: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'Ảnh đại diện',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    if (_editAvatarFile != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(60),
+                        child: Image.file(
+                          File(_editAvatarFile!.path),
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else if (_editAvatarPreview != null &&
+                        _editAvatarPreview!.isNotEmpty)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(60),
+                        child: Image.network(
+                          _editAvatarPreview!,
+                          width: 120,
+                          height: 120,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 120,
+                        height: 120,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(60),
+                          color: const Color(0xFFF3F4F6),
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 48,
+                          color: Color(0xFF9CA3AF),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        try {
+                          final picked = await _imagePicker.pickImage(
+                            source: ImageSource.gallery,
+                            maxWidth: 1024,
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              _editAvatarFile = picked;
+                              _editAvatarPreview = picked.path;
+                            });
+                          }
+                        } catch (e) {
+                          safePrint('❌ Error picking image: $e');
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Không thể mở thư viện ảnh. Vui lòng thử lại sau khi khởi động lại ứng dụng.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      icon: const Icon(Icons.upload_file),
+                      label: Text(
+                        _editAvatarFile == null ? 'Chọn ảnh' : 'Chọn ảnh khác',
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFB923C),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    if (_editAvatarFile != null ||
+                        (_editAvatarPreview != null &&
+                            _editAvatarPreview!.isNotEmpty))
+                      TextButton(
+                        onPressed: () {
+                          setStateDialog(() {
+                            _editAvatarFile = null;
+                            _editAvatarPreview = null;
+                          });
+                        },
+                        child: const Text('Gỡ ảnh'),
+                      ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Hủy'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await _updateProfile();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFFB923C),
-              foregroundColor: Colors.white,
+              ],
             ),
-            child: const Text('Lưu'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await _updateProfile();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFB923C),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _updateProfile() async {
     try {
-      final response = await _apiClient.put(
+      final payload = <String, String>{};
+
+      final fullName = _editNameController.text.trim();
+      final phone = _editPhoneController.text.trim();
+
+      if (fullName.isNotEmpty) {
+        payload['fullName'] = fullName;
+      }
+
+      if (phone.isNotEmpty) {
+        if (!_isValidPhoneNumber(phone)) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Số điện thoại không hợp lệ'),
+                backgroundColor: Color(0xFFDC2626),
+              ),
+            );
+          }
+          return;
+        }
+        payload['phoneNumber'] = _normalizePhoneNumber(phone);
+      }
+
+      if (_editAvatarFile == null &&
+          _editAvatarPreview != null &&
+          _editAvatarPreview!.isNotEmpty) {
+        payload['avatarPath'] = _editAvatarPreview!;
+      }
+
+      final files = <http.MultipartFile>[];
+      if (_editAvatarFile != null) {
+        files.add(
+          await http.MultipartFile.fromPath('image', _editAvatarFile!.path),
+        );
+      }
+
+      final response = await _apiClient.putMultipart(
         '${app_config.ApiConfig.students}/me',
-        body: {
-          'fullName': _editNameController.text,
-          'phoneNumber': _editPhoneController.text,
-          'avatarUrl': _editAvatarController.text,
-        },
+        fields: {'data': jsonEncode(payload)},
+        files: files,
       );
 
       if (response.statusCode == 200) {
+        final body = response.body.isNotEmpty
+            ? jsonDecode(response.body)
+            : null;
+        final data = body is Map<String, dynamic>
+            ? (body['data'] ?? body)
+            : null;
+        if (data is Map<String, dynamic>) {
+          _avatarUrl = data['avatarUrl'] as String? ?? _avatarUrl;
+          _avatarPath = _avatarUrl;
+          _userName = data['fullName'] as String? ?? _userName;
+          _phoneNumber = data['phoneNumber'] as String? ?? _phoneNumber;
+        }
+
         await _loadUserInfo();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Cập nhật thông tin thành công'),
               backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Lỗi cập nhật: Status code ${response.statusCode}'),
+              backgroundColor: const Color(0xFFDC2626),
             ),
           );
         }
@@ -545,6 +831,25 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final response = await _apiClient.get(app_config.ApiConfig.unreadCount);
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final count = body is Map<String, dynamic>
+            ? (body['count'] ?? 0)
+            : (body ?? 0);
+        if (mounted) {
+          setState(() {
+            _unreadNotificationCount = count is int ? count : 0;
+          });
+        }
+      }
+    } catch (e) {
+      safePrint('❌ Error loading unread notification count: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -553,6 +858,50 @@ class _ProfilePageState extends State<ProfilePage> {
         backgroundColor: const Color(0xFFFB923C),
         foregroundColor: Colors.white,
         actions: [
+          // Notification bell
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () async {
+                  final result = await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const NotificationsPage(),
+                    ),
+                  );
+                  // Reload unread count when returning from notifications page
+                  _loadUnreadNotificationCount();
+                },
+              ),
+              if (_unreadNotificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadNotificationCount > 9
+                          ? '9+'
+                          : '$_unreadNotificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             onPressed: () => _openEditDialog(),
@@ -591,17 +940,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         child: CircleAvatar(
                           radius: 55,
                           backgroundColor: Colors.white,
-                          backgroundImage: null,
-                          child: Text(
-                            _userName.isNotEmpty
-                                ? _userName[0].toUpperCase()
-                                : 'S',
-                            style: const TextStyle(
-                              fontSize: 48,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFFB923C),
-                            ),
-                          ),
+                          backgroundImage:
+                              (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                              ? NetworkImage(_avatarUrl!)
+                              : null,
+                          child: (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                              ? null
+                              : Text(
+                                  _userName.isNotEmpty
+                                      ? _userName[0].toUpperCase()
+                                      : 'S',
+                                  style: const TextStyle(
+                                    fontSize: 48,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFFB923C),
+                                  ),
+                                ),
                         ),
                       ),
                       Positioned(
@@ -753,11 +1107,27 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             _buildMenuItem(
-              icon: Icons.card_giftcard_outlined,
-              title: 'Quà đã đổi',
-              subtitle: 'Chưa có quà nào',
+              icon: Icons.feedback_outlined,
+              title: 'Danh sách Feedback',
+              subtitle: 'Xem đánh giá và bình luận',
               onTap: () {
-                // TODO: Coming soon
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const FeedbacksPage(),
+                  ),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.receipt_long_outlined,
+              title: 'Lịch sử đổi quà',
+              subtitle: 'Xem các quà đã đổi',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const RedeemHistoryPage(),
+                  ),
+                );
               },
             ),
             _buildMenuItem(

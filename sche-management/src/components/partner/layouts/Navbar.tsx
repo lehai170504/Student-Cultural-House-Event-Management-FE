@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Bell, Search } from "lucide-react";
+import { UserCircle, LogOut, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,8 +11,18 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet, // 🌟 Import Sheet
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
 import { cognitoDomain } from "@/config/oidc-config";
+
+// 🌟 Import component nội dung Profile Partner
+import PartnerProfileSheetContent from "@/components/partner/profile/PartnerProfileSheetContent";
 
 export default function PartnerNavbar() {
   const { user, isLoading } = useUserProfile();
@@ -47,60 +57,39 @@ export default function PartnerNavbar() {
   };
 
   return (
-    <header className="w-full sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b shadow-md transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-8 h-24">
-        {/* Logo + Title */}
-        <div className="flex items-center gap-6">
+    // 🌟 Thay đổi: Nền trắng tuyệt đối, shadow nhẹ hơn
+    <header className="w-full sticky top-0 z-50 bg-white border-b shadow-sm transition-all">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 md:px-8 h-16 md:h-20">
+        {/* 1. Logo + Title */}
+        <div className="flex items-center gap-2 md:gap-4 ml-0">
           <div className="flex-shrink-0">
             <Image
               src="/LogoRMBG.png"
               alt="Logo"
-              width={120}
-              height={120}
-              className="object-contain hover:scale-110 transition-transform duration-300"
+              width={50} // 🌟 Giảm kích thước logo để phù hợp navbar
+              height={50}
+              className="object-contain hover:scale-105 transition-transform duration-300"
             />
           </div>
           <div className="flex flex-col justify-center">
-            <h1 className="text-3xl md:text-4xl font-extrabold text-orange-600 leading-tight">
+            <h1 className="text-xl md:text-2xl font-extrabold text-gray-800 leading-none">
               Partner Panel
             </h1>
-            <h2 className="text-lg md:text-2xl font-semibold text-gray-700">
+            <h2 className="text-sm md:text-base font-semibold text-orange-600">
               Management
             </h2>
           </div>
         </div>
 
-        {/* Search */}
-        <div className="flex-1 max-w-md mx-6 relative hidden md:flex items-center">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400 h-5 w-5" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm..."
-            className="pl-12 pr-4 py-3 w-full rounded-xl bg-orange-50 border border-orange-200 focus:border-orange-500 focus:ring focus:ring-orange-200 focus:ring-opacity-50 shadow-sm transition-all duration-300"
-          />
-        </div>
-
-        {/* Notification + User */}
-        <div className="flex items-center gap-6">
-          {/* Notification Bell */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative rounded-full hover:bg-orange-100 transition-all duration-200"
-          >
-            <Bell className="h-6 w-6 text-orange-500" />
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full shadow-md">
-              3
-            </span>
-          </Button>
-
-          {/* User Dropdown */}
+        {/* 2. Notification + User Actions */}
+        <div className="flex items-center gap-2 md:gap-4">
+          {/* User Dropdown MENU */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="flex items-center gap-3 px-4 py-2 hover:bg-orange-50 rounded-lg transition-all duration-200"
+                className="flex items-center gap-2 pl-2 pr-3 py-2 hover:bg-orange-50 rounded-full transition-all duration-200"
               >
                 <img
                   src={
@@ -109,37 +98,74 @@ export default function PartnerNavbar() {
                       : "https://i.pravatar.cc/40"
                   }
                   alt="avatar"
-                  className="w-10 h-10 rounded-full border border-orange-200 shadow-sm"
+                  className="w-9 h-9 rounded-full border-2 border-orange-400 object-cover shadow-md"
                 />
-                <span className="hidden sm:inline text-gray-700 font-medium">
+                <span className="hidden md:inline text-gray-700 font-medium text-base">
                   {!isLoading && user?.fullName ? user.fullName : "Partner"}
                 </span>
               </Button>
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
-              className="w-52 bg-white/90 backdrop-blur-sm shadow-lg rounded-lg border border-orange-100"
+              className="w-56 bg-white shadow-xl rounded-lg border border-gray-100 p-1"
               align="end"
-              sideOffset={8}
+              sideOffset={10}
             >
-              <DropdownMenuItem asChild>
-                <Link href="/partner/profile" className="w-full">
-                  Xem Profile
+              {/* Thông tin User Top */}
+              <div className="px-3 py-2 mb-1 border-b border-gray-100">
+                <p className="font-semibold text-gray-800">
+                  {!isLoading && user?.fullName ? user.fullName : "Partner"}
+                </p>
+                <p className="text-sm text-gray-500 truncate">
+                  {!isLoading && user?.contactEmail
+                    ? user.contactEmail
+                    : "Loading..."}
+                </p>
+              </div>
+
+              {/* 🌟 MỤC MỚI: Xem Profile (Sheet Trigger) */}
+              <Sheet>
+                <DropdownMenuItem
+                  asChild
+                  onSelect={(e) => e.preventDefault()}
+                  className="p-0"
+                >
+                  <SheetTrigger className="flex items-center w-full px-3 py-2 text-sm cursor-pointer text-gray-700 hover:bg-orange-50 rounded-md transition-colors">
+                    <UserCircle className="w-4 h-4 mr-2 text-indigo-500" />
+                    Xem Profile
+                  </SheetTrigger>
+                </DropdownMenuItem>
+
+                <SheetContent side="right" className="w-full sm:max-w-md p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle className="text-xl font-bold text-gray-800">
+                      Hồ sơ Đối tác
+                    </SheetTitle>
+                  </SheetHeader>
+                  {/* 🌟 Nhúng component nội dung */}
+                  <PartnerProfileSheetContent />
+                </SheetContent>
+              </Sheet>
+
+              {/* Trang Chủ */}
+              <DropdownMenuItem asChild className="p-0">
+                <Link
+                  href="/"
+                  className="w-full flex items-center px-3 py-2 text-gray-700 hover:bg-orange-50 rounded-md transition-colors"
+                >
+                  <Home className="w-4 h-4 mr-2 text-gray-500" />
+                  <span>Trang Chủ</span>
                 </Link>
               </DropdownMenuItem>
 
-              <DropdownMenuItem asChild>
-                <Link href="/" className="w-full">
-                  Trang Chủ
-                </Link>
-              </DropdownMenuItem>
+              <DropdownMenuSeparator className="my-1 border-gray-200" />
 
-              <DropdownMenuSeparator className="border-orange-100" />
-
+              {/* Đăng xuất */}
               <DropdownMenuItem
-                className="text-red-600 hover:bg-red-50 focus:bg-red-50 rounded-md transition-colors"
+                className="text-red-600 focus:text-white hover:bg-red-500 focus:bg-red-600 rounded-md transition-colors flex items-center px-3 py-2"
                 onClick={handleLogout}
               >
+                <LogOut className="w-4 h-4 mr-2" />
                 Đăng xuất
               </DropdownMenuItem>
             </DropdownMenuContent>

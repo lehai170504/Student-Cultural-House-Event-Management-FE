@@ -5,10 +5,10 @@ export interface CreateInvoice {
 }
 
 export interface Invoice {
-  invoiceId: number | string;
-  studentId: number | string;
+  invoiceId: string;
+  studentId: string;
   studentName: string;
-  productId: number | string;
+  productId: string;
   productTitle: string;
   productType: string;
   quantity: number;
@@ -16,9 +16,26 @@ export interface Invoice {
   currency: string;
   status: string;
   verificationCode: string;
-  createdAt: string;
+  createdAt: string | null;
   deliveredAt: string | null;
   deliveredBy: string | null;
+}
+
+export interface InvoiceMeta {
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  totalItems: number;
+}
+
+export interface InvoiceResponse {
+  data: Invoice[];
+  meta: InvoiceMeta;
+}
+
+export interface RedemptionInvoiceResult {
+  invoices: Invoice[];
+  meta: InvoiceMeta;
 }
 
 export interface ProductInvoiceMasked {

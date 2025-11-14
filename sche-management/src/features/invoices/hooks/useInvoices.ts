@@ -1,36 +1,45 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+
 import {
   createInvoice,
   markInvoiceAsDelivered,
   cancelInvoice,
   fetchInvoiceDetail,
-  fetchStudentRedeemHistory
+  fetchStudentRedeemHistory,
+  fetchAllRedemptionInvoices,
 } from "../thunks/invoiceThunks";
+
 import {
   clearError,
   resetDetail,
   resetStudentHistory,
+  resetAllRedemptions,
 } from "../slices/invoiceSlice";
+
 import type { CreateInvoice } from "../types/invoice";
 
 export const useInvoices = () => {
   const dispatch = useAppDispatch();
 
-  // Lấy trạng thái từ Invoice Slice
   const {
     detail,
     studentHistory,
+    allRedemptions,
+    redemptionMeta, // ⭐ Lấy pagination meta
     loadingDetail,
     loadingHistory,
+    loadingAllRedemptions,
     loadingStats,
     saving,
     error,
-  } = useAppSelector((state) => state.invoice); // Giả định slice tên là 'invoice'
+  } = useAppSelector((state) => state.invoice);
 
-  // --- 1. LẤY DỮ LIỆU (READ) ---
+  // ======================
+  // 📌 FETCH DATA
+  // ======================
 
-  /** 🔎 Fetch chi tiết hóa đơn theo ID */
+  /** 🔎 Lấy chi tiết hóa đơn */
   const loadDetail = useCallback(
     async (invoiceId: string) => {
       await dispatch(fetchInvoiceDetail(invoiceId));
@@ -38,7 +47,7 @@ export const useInvoices = () => {
     [dispatch]
   );
 
-  /** 📜 Fetch lịch sử redeem của sinh viên */
+  /** 📜 Lấy lịch sử redeem của sinh viên */
   const loadStudentHistory = useCallback(
     async (studentId: string) => {
       await dispatch(fetchStudentRedeemHistory(studentId));
@@ -46,10 +55,23 @@ export const useInvoices = () => {
     [dispatch]
   );
 
-  /** 🛒 Tạo hóa đơn mới (Thực hiện Redeem) */
+  /** 🌟 Lấy tất cả hóa đơn đổi quà (có phân trang) */
+  const loadAllRedemptions = useCallback(
+    async (page: number = 1, size: number = 10) => {
+      await dispatch(fetchAllRedemptionInvoices({ page, size }));
+    },
+    [dispatch]
+  );
+
+  // ======================
+  // 📌 ACTIONS
+  // ======================
+
+  /** 🛒 Tạo hóa đơn redeem */
   const createNewInvoice = useCallback(
     async (data: CreateInvoice): Promise<{ success: boolean; error?: any; data?: any }> => {
       const result = await dispatch(createInvoice(data));
+      return createInvoice.fulfilled.match(result);
       // Trả về success, error và data nếu có
       if (createInvoice.fulfilled.match(result)) {
         return { success: true, data: result.payload };
@@ -61,18 +83,16 @@ export const useInvoices = () => {
     [dispatch]
   );
 
-  /** ✅ Đánh dấu hóa đơn đã giao */
+  /** 🚚 Đánh dấu đã giao */
   const deliverInvoice = useCallback(
     async (invoiceId: string): Promise<boolean> => {
-      const result = await dispatch(
-        markInvoiceAsDelivered({ invoiceId })
-      );
+      const result = await dispatch(markInvoiceAsDelivered({ invoiceId }));
       return markInvoiceAsDelivered.fulfilled.match(result);
     },
     [dispatch]
   );
 
-  /** ↩️ Huỷ hóa đơn */
+  /** ❌ Hủy hóa đơn */
   const cancelRedemption = useCallback(
     async (invoiceId: string): Promise<boolean> => {
       const result = await dispatch(cancelInvoice(invoiceId));
@@ -81,37 +101,46 @@ export const useInvoices = () => {
     [dispatch]
   );
 
-  // --- 3. RESET & UTILITY ---
+  // ======================
+  // 📌 RESET
+  // ======================
 
-  /** 🔄 Reset chi tiết hóa đơn */
   const resetInvoiceDetail = useCallback(() => {
     dispatch(resetDetail());
   }, [dispatch]);
 
-  /** 🔄 Reset lịch sử redeem */
   const resetHistory = useCallback(() => {
     dispatch(resetStudentHistory());
   }, [dispatch]);
 
-  /** ❌ Xóa lỗi */
+  const resetAllRedemptionsList = useCallback(() => {
+    dispatch(resetAllRedemptions());
+  }, [dispatch]);
+
   const clearInvoiceError = useCallback(() => {
     dispatch(clearError());
   }, [dispatch]);
 
-  // --- RETURN VALUE ---
+  // ======================
+  // 📌 RETURN
+  // ======================
+
   return {
     detail,
     studentHistory,
-    // stats,
+    allRedemptions,
+    redemptionMeta, // ⭐ Trả meta cho UI phân trang
+
     loadingDetail,
     loadingHistory,
+    loadingAllRedemptions,
     loadingStats,
     saving,
     error,
 
     loadDetail,
     loadStudentHistory,
-    // loadStats,
+    loadAllRedemptions,
 
     createNewInvoice,
     deliverInvoice,
@@ -119,6 +148,7 @@ export const useInvoices = () => {
 
     resetInvoiceDetail,
     resetHistory,
+    resetAllRedemptionsList,
     clearInvoiceError,
   };
 };

@@ -1,15 +1,21 @@
 import axiosInstance from "@/config/axiosInstance";
+import {
+  CreateInvoice,
+  Invoice,
+  InvoiceMeta,
+  InvoiceResponse,
+  ProductInvoiceMasked,
+} from "../types/invoice";
 import { CreateInvoice, Invoice, ProductInvoiceMasked, InvoiceStats } from "../types/invoice";
 
-// Định nghĩa chung cho Invoice Service
-const endpoint = "/invoices";
+const BASE_ENDPOINT = "/invoices";
+const REDEMPTION_ENDPOINT = "/admin/invoices";
 
 const InvoiceService = {
-  /** 🛒 Tạo hóa đơn khi redeem product và trừ balance: POST /api/v1/invoices */
   async createInvoice(payload: CreateInvoice): Promise<Invoice> {
     try {
       // payload chứa thông tin cần thiết để redeem sản phẩm
-      const res = await axiosInstance.post<Invoice>(endpoint, payload);
+      const res = await axiosInstance.post<Invoice>(BASE_ENDPOINT, payload);
       return res.data;
     } catch (error) {
       console.error("❌ [createInvoice] Error creating invoice:", error);
@@ -20,8 +26,8 @@ const InvoiceService = {
   // --- 2. Cập nhật Trạng thái Hóa đơn ---
   async markAsDelivered(invoiceId: string): Promise<ProductInvoiceMasked> {
     try {
-      const res = await axiosInstance.put<ProductInvoiceMasked>(
-        `${endpoint}/${invoiceId}/confirm-delivery`
+      const res = await axiosInstance.post<ProductInvoiceMasked>(
+        `${BASE_ENDPOINT}/${invoiceId}/confirm-delivery`
       );
       return res.data;
     } catch (error) {
@@ -35,7 +41,7 @@ const InvoiceService = {
   async cancelInvoice(invoiceId: string): Promise<Invoice> {
     try {
       const res = await axiosInstance.post<Invoice>(
-        `${endpoint}/${invoiceId}/cancel`
+        `${BASE_ENDPOINT}/${invoiceId}/cancel`
       );
       return res.data;
     } catch (error) {
@@ -50,7 +56,9 @@ const InvoiceService = {
   // --- 3. Lấy Dữ liệu Hóa đơn ---
   async getInvoiceDetail(invoiceId: string): Promise<Invoice> {
     try {
-      const res = await axiosInstance.get<Invoice>(`${endpoint}/${invoiceId}`);
+      const res = await axiosInstance.get<Invoice>(
+        `${BASE_ENDPOINT}/${invoiceId}`
+      );
       return res.data;
     } catch (error) {
       console.error(
@@ -62,6 +70,9 @@ const InvoiceService = {
   },
   async getStudentRedeemHistory(studentId: string): Promise<Invoice[]> {
     try {
+      // Endpoint hơi khác: /api/v1/invoices/students/{studentId}
+      const res = await axiosInstance.get<Invoice[]>(
+        `${BASE_ENDPOINT}/students/${studentId}`
       // Endpoint: /api/v1/invoices/students/{studentId}
       // Response format: { data: Invoice[] }
       const res = await axiosInstance.get<{ data: Invoice[] } | Invoice[]>(
@@ -83,6 +94,27 @@ const InvoiceService = {
     }
   },
 
+  async getAllRedemptionInvoices(
+    page: number,
+    size: number
+  ): Promise<{ invoices: Invoice[]; meta: InvoiceMeta }> {
+    try {
+      const res = await axiosInstance.get<InvoiceResponse>(
+        `${REDEMPTION_ENDPOINT}?page=${page}&pageSize=${size}`
+      );
+
+      return {
+        invoices: res.data.data,
+        meta: res.data.meta,
+      };
+    } catch (error) {
+      console.error(
+        "❌ [getAllRedemptionInvoices] Error fetching all redemption invoices:",
+        error
+      );
+      throw error;
+    }
+  },
   /** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
   async getRedeemStats(): Promise<InvoiceStats> {
     try {

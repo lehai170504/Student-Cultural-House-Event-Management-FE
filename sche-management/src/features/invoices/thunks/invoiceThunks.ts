@@ -4,6 +4,7 @@ import type {
   CreateInvoice,
   Invoice,
   ProductInvoiceMasked,
+  RedemptionInvoiceResult,
 } from "../types/invoice";
 // Đảm bảo Import kiểu InvoiceStat
 
@@ -86,3 +87,18 @@ export const fetchStudentRedeemHistory = createAsyncThunk<
     return rejectWithValue(error.response?.data || error.message);
   }
 });
+
+/** 💰 Lấy TẤT CẢ hóa đơn đổi quà (Redemptions) */
+export const fetchAllRedemptionInvoices = createAsyncThunk<
+  RedemptionInvoiceResult,
+  { page: number; size: number }
+>(
+  "invoice/fetchAllRedemptions",
+  async ({ page, size }, { rejectWithValue }) => {
+    try {
+      return await InvoiceService.getAllRedemptionInvoices(page, size);
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  }
+);

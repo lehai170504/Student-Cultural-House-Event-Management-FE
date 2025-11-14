@@ -28,7 +28,7 @@ const heroSlides: HeroSlide[] = [
     description:
       "Tham gia các hoạt động văn hóa, nghệ thuật và giao lưu cùng cộng đồng sinh viên năng động.",
     image:
-      "https://baobinhduong.vn/image/fckeditor/upload/2023/20230515/images/mua%20tdm.jpg",
+      "https://www.nhavanhoasinhvien.vn/wp-content/uploads/bfi_thumb/slide-1-o7vxuvddx981jmy4pn1d4zv3aisbzkq2n9whu71u7m.jpg",
     buttonText: "Khám phá sự kiện",
     buttonLink: "/events",
   },
@@ -39,7 +39,7 @@ const heroSlides: HeroSlide[] = [
     description:
       "Cùng thưởng thức những giai điệu tuyệt vời từ các nghệ sĩ sinh viên tài năng.",
     image:
-      "https://cdn2.tuoitre.vn/thumb_w/480/471584752817336320/2024/1/28/nhac-cu-dan-toc-1706407688401234836648.jpg",
+      "https://phenikaa-uni.edu.vn:3600/pu/vi/posts/elm5847-compressed.jpg",
     buttonText: "Tham gia ngay",
     buttonLink: "/events",
   },
@@ -49,7 +49,8 @@ const heroSlides: HeroSlide[] = [
     subtitle: "Khám phá đa dạng văn hóa thế giới",
     description:
       "Trải nghiệm ẩm thực, trang phục và truyền thống độc đáo từ khắp nơi trên thế giới.",
-    image: "https://kientrucvietnam.org.vn/wp-content/uploads/2021/06/0707.jpg",
+    image:
+      "https://ims.baohoabinh.com.vn/NewsImg/4_2023/413_le-hoi-van-hoa-noi-tieng-tren-the-gioi-114982.jpg",
     buttonText: "Xem chi tiết",
     buttonLink: "/events",
   },
@@ -59,7 +60,8 @@ const heroSlides: HeroSlide[] = [
     subtitle: "Học hỏi từ các chuyên gia",
     description:
       "Phát triển kỹ năng kinh doanh và tư duy khởi nghiệp từ những người thành công.",
-    image: "https://kientrucvietnam.org.vn/wp-content/uploads/2021/06/0707.jpg",
+    image:
+      "https://ancojsc.vn/wp-content/uploads/2022/05/z3424977788289_32b734c076c75adf84011c3032af76f5-1.jpg",
     buttonText: "Đăng ký ngay",
     buttonLink: "/events",
   },

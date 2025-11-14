@@ -6,15 +6,26 @@ import {
   SidebarContent,
   SidebarHeader,
   SidebarMenu,
-  SidebarMenuItem,
   SidebarMenuButton,
+  SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Calendar, Bell, Wallet } from "lucide-react";
+import { Calendar, Bell, Wallet, Receipt } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import clsx from "clsx";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useUserProfile } from "@/features/auth/hooks/useUserProfile";
+// 🌟 IMPORTS SHEET MỚI
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+
+// 🌟 Import component nội dung profile Partner
+import PartnerProfileSheetContent from "@/components/partner/profile/PartnerProfileSheetContent";
 
 const menuSections = [
   {
@@ -37,36 +48,53 @@ export default function PartnerSidebar() {
         collapsible="icon"
         className="border-r bg-white/90 backdrop-blur-sm shadow-lg w-64"
       >
-        {/* Header với avatar + info */}
+        {/* Header với avatar + info - 🌟 SỬ DỤNG SHEET TRIGGER */}
         <SidebarHeader className="border-b px-4 py-4">
-          <Link
-            href="/partner/profile"
-            className="flex items-center gap-3 hover:bg-orange-50 p-2 rounded-lg transition-all duration-200"
-          >
-            <Avatar className="w-10 h-10 border border-orange-200 shadow-sm">
-              <AvatarImage
-                src={
-                  !isLoading && user?.avatar
-                    ? user.avatar
-                    : "https://i.pravatar.cc/100"
-                }
-              />
-              <AvatarFallback>
-                {!isLoading && user?.fullName ? user.fullName.charAt(0) : "P"}
-              </AvatarFallback>
-            </Avatar>
-            <div className="hidden sm:block">
-              <p className="text-sm font-semibold text-gray-800 hover:text-orange-600 transition-colors">
-                {!isLoading && user?.fullName ? user.fullName : "Partner"}
-              </p>
-              <p className="text-xs text-gray-500">
-                {!isLoading && user?.email ? user.email : "Partner Email"}
-              </p>
-            </div>
-          </Link>
+          <Sheet>
+            <SheetTrigger asChild>
+              <button
+                className="flex items-center gap-3 w-full hover:bg-orange-50 p-2 rounded-lg transition-all duration-200 text-left"
+                aria-label="Xem hồ sơ Partner"
+              >
+                <Avatar className="w-10 h-10 border border-orange-200 shadow-sm flex-shrink-0">
+                  <AvatarImage
+                    src={
+                      !isLoading && user?.avatar
+                        ? user.avatar
+                        : "https://i.pravatar.cc/100"
+                    }
+                  />
+                  <AvatarFallback>
+                    {!isLoading && user?.fullName
+                      ? user.fullName.charAt(0)
+                      : "P"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="hidden sm:block truncate">
+                  <p className="text-sm font-semibold text-gray-800 hover:text-orange-600 transition-colors truncate">
+                    {!isLoading && user?.fullName ? user.fullName : "Partner"}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {!isLoading && user?.email ? user.email : "Partner Email"}
+                  </p>
+                </div>
+              </button>
+            </SheetTrigger>
+
+            {/* CONTENT CỦA SHEET */}
+            <SheetContent side="right" className="w-full sm:max-w-md p-0">
+              <SheetHeader className="p-4 border-b">
+                <SheetTitle className="text-xl font-bold text-gray-800">
+                  Hồ sơ Đối tác
+                </SheetTitle>
+              </SheetHeader>
+              {/* 🌟 Nhúng component nội dung Partner Profile */}
+              <PartnerProfileSheetContent />
+            </SheetContent>
+          </Sheet>
         </SidebarHeader>
 
-        {/* Menu */}
+        {/* Menu (Giữ nguyên) */}
         <SidebarContent className="mt-2 px-2">
           {menuSections.map((section) => (
             <div key={section.title} className="mb-4">

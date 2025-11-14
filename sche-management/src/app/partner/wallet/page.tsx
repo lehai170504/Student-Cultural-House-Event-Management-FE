@@ -77,14 +77,8 @@ export default function PartnerWalletPage() {
         </div>
         <div className="grid grid-cols-2 gap-4 border-t border-orange-400/30 pt-4">
           <div>
-            <p className="text-orange-100 text-sm">Wallet ID</p>
-            <p className="font-semibold text-lg">{walletIdDisplay ?? "-"}</p>
-          </div>
-          <div>
             <p className="text-orange-100 text-sm">Chủ sở hữu</p>
-            <p className="font-semibold text-lg">
-              {ownerType} #{partnerId ?? "-"}
-            </p>
+            <p className="font-semibold text-lg">{ownerType}</p>
           </div>
         </div>
       </div>

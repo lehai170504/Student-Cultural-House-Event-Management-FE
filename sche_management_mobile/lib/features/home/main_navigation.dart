@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:amplify_flutter/amplify_flutter.dart';
 import '../../services/auth_service.dart';
+import '../../services/notification_service.dart';
+import '../notifications/notification_banner.dart';
+import '../notifications/notifications_page.dart';
+import '../notifications/notification_models.dart';
 import 'home_page.dart';
 import '../auth/login_page.dart';
 import '../auth/profile_page.dart';
@@ -18,10 +23,15 @@ class _MainNavigationState extends State<MainNavigation>
     with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
   final AuthService _authService = AuthService();
+  final NotificationService _notificationService = NotificationService();
   bool _isSignedIn = false;
 
   final List<Widget> _pages = [];
   late final AnimationController _pulseController;
+
+  // Notification banner state
+  NotificationMessage? _currentNotification;
+  bool _showBanner = false;
 
   @override
   void initState() {
@@ -32,13 +42,53 @@ class _MainNavigationState extends State<MainNavigation>
       lowerBound: 0.95,
       upperBound: 1.05,
     )..repeat(reverse: true);
-    _checkAuthStatus().then((_) => _initPages());
+    _checkAuthStatus().then((_) {
+      _initPages();
+      _setupNotificationListener();
+    });
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _notificationService.onNewNotification = null;
+    _notificationService.onUnreadCountChanged = null;
     super.dispose();
+  }
+
+  void _setupNotificationListener() {
+    // Lắng nghe thông báo mới
+    _notificationService.onNewNotification = (notification) {
+      safePrint(
+        '📬 Received new notification in MainNavigation: ${notification.deliveryId}',
+      );
+      if (mounted) {
+        setState(() {
+          _currentNotification = notification;
+          _showBanner = true;
+        });
+        safePrint('✅ Banner should be visible now');
+
+        // Tự động ẩn banner sau 5 giây
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted && _showBanner) {
+            setState(() {
+              _showBanner = false;
+            });
+          }
+        });
+      } else {
+        safePrint('⚠️ Widget not mounted, cannot show banner');
+      }
+    };
+
+    // Bắt đầu polling nếu đã đăng nhập
+    if (_isSignedIn) {
+      safePrint('🔔 User is signed in, starting notification polling');
+      _notificationService.startPolling();
+    } else {
+      safePrint('⚠️ User not signed in, skipping notification polling');
+    }
   }
 
   Future<void> _checkAuthStatus() async {
@@ -47,6 +97,14 @@ class _MainNavigationState extends State<MainNavigation>
       setState(() {
         _isSignedIn = signedIn;
       });
+
+      // Bắt đầu/dừng polling dựa trên trạng thái đăng nhập
+      if (signedIn) {
+        _notificationService.startPolling();
+      } else {
+        _notificationService.stopPolling();
+        _notificationService.reset();
+      }
     }
   }
 
@@ -66,7 +124,35 @@ class _MainNavigationState extends State<MainNavigation>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _pages),
+      body: Stack(
+        children: [
+          IndexedStack(index: _currentIndex, children: _pages),
+          // Notification banner overlay
+          if (_showBanner && _currentNotification != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: NotificationBanner(
+                  notification: _currentNotification!,
+                  onDismiss: () {
+                    setState(() {
+                      _showBanner = false;
+                    });
+                  },
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const NotificationsPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) async {

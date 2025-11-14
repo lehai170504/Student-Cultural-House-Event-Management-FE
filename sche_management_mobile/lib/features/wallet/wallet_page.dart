@@ -365,9 +365,9 @@ class _WalletPageState extends State<WalletPage> {
               ],
             ),
           ),
-          // Amount
+          // Amount - always show absolute value with correct sign
           Text(
-            '${transaction.isCredit ? '+' : '-'}${transaction.amount.toStringAsFixed(0)}',
+            '${transaction.isCredit ? '+' : '-'}${transaction.amount.abs().toStringAsFixed(0)}',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -398,27 +398,68 @@ class Transaction {
   });
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
-    // Map txnType to description
+    // Debug: Print txnType to see what we're getting
+    final txnType = (json['txnType'] as String? ?? '').toUpperCase();
+    safePrint(
+      '🔍 [Transaction.fromJson] txnType: $txnType, amount: ${json['amount']}',
+    );
+
+    // Map txnType to description and type
     String description;
     String type;
 
-    switch (json['txnType'] as String? ?? '') {
+    switch (txnType) {
+      // Credit transactions (money coming in)
       case 'SIGNUP_BONUS':
         description = 'Thưởng đăng ký';
         type = 'CREDIT';
+        break;
+      case 'TRANSFER_IN':
+        description = 'Nhận chuyển khoản';
+        type = 'CREDIT';
+        break;
+      case 'ROLLBACK':
+        description = 'Hoàn tiền';
+        type = 'CREDIT';
+        break;
+      case 'EVENT_FUNDING':
+        description = 'Tài trợ sự kiện';
+        type = 'CREDIT';
+        break;
+      case 'ADMIN_TOPUP':
+        description = 'Nạp tiền';
+        type = 'CREDIT';
+        break;
+
+      // Debit transactions (money going out)
+      case 'REDEEM':
+      case 'REDEEM_GIFT':
+        description = 'Đổi quà';
+        type = 'DEBIT';
+        break;
+      case 'TRANSFER_OUT':
+        description = 'Chuyển khoản';
+        type = 'DEBIT';
         break;
       case 'EVENT_DEPOSIT':
         description = 'Tham gia sự kiện';
         type = 'DEBIT';
         break;
-      case 'REDEEM_GIFT':
-        description = 'Đổi quà';
-        type = 'DEBIT';
-        break;
+
+      // Default: try to determine from amount sign
       default:
         description = 'Giao dịch';
-        type = 'CREDIT';
+        // If amount is negative, it's likely a debit
+        final rawAmount = (json['amount'] as num?)?.toDouble() ?? 0.0;
+        type = rawAmount < 0 ? 'DEBIT' : 'CREDIT';
+        safePrint(
+          '⚠️ [Transaction.fromJson] Unknown txnType: $txnType, inferred type: $type from amount: $rawAmount',
+        );
     }
+
+    // Ensure amount is always positive, we'll use type to determine sign
+    final rawAmount = (json['amount'] as num?)?.toDouble() ?? 0.0;
+    final amount = rawAmount.abs(); // Always store as positive value
 
     return Transaction(
       id: (json['id'] ?? json['transactionId']).toString(),
@@ -426,7 +467,7 @@ class Transaction {
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
-      amount: (json['amount'] as num).toDouble(),
+      amount: amount,
       type: type,
     );
   }

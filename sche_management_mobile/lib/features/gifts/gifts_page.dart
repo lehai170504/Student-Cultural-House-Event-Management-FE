@@ -7,6 +7,7 @@ import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../config/api_config.dart' as app_config;
 import 'gift_models.dart';
+import 'invoice_service.dart';
 
 class GiftsPage extends StatefulWidget {
   const GiftsPage({super.key});
@@ -238,14 +239,21 @@ class _GiftsPageState extends State<GiftsPage> {
     );
   }
 
-  void _showGiftDetail(Gift gift) {
-    showModalBottomSheet(
+  void _showGiftDetail(Gift gift) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) =>
           _GiftDetailSheet(gift: gift, isSignedIn: _isSignedIn),
     );
+
+    // If gift was redeemed, the balance might have changed
+    // The sheet itself handles balance update, but we can refresh gifts if needed
+    if (result == true) {
+      // Gift was redeemed, could refresh gifts list if needed
+      safePrint('✅ Gift redeemed, balance updated');
+    }
   }
 }
 
@@ -368,11 +376,191 @@ class _GiftCard extends StatelessWidget {
   }
 }
 
-class _GiftDetailSheet extends StatelessWidget {
+class _GiftDetailSheet extends StatefulWidget {
   const _GiftDetailSheet({required this.gift, required this.isSignedIn});
 
   final Gift gift;
   final bool isSignedIn;
+
+  @override
+  State<_GiftDetailSheet> createState() => _GiftDetailSheetState();
+}
+
+class _GiftDetailSheetState extends State<_GiftDetailSheet> {
+  final InvoiceService _invoiceService = InvoiceService();
+  final ApiClient _apiClient = ApiClient();
+  bool _isRedeeming = false;
+  int? _currentBalance;
+  String? _currentStudentId;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isSignedIn) {
+      _loadBalance();
+    }
+  }
+
+  Future<void> _loadBalance() async {
+    try {
+      final response = await _apiClient.get(app_config.ApiConfig.profile);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = json['data'] ?? json;
+        if (mounted) {
+          setState(() {
+            _currentBalance = (data['balance'] as num?)?.toInt() ?? 0;
+            _currentStudentId = data['id']?.toString();
+          });
+        }
+      }
+    } catch (e) {
+      safePrint('❌ Error loading balance: $e');
+    }
+  }
+
+  Future<void> _redeemGift() async {
+    if (!widget.isSignedIn) {
+      Navigator.of(context).pop();
+      Navigator.of(context).pushNamed('/login');
+      return;
+    }
+
+    if (_currentBalance == null) {
+      await _loadBalance();
+    }
+
+    if (_currentBalance == null || _currentStudentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Không thể lấy thông tin người dùng. Vui lòng thử lại.',
+          ),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    if (_currentBalance! < widget.gift.requiredPoints) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Bạn không đủ điểm. Cần ${widget.gift.requiredPoints} coin, bạn có $_currentBalance coin.',
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    if (!widget.gift.inStock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Sản phẩm đã hết hàng.'),
+          backgroundColor: Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận đổi quà'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Bạn có chắc chắn muốn đổi "${widget.gift.name}"?'),
+            const SizedBox(height: 8),
+            Text(
+              'Số điểm cần: ${widget.gift.requiredPoints} coin',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Số dư hiện tại: $_currentBalance coin',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              'Số dư sau khi đổi: ${_currentBalance! - widget.gift.requiredPoints} coin',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF10B981),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFB923C),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isRedeeming = true);
+
+    try {
+      safePrint(
+        '🔍 Redeeming gift ${widget.gift.id} for student $_currentStudentId...',
+      );
+      final redeemResponse = await _invoiceService.redeemProduct(
+        productId: widget.gift.id,
+        studentId: _currentStudentId!,
+        quantity: 1,
+      );
+
+      if (mounted) {
+        // Update balance from response
+        setState(() {
+          _currentBalance = redeemResponse.newBalance;
+        });
+
+        // Reload balance from API to ensure sync
+        await _loadBalance();
+
+        Navigator.of(
+          context,
+        ).pop(true); // Return true to indicate successful redemption
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Đổi quà thành công! Số dư còn lại: ${redeemResponse.newBalance} coin',
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      safePrint('❌ Error redeeming gift: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRedeeming = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -410,9 +598,9 @@ class _GiftDetailSheet extends StatelessWidget {
                           height: 220,
                           width: double.infinity,
                           color: const Color(0xFFF3F4F6),
-                          child: gift.imageUrl != null
+                          child: widget.gift.imageUrl != null
                               ? Image.network(
-                                  gift.imageUrl!,
+                                  widget.gift.imageUrl!,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) =>
                                       const _GiftPlaceholderIcon(
@@ -428,7 +616,7 @@ class _GiftDetailSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        gift.name,
+                        widget.gift.name,
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -448,7 +636,7 @@ class _GiftDetailSheet extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              gift.categoryLabel,
+                              widget.gift.categoryLabel,
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -463,17 +651,19 @@ class _GiftDetailSheet extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: gift.availabilityColor.withOpacity(0.1),
+                              color: widget.gift.availabilityColor.withOpacity(
+                                0.1,
+                              ),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              gift.inStock
-                                  ? 'Còn ${gift.quantity} sản phẩm'
+                              widget.gift.inStock
+                                  ? 'Còn ${widget.gift.quantity} sản phẩm'
                                   : 'Đã hết quà',
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: gift.availabilityColor,
+                                color: widget.gift.availabilityColor,
                               ),
                             ),
                           ),
@@ -508,7 +698,7 @@ class _GiftDetailSheet extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${gift.requiredPoints} coin',
+                                    '${widget.gift.requiredPoints} coin',
                                     style: const TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -521,8 +711,8 @@ class _GiftDetailSheet extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (gift.description != null &&
-                          gift.description!.trim().isNotEmpty) ...[
+                      if (widget.gift.description != null &&
+                          widget.gift.description!.trim().isNotEmpty) ...[
                         const SizedBox(height: 24),
                         const Text(
                           'Mô tả',
@@ -534,7 +724,7 @@ class _GiftDetailSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          gift.description!,
+                          widget.gift.description!,
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF6B7280),
@@ -557,7 +747,7 @@ class _GiftDetailSheet extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (!isSignedIn)
+                    if (!widget.isSignedIn)
                       Container(
                         padding: const EdgeInsets.all(12),
                         margin: const EdgeInsets.only(bottom: 12),
@@ -589,37 +779,106 @@ class _GiftDetailSheet extends StatelessWidget {
                           ],
                         ),
                       ),
+                    // Balance info
+                    if (widget.isSignedIn && _currentBalance != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF3B82F6).withOpacity(0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.account_balance_wallet,
+                              size: 18,
+                              color: Color(0xFF3B82F6),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Số dư: $_currentBalance coin',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1E40AF),
+                                ),
+                              ),
+                            ),
+                            if (_currentBalance! < widget.gift.requiredPoints)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDC2626),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Text(
+                                  'Không đủ',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          if (!isSignedIn) {
-                            Navigator.of(context).pushNamed('/login');
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Tính năng đổi quà đang được phát triển',
+                        onPressed: _isRedeeming
+                            ? null
+                            : () {
+                                if (!widget.isSignedIn) {
+                                  Navigator.of(context).pop();
+                                  Navigator.of(context).pushNamed('/login');
+                                } else {
+                                  _redeemGift();
+                                }
+                              },
+                        icon: _isRedeeming
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
                                 ),
-                                backgroundColor: Color(0xFFFB923C),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.redeem),
+                              )
+                            : const Icon(Icons.redeem),
                         label: Text(
-                          isSignedIn
-                              ? 'Đổi quà (sắp ra mắt)'
+                          _isRedeeming
+                              ? 'Đang xử lý...'
+                              : widget.isSignedIn
+                              ? 'Đổi quà'
                               : 'Đăng nhập để đổi quà',
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFB923C),
+                          backgroundColor:
+                              widget.isSignedIn &&
+                                  _currentBalance != null &&
+                                  _currentBalance! >=
+                                      widget.gift.requiredPoints &&
+                                  widget.gift.inStock
+                              ? const Color(0xFFFB923C)
+                              : const Color(0xFF9CA3AF),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
+                          disabledBackgroundColor: const Color(0xFF9CA3AF),
                         ),
                       ),
                     ),
