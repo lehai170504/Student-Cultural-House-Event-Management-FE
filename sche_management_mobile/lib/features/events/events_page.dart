@@ -4,6 +4,8 @@ import 'dart:convert';
 import '../../services/api_client.dart';
 import '../../services/auth_service.dart';
 import '../../config/api_config.dart' as app_config;
+import '../feedback/feedback_service.dart';
+import '../feedback/feedback_models.dart' as feedback_models;
 
 class EventsPage extends StatefulWidget {
   const EventsPage({super.key});
@@ -693,7 +695,7 @@ class Event {
   bool get canRegister => status.toUpperCase() == 'ACTIVE' && isUpcoming;
 }
 
-class _EventDetailModal extends StatelessWidget {
+class _EventDetailModal extends StatefulWidget {
   final Event event;
   final VoidCallback onRegister;
   final bool isRegistered;
@@ -707,6 +709,71 @@ class _EventDetailModal extends StatelessWidget {
     required this.isSignedIn,
     required this.onLoginRequested,
   });
+
+  @override
+  State<_EventDetailModal> createState() => _EventDetailModalState();
+}
+
+class _EventDetailModalState extends State<_EventDetailModal> {
+  final FeedbackService _feedbackService = FeedbackService();
+  final AuthService _authService = AuthService();
+  List<feedback_models.Feedback> _feedbacks = [];
+  bool _loadingFeedbacks = false;
+  String? _currentStudentId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFeedbacks();
+    _loadCurrentStudent();
+  }
+
+  Future<void> _loadCurrentStudent() async {
+    try {
+      final signedIn = await _authService.isSignedIn();
+      if (!signedIn || !mounted) return;
+
+      final response = await ApiClient().get(app_config.ApiConfig.profile);
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final data = json['data'] ?? json;
+        if (mounted) {
+          setState(() {
+            _currentStudentId = data['id']?.toString();
+          });
+        }
+      }
+    } catch (e) {
+      safePrint('⚠️ Could not get student ID: $e');
+    }
+  }
+
+  Future<void> _loadFeedbacks() async {
+    if (mounted) {
+      setState(() {
+        _loadingFeedbacks = true;
+      });
+    }
+
+    try {
+      final feedbacks = await _feedbackService.getEventFeedbacks(
+        widget.event.id,
+      );
+      if (mounted) {
+        setState(() {
+          _feedbacks = feedbacks;
+          _loadingFeedbacks = false;
+        });
+      }
+    } catch (e) {
+      safePrint('❌ Error loading feedbacks: $e');
+      if (mounted) {
+        setState(() {
+          _loadingFeedbacks = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -741,11 +808,11 @@ class _EventDetailModal extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Banner Image
-                      if (event.bannerImageUrl != null)
+                      if (widget.event.bannerImageUrl != null)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.network(
-                            event.bannerImageUrl!,
+                            widget.event.bannerImageUrl!,
                             height: 200,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -769,7 +836,7 @@ class _EventDetailModal extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              event.title,
+                              widget.event.title,
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -784,15 +851,15 @@ class _EventDetailModal extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: event.statusColor.withOpacity(0.1),
+                              color: widget.event.statusColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              event.status,
+                              widget.event.status,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: event.statusColor,
+                                color: widget.event.statusColor,
                               ),
                             ),
                           ),
@@ -800,7 +867,7 @@ class _EventDetailModal extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
                       // Category
-                      if (event.category != null) ...[
+                      if (widget.event.category != null) ...[
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 12,
@@ -811,7 +878,7 @@ class _EventDetailModal extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            event.category!,
+                            widget.event.category!,
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -822,8 +889,8 @@ class _EventDetailModal extends StatelessWidget {
                         const SizedBox(height: 24),
                       ],
                       // Description
-                      if (event.description != null &&
-                          event.description!.isNotEmpty) ...[
+                      if (widget.event.description != null &&
+                          widget.event.description!.isNotEmpty) ...[
                         const Text(
                           'Mô tả',
                           style: TextStyle(
@@ -834,7 +901,7 @@ class _EventDetailModal extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          event.description!,
+                          widget.event.description!,
                           style: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF6B7280),
@@ -872,7 +939,7 @@ class _EventDetailModal extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    event.formattedDate,
+                                    widget.event.formattedDate,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -915,7 +982,7 @@ class _EventDetailModal extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    event.location,
+                                    widget.event.location,
                                     style: const TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.bold,
@@ -933,44 +1000,44 @@ class _EventDetailModal extends StatelessWidget {
                       ElevatedButton.icon(
                         onPressed:
                             _resolveButtonEnabled(
-                              isRegistered: isRegistered,
-                              isSignedIn: isSignedIn,
-                              event: event,
+                              isRegistered: widget.isRegistered,
+                              isSignedIn: widget.isSignedIn,
+                              event: widget.event,
                             )
                             ? () {
                                 Navigator.of(context).pop();
-                                if (!isSignedIn) {
-                                  onLoginRequested();
+                                if (!widget.isSignedIn) {
+                                  widget.onLoginRequested();
                                 } else {
-                                  onRegister();
+                                  widget.onRegister();
                                 }
                               }
                             : null,
                         icon: Icon(
                           _resolveButtonIcon(
-                            isRegistered: isRegistered,
-                            isSignedIn: isSignedIn,
-                            event: event,
+                            isRegistered: widget.isRegistered,
+                            isSignedIn: widget.isSignedIn,
+                            event: widget.event,
                           ),
                         ),
                         label: Text(
                           _resolveButtonLabel(
-                            isRegistered: isRegistered,
-                            isSignedIn: isSignedIn,
-                            event: event,
+                            isRegistered: widget.isRegistered,
+                            isSignedIn: widget.isSignedIn,
+                            event: widget.event,
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _resolveButtonColor(
-                            isRegistered: isRegistered,
-                            isSignedIn: isSignedIn,
-                            event: event,
+                            isRegistered: widget.isRegistered,
+                            isSignedIn: widget.isSignedIn,
+                            event: widget.event,
                           ),
                           foregroundColor: Colors.white,
                           disabledBackgroundColor: _resolveButtonColor(
-                            isRegistered: isRegistered,
-                            isSignedIn: isSignedIn,
-                            event: event,
+                            isRegistered: widget.isRegistered,
+                            isSignedIn: widget.isSignedIn,
+                            event: widget.event,
                           ),
                           minimumSize: const Size(double.infinity, 56),
                           shape: RoundedRectangleBorder(
@@ -978,6 +1045,9 @@ class _EventDetailModal extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const SizedBox(height: 32),
+                      // Feedback Section
+                      _buildFeedbackSection(),
                     ],
                   ),
                 ),
@@ -987,6 +1057,398 @@ class _EventDetailModal extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildFeedbackSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            const Icon(
+              Icons.feedback_outlined,
+              color: Color(0xFF111827),
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'Phản hồi từ người tham gia',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF111827),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          _loadingFeedbacks
+              ? 'Đang tải phản hồi...'
+              : 'Có ${_feedbacks.length} phản hồi',
+          style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+        ),
+        const SizedBox(height: 16),
+        if (_loadingFeedbacks)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: CircularProgressIndicator(color: Color(0xFFFB923C)),
+            ),
+          )
+        else if (_feedbacks.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: Text(
+                'Chưa có phản hồi nào.',
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              ),
+            ),
+          )
+        else
+          ..._feedbacks.map((feedback) => _buildFeedbackCard(feedback)),
+      ],
+    );
+  }
+
+  Widget _buildFeedbackCard(feedback_models.Feedback feedback) {
+    final isMyFeedback =
+        _currentStudentId != null && feedback.studentId == _currentStudentId;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isMyFeedback ? const Color(0xFFEFF6FF) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isMyFeedback
+            ? Border.all(color: const Color(0xFF3B82F6), width: 2)
+            : Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Student name and sentiment
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    feedback.studentName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: isMyFeedback
+                          ? const Color(0xFF1E40AF)
+                          : const Color(0xFF111827),
+                    ),
+                  ),
+                  if (isMyFeedback) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Bạn',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: feedback.sentimentColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  feedback.sentimentLabel.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: feedback.sentimentColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Rating stars
+          Row(
+            children: List.generate(5, (index) {
+              return Icon(
+                index < feedback.rating ? Icons.star : Icons.star_border,
+                color: const Color(0xFFF59E0B),
+                size: 16,
+              );
+            }),
+          ),
+          const SizedBox(height: 8),
+          // Comments
+          if (feedback.comments.isNotEmpty) ...[
+            Text(
+              feedback.comments,
+              style: TextStyle(
+                fontSize: 13,
+                color: isMyFeedback
+                    ? const Color(0xFF1E3A8A)
+                    : const Color(0xFF374151),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          // Created date
+          Text(
+            feedback.formattedDate,
+            style: TextStyle(
+              fontSize: 11,
+              color: isMyFeedback
+                  ? const Color(0xFF3B82F6)
+                  : const Color(0xFF9CA3AF),
+            ),
+          ),
+          // Edit and Delete buttons (only for my feedback)
+          if (isMyFeedback) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                TextButton.icon(
+                  onPressed: () => _showEditFeedbackDialog(feedback),
+                  icon: const Icon(Icons.edit_outlined, size: 14),
+                  label: const Text('Sửa', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF3B82F6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: () => _showDeleteFeedbackDialog(feedback),
+                  icon: const Icon(Icons.delete_outline, size: 14),
+                  label: const Text('Xóa', style: TextStyle(fontSize: 12)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _showEditFeedbackDialog(feedback_models.Feedback feedback) {
+    final commentsController = TextEditingController(text: feedback.comments);
+    int tempRating = feedback.rating;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Sửa feedback'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Đánh giá (1-5 sao)',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (index) {
+                    final rating = index + 1;
+                    return IconButton(
+                      icon: Icon(
+                        rating <= tempRating ? Icons.star : Icons.star_border,
+                        color: const Color(0xFFF59E0B),
+                        size: 40,
+                      ),
+                      onPressed: () {
+                        setDialogState(() {
+                          tempRating = rating;
+                        });
+                      },
+                    );
+                  }),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: commentsController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nhận xét của bạn *',
+                    border: OutlineInputBorder(),
+                    hintText: 'Nhập đánh giá về sự kiện...',
+                  ),
+                  maxLines: 5,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (tempRating == 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Vui lòng chọn số sao đánh giá'),
+                      backgroundColor: Color(0xFFDC2626),
+                    ),
+                  );
+                  return;
+                }
+                if (commentsController.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Vui lòng nhập đánh giá'),
+                      backgroundColor: Color(0xFFDC2626),
+                    ),
+                  );
+                  return;
+                }
+
+                Navigator.of(context).pop();
+                await _updateFeedback(
+                  feedback.id,
+                  tempRating,
+                  commentsController.text.trim(),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFB923C),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Lưu'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteFeedbackDialog(feedback_models.Feedback feedback) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xóa feedback'),
+        content: const Text('Bạn có chắc chắn muốn xóa feedback này không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Hủy'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await _deleteFeedback(feedback.id);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateFeedback(
+    String feedbackId,
+    int rating,
+    String comments,
+  ) async {
+    try {
+      safePrint('🔍 Updating feedback $feedbackId...');
+      await _feedbackService.updateFeedback(
+        feedbackId: feedbackId,
+        rating: rating,
+        comments: comments,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cập nhật feedback thành công!'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+        // Reload feedbacks
+        await _loadFeedbacks();
+      }
+    } catch (e) {
+      safePrint('❌ Error updating feedback: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _deleteFeedback(String feedbackId) async {
+    try {
+      safePrint('🔍 Deleting feedback $feedbackId...');
+      await _feedbackService.deleteFeedback(feedbackId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Xóa feedback thành công!'),
+            backgroundColor: Color(0xFF10B981),
+          ),
+        );
+        // Reload feedbacks
+        await _loadFeedbacks();
+      }
+    } catch (e) {
+      safePrint('❌ Error deleting feedback: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi: ${e.toString()}'),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
+      }
+    }
   }
 }
 

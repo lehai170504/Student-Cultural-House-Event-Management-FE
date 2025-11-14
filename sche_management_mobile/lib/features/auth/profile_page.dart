@@ -11,6 +11,8 @@ import '../../config/api_config.dart' as app_config;
 import '../wallet/wallet_page.dart';
 import '../history/event_history_page.dart';
 import '../notifications/notifications_page.dart';
+import '../feedback/feedbacks_page.dart';
+import '../gifts/redeem_history_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -1105,11 +1107,27 @@ class _ProfilePageState extends State<ProfilePage> {
               },
             ),
             _buildMenuItem(
-              icon: Icons.card_giftcard_outlined,
-              title: 'Quà đã đổi',
-              subtitle: 'Chưa có quà nào',
+              icon: Icons.feedback_outlined,
+              title: 'Danh sách Feedback',
+              subtitle: 'Xem đánh giá và bình luận',
               onTap: () {
-                // TODO: Coming soon
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const FeedbacksPage(),
+                  ),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.receipt_long_outlined,
+              title: 'Lịch sử đổi quà',
+              subtitle: 'Xem các quà đã đổi',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const RedeemHistoryPage(),
+                  ),
+                );
               },
             ),
             _buildMenuItem(

@@ -50,6 +50,12 @@ class ApiClient {
     );
   }
 
+  Future<http.Response> delete(String path) async {
+    final headers = await _buildHeaders();
+    final uri = Uri.parse(_join(baseUrl, path));
+    return _http.delete(uri, headers: headers);
+  }
+
   Future<http.Response> postMultipart(
     String path, {
     Map<String, String>? fields,
