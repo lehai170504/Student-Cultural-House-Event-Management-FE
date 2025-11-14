@@ -83,7 +83,7 @@ export default function PublicNavbar() {
             className="h-10 md:h-12 object-contain"
           />
           <span className="font-bold bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent text-lg md:text-xl group-hover:brightness-110">
-            Nguyen Do Minh Quan
+            Student Cultural House
           </span>
         </Link>
 
