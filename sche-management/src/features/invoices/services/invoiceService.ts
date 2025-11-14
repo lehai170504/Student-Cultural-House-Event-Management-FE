@@ -91,6 +91,23 @@ const InvoiceService = {
     }
   },
 
+  /** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
+  async getRedeemStats(): Promise<InvoiceStats> {
+    try {
+      const res = await axiosInstance.get<InvoiceStats>(`${BASE_ENDPOINT}/stats`);
+      // Handle both response formats
+      if (res.data?.topProducts) {
+        return res.data;
+      } else if ((res.data as any)?.data?.topProducts) {
+        return (res.data as any).data;
+      }
+      return { topProducts: [] };
+    } catch (error) {
+      console.error("❌ [getRedeemStats] Error fetching redeem stats:", error);
+      throw error;
+    }
+  },
+
   async getAllRedemptionInvoices(
     page: number,
     size: number
@@ -109,22 +126,6 @@ const InvoiceService = {
         "❌ [getAllRedemptionInvoices] Error fetching all redemption invoices:",
         error
       );
-      throw error;
-    }
-  },
-  /** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
-  async getRedeemStats(): Promise<InvoiceStats> {
-    try {
-      const res = await axiosInstance.get<InvoiceStats>(`${BASE_ENDPOINT}/stats`);
-      // Handle both response formats
-      if (res.data?.topProducts) {
-        return res.data;
-      } else if ((res.data as any)?.data?.topProducts) {
-        return (res.data as any).data;
-      }
-      return { topProducts: [] };
-    } catch (error) {
-      console.error("❌ [getRedeemStats] Error fetching redeem stats:", error);
       throw error;
     }
   },
