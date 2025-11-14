@@ -136,20 +136,12 @@ export const productService = {
     }
   },
 
-  async getTopRedeemed(): Promise<Array<{ productId: string; totalRedeem: number; title: string; totalCoins: number }>> {
+  async getTopRedeemed(): Promise<Product[]> {
     try {
-      // Gọi API /products/top - trả về format: [{ productId, totalRedeem, title, totalCoins }]
-      const res = await axiosInstance.get<Array<{ productId: string; totalRedeem: number; title: string; totalCoins: number }>>(`${endpoint}/top`);
+      // Gọi API mà không truyền object 'params'
+      const res = await axiosInstance.get<Product[]>(`${endpoint}/top`);
 
-      // Xử lý response - có thể là array trực tiếp hoặc wrapped trong data
-      if (Array.isArray(res.data)) {
-        return res.data;
-      } else if (res.data?.data && Array.isArray(res.data.data)) {
-        return res.data.data;
-      } else if (res.data?.content && Array.isArray(res.data.content)) {
-        return res.data.content;
-      }
-      return [];
+      return res.data;
     } catch (error) {
       console.error("❌ [getTopRedeemed] Error fetching top products:", error);
       throw error;
