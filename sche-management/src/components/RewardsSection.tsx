@@ -83,7 +83,7 @@ export default function RewardsSection() {
       const topProducts = await productService.getTopRedeemed();
 
       // Lấy 3 products đầu tiên (bán chạy nhất)
-      const top3ProductIds = topProducts.slice(0, 3).map((p) => p.id);
+      const top3ProductIds = topProducts.slice(0, 3).map((p) => p.productId);
 
       // Lấy thông tin đầy đủ của 3 products này
       const productDetails = await Promise.all(
@@ -121,7 +121,7 @@ export default function RewardsSection() {
 
       // API /products/top trả về format: [{ productId, totalRedeem, title, totalCoins }]
       // Lưu danh sách productIds của sản phẩm phổ biến để hiển thị badge
-      const topIds = new Set(topProducts.map((p) => p.id));
+      const topIds = new Set(topProducts.map((p) => p.productId));
       setTopProductIds(topIds);
     } catch (e: any) {
       // Nếu có lỗi, set empty set để không hiển thị badge "Phổ biến"
