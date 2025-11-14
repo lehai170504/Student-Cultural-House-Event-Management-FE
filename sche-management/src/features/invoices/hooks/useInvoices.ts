@@ -71,7 +71,6 @@ export const useInvoices = () => {
   const createNewInvoice = useCallback(
     async (data: CreateInvoice): Promise<{ success: boolean; error?: any; data?: any }> => {
       const result = await dispatch(createInvoice(data));
-      return createInvoice.fulfilled.match(result);
       // Trả về success, error và data nếu có
       if (createInvoice.fulfilled.match(result)) {
         return { success: true, data: result.payload };

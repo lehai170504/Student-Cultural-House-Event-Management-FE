@@ -5,8 +5,8 @@ import {
   InvoiceMeta,
   InvoiceResponse,
   ProductInvoiceMasked,
+  InvoiceStats,
 } from "../types/invoice";
-import { CreateInvoice, Invoice, ProductInvoiceMasked, InvoiceStats } from "../types/invoice";
 
 const BASE_ENDPOINT = "/invoices";
 const REDEMPTION_ENDPOINT = "/admin/invoices";
@@ -70,13 +70,10 @@ const InvoiceService = {
   },
   async getStudentRedeemHistory(studentId: string): Promise<Invoice[]> {
     try {
-      // Endpoint hơi khác: /api/v1/invoices/students/{studentId}
-      const res = await axiosInstance.get<Invoice[]>(
-        `${BASE_ENDPOINT}/students/${studentId}`
       // Endpoint: /api/v1/invoices/students/{studentId}
-      // Response format: { data: Invoice[] }
+      // Response format: { data: Invoice[] } hoặc Invoice[]
       const res = await axiosInstance.get<{ data: Invoice[] } | Invoice[]>(
-        `${endpoint}/students/${studentId}`
+        `${BASE_ENDPOINT}/students/${studentId}`
       );
       // Handle both response formats
       if (Array.isArray(res.data)) {
@@ -118,7 +115,7 @@ const InvoiceService = {
   /** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
   async getRedeemStats(): Promise<InvoiceStats> {
     try {
-      const res = await axiosInstance.get<InvoiceStats>(`${endpoint}/stats`);
+      const res = await axiosInstance.get<InvoiceStats>(`${BASE_ENDPOINT}/stats`);
       // Handle both response formats
       if (res.data?.topProducts) {
         return res.data;
