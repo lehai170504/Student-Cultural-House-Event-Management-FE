@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useState } from "react";
+import { FC } from "react";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ interface Props {
       },
       "createdAt"
     >,
-    imageFile?: File // ✅ thêm tham số thứ 2
+    imageFile?: File
   ) => Promise<void>;
   saving: boolean;
   isEditing: boolean;
@@ -54,9 +54,9 @@ export const ProductDetailForm: FC<Props> = ({
   onSubmit,
   saving,
   isEditing,
+  imageFile,
+  setImageFile,
 }) => {
-  const [imageFile, setImageFile] = useState<File | null>(null);
-
   return (
     <Formik
       initialValues={initialValues}
@@ -92,6 +92,7 @@ export const ProductDetailForm: FC<Props> = ({
             ) : (
               <p className="text-gray-400 italic">(Không có hình ảnh)</p>
             )}
+
             {isEditing && (
               <input
                 type="file"

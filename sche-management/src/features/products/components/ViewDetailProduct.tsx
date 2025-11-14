@@ -25,14 +25,14 @@ export default function ViewDetailProduct({ productId, open, onClose }: Props) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [imageFile, setImageFile] = useState<File | null>(null); // ✅ state quản lý file ở đây
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (open && productId) {
       resetProductDetail();
       loadDetail(productId);
       setIsEditing(false);
-      setImageFile(null); // reset file khi mở modal
+      setImageFile(null);
     }
   }, [open, productId, resetProductDetail, loadDetail]);
 
@@ -40,7 +40,7 @@ export default function ViewDetailProduct({ productId, open, onClose }: Props) {
     if (!productId) return;
 
     setIsSaving(true);
-    const payload = { ...values }; // giữ dữ liệu text/number
+    const payload = { ...values };
     if (imageFile) payload.imageFile = imageFile;
 
     const success = await editProduct(productId, payload);
@@ -52,7 +52,7 @@ export default function ViewDetailProduct({ productId, open, onClose }: Props) {
       });
       loadDetail(productId);
       setIsEditing(false);
-      setImageFile(null); // reset file sau khi lưu
+      setImageFile(null);
     } else {
       toast.error("Cập nhật thất bại", { description: "Vui lòng thử lại." });
     }
@@ -85,9 +85,9 @@ export default function ViewDetailProduct({ productId, open, onClose }: Props) {
               imageUrl: detail.imageUrl ?? "",
               createdAt: new Date(detail.createdAt).toLocaleString("vi-VN"),
             }}
-            imageFile={imageFile} // ✅ truyền xuống
-            setImageFile={setImageFile} // ✅ callback set file
-            onSubmit={handleSubmit} // submit chỉ cần values
+            imageFile={imageFile}
+            setImageFile={setImageFile}
+            onSubmit={handleSubmit}
             saving={isSaving}
             isEditing={isEditing}
           />
