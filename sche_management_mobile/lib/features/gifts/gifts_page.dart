@@ -239,14 +239,21 @@ class _GiftsPageState extends State<GiftsPage> {
     );
   }
 
-  void _showGiftDetail(Gift gift) {
-    showModalBottomSheet(
+  void _showGiftDetail(Gift gift) async {
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) =>
           _GiftDetailSheet(gift: gift, isSignedIn: _isSignedIn),
     );
+
+    // If gift was redeemed, the balance might have changed
+    // The sheet itself handles balance update, but we can refresh gifts if needed
+    if (result == true) {
+      // Gift was redeemed, could refresh gifts list if needed
+      safePrint('✅ Gift redeemed, balance updated');
+    }
   }
 }
 
@@ -517,7 +524,17 @@ class _GiftDetailSheetState extends State<_GiftDetailSheet> {
       );
 
       if (mounted) {
-        Navigator.of(context).pop();
+        // Update balance from response
+        setState(() {
+          _currentBalance = redeemResponse.newBalance;
+        });
+
+        // Reload balance from API to ensure sync
+        await _loadBalance();
+
+        Navigator.of(
+          context,
+        ).pop(true); // Return true to indicate successful redemption
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
