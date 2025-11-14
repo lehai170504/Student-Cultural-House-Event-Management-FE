@@ -11,6 +11,7 @@ import '../../config/api_config.dart' as app_config;
 import '../wallet/wallet_page.dart';
 import '../history/event_history_page.dart';
 import '../notifications/notifications_page.dart';
+import '../feedback/feedbacks_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -1100,6 +1101,18 @@ class _ProfilePageState extends State<ProfilePage> {
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const EventHistoryPage(),
+                  ),
+                );
+              },
+            ),
+            _buildMenuItem(
+              icon: Icons.feedback_outlined,
+              title: 'Danh sách Feedback',
+              subtitle: 'Xem đánh giá và bình luận',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const FeedbacksPage(),
                   ),
                 );
               },
