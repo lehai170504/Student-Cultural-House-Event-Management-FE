@@ -15,6 +15,8 @@ export default function EventFeedbackForm({
   onRatingChange,
   onCommentsChange,
   onSubmit,
+  isEditMode = false,
+  onCancel,
 }: EventFeedbackFormProps) {
   return (
     <motion.div
@@ -25,9 +27,11 @@ export default function EventFeedbackForm({
     >
       <Card>
         <CardHeader>
-          <CardTitle>Gửi phản hồi sự kiện</CardTitle>
+          <CardTitle>{isEditMode ? "Sửa phản hồi sự kiện" : "Gửi phản hồi sự kiện"}</CardTitle>
           <CardDescription>
-            Vui lòng đánh giá trải nghiệm của bạn sau khi tham gia sự kiện.
+            {isEditMode
+              ? "Cập nhật đánh giá và nhận xét của bạn."
+              : "Vui lòng đánh giá trải nghiệm của bạn sau khi tham gia sự kiện."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -66,9 +70,25 @@ export default function EventFeedbackForm({
                 />
               </div>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              {isEditMode && onCancel && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onCancel}
+                  disabled={sendingFeedback}
+                >
+                  Hủy
+                </Button>
+              )}
               <Button type="submit" disabled={sendingFeedback || !rating}>
-                {sendingFeedback ? "Đang gửi..." : "Gửi phản hồi"}
+                {sendingFeedback
+                  ? isEditMode
+                    ? "Đang cập nhật..."
+                    : "Đang gửi..."
+                  : isEditMode
+                  ? "Cập nhật phản hồi"
+                  : "Gửi phản hồi"}
               </Button>
             </div>
           </form>

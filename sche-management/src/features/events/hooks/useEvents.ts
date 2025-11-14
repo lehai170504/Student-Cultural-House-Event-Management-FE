@@ -14,6 +14,8 @@ import {
   approveEvent,
   registerForEvent,
   sendEventFeedback,
+  updateEventFeedback,
+  deleteEventFeedback,
 } from "../thunks/eventThunks";
 import { resetDetail, clearError, resetPagination } from "../slices/eventSlice";
 import { fetchAllEventCategories } from "@/features/eventCategories/thunks/eventCategoryThunks";
@@ -39,6 +41,8 @@ export const useEvents = () => {
     pagination,
     registering,
     sendingFeedback,
+    updatingFeedback,
+    deletingFeedback,
     checkingIn,
     loadingAttendees,
     attendees,
@@ -146,6 +150,20 @@ export const useEvents = () => {
   const sendFeedbackForEvent = useCallback(
     async (eventId: string, data: EventFeedbackRequest) => {
       return await dispatch(sendEventFeedback({ eventId, data })).unwrap();
+    },
+    [dispatch]
+  );
+
+  const updateFeedbackForEvent = useCallback(
+    async (feedbackId: string, data: EventFeedbackRequest) => {
+      return await dispatch(updateEventFeedback({ feedbackId, data })).unwrap();
+    },
+    [dispatch]
+  );
+
+  const deleteFeedbackForEvent = useCallback(
+    async (feedbackId: string) => {
+      return await dispatch(deleteEventFeedback(feedbackId)).unwrap();
     },
     [dispatch]
   );
@@ -280,6 +298,8 @@ export const useEvents = () => {
     deleting,
     registering,
     sendingFeedback,
+    updatingFeedback,
+    deletingFeedback,
     checkingIn,
     loadingAttendees,
     finalizing,
@@ -312,6 +332,8 @@ export const useEvents = () => {
     submitCheckinAndNotify,
     registerForEventByStudent,
     sendFeedbackForEvent,
+    updateFeedbackForEvent,
+    deleteFeedbackForEvent,
 
     // Event categories
     eventCategories: categories,

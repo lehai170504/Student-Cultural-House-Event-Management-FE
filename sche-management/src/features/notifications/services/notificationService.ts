@@ -4,7 +4,6 @@ import type {
   NotificationListResponse,
   NotificationMessage,
   UnreadCountResponse,
-  MarkReadPayload,
 } from "../types/notification";
 
 const endpoint = "/me/broadcasts";

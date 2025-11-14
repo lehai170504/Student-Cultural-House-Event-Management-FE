@@ -38,10 +38,16 @@ export default function EventsSearchBar({
             Đang diễn ra
           </Button>
           <Button className="cursor-pointer"
-            variant={selectedStatus === "FINISHED" ? "default" : "outline"}
-            onClick={() => onStatusFilter("FINISHED")}
+            variant={selectedStatus === "FINALIZED" ? "default" : "outline"}
+            onClick={() => onStatusFilter("FINALIZED")}
           >
             Đã kết thúc
+          </Button>
+          <Button className="cursor-pointer"
+            variant={selectedStatus === "CANCELLED" ? "default" : "outline"}
+            onClick={() => onStatusFilter("CANCELLED")}
+          >
+            Đã hủy
           </Button>
         </div>
       </div>

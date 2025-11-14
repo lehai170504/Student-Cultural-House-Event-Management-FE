@@ -1,14 +1,55 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Star, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
-import type { EventFeedbackListProps } from "@/features/events/types/events";
+import { useState } from "react";
+import type { EventFeedbackListProps, EventFeedbackResponse } from "@/features/events/types/events";
+
+export interface EventFeedbackListPropsWithEdit extends EventFeedbackListProps {
+  onEdit?: (feedback: EventFeedbackResponse) => void;
+  onDelete?: (feedbackId: string) => void;
+  deletingFeedback?: boolean;
+}
 
 export default function EventFeedbackList({
   feedbacks,
   loadingFeedbacks,
   currentStudentId,
-}: EventFeedbackListProps) {
+  onEdit,
+  onDelete,
+  deletingFeedback = false,
+}: EventFeedbackListPropsWithEdit) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [feedbackToDelete, setFeedbackToDelete] = useState<string | null>(null);
+
+  const handleDeleteClick = (feedbackId: string) => {
+    setFeedbackToDelete(feedbackId);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (feedbackToDelete && onDelete) {
+      onDelete(feedbackToDelete);
+      setDeleteDialogOpen(false);
+      setFeedbackToDelete(null);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setFeedbackToDelete(null);
+  };
   return (
     <motion.div
       className="mt-6"
@@ -67,13 +108,42 @@ export default function EventFeedbackList({
                           </Badge>
                         )}
                       </div>
-                      {sentiment && (
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded ${sentimentClass}`}
-                        >
-                          {sentiment}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {isMyFeedback && (
+                          <div className="flex items-center gap-1">
+                            {onEdit && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onEdit(fb)}
+                                className="h-7 px-2 text-xs"
+                              >
+                                <Edit className="h-3 w-3 mr-1" />
+                                Sửa
+                              </Button>
+                            )}
+                            {onDelete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(fb.id)}
+                                disabled={deletingFeedback}
+                                className="h-7 px-2 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Xóa
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                        {sentiment && (
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded ${sentimentClass}`}
+                          >
+                            {sentiment}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 mb-2">
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -112,6 +182,28 @@ export default function EventFeedbackList({
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận xóa phản hồi</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn xóa phản hồi này? Hành động này không thể hoàn tác.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDelete}>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deletingFeedback}
+            >
+              {deletingFeedback ? "Đang xóa..." : "Xóa"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

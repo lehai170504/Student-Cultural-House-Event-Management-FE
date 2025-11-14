@@ -211,11 +211,13 @@ export interface EventForCheckin {
 }
 
 // UI specific props
+export type EventStatusFilter = "ACTIVE" | "FINALIZED" | "CANCELLED";
+
 export interface EventsSearchBarProps {
   searchTerm: string;
   onSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  selectedStatus: null | "ACTIVE" | "FINISHED";
-  onStatusFilter: (status: null | "ACTIVE" | "FINISHED") => void;
+  selectedStatus: EventStatusFilter | null;
+  onStatusFilter: (status: EventStatusFilter | null) => void;
 }
 
 export interface CategoryFiltersProps {
@@ -258,6 +260,8 @@ export interface EventDetailHeaderProps {
   onRegister: () => void;
   onGoToFeedback: () => void;
   onGoBack: () => void;
+  startTime?: string;
+  hasSubmittedFeedback?: boolean;
 }
 
 export interface EventDetailInfoProps {
@@ -282,6 +286,8 @@ export interface EventFeedbackFormProps {
   onRatingChange: (rating: string) => void;
   onCommentsChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   onSubmit: (event: FormEvent) => void;
+  isEditMode?: boolean;
+  onCancel?: () => void;
 }
 
 export interface EventFeedbackListProps {

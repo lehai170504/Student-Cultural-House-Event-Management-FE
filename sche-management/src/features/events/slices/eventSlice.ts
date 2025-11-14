@@ -15,6 +15,8 @@ import {
   deleteEvent,
   registerForEvent,
   sendEventFeedback,
+  updateEventFeedback,
+  deleteEventFeedback,
   checkinEvent,
   fetchEventAttendees,
   finalizeEvent,
@@ -33,6 +35,8 @@ interface EventState {
 
   registering: boolean;
   sendingFeedback: boolean;
+  updatingFeedback: boolean;
+  deletingFeedback: boolean;
   checkingIn: boolean;
 
   /** 🔹 Attendees */
@@ -64,6 +68,7 @@ const initialState: EventState = {
 
   registering: false,
   sendingFeedback: false,
+  updatingFeedback: false,
   checkingIn: false,
 
   loadingAttendees: false,
@@ -209,6 +214,26 @@ const eventSlice = createSlice({
       })
       .addCase(sendEventFeedback.rejected, (state, action) => {
         state.sendingFeedback = false;
+        state.error = action.payload || null;
+      })
+      .addCase(updateEventFeedback.pending, (state) => {
+        state.updatingFeedback = true;
+      })
+      .addCase(updateEventFeedback.fulfilled, (state) => {
+        state.updatingFeedback = false;
+      })
+      .addCase(updateEventFeedback.rejected, (state, action) => {
+        state.updatingFeedback = false;
+        state.error = action.payload || null;
+      })
+      .addCase(deleteEventFeedback.pending, (state) => {
+        state.deletingFeedback = true;
+      })
+      .addCase(deleteEventFeedback.fulfilled, (state) => {
+        state.deletingFeedback = false;
+      })
+      .addCase(deleteEventFeedback.rejected, (state, action) => {
+        state.deletingFeedback = false;
         state.error = action.payload || null;
       })
       .addCase(checkinEvent.pending, (state) => {

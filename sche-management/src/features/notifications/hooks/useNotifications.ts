@@ -3,7 +3,6 @@ import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { fetchNotifications, fetchUnreadCount, markNotificationsRead } from "../thunks/notificationThunks";
 import {
   clearNotifications as clearNotificationsAction,
-  markNotificationsAsRead,
 } from "../slices/notificationSlice";
 import type { FetchNotificationsParams } from "../types/notification";
 

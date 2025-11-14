@@ -10,8 +10,8 @@ export const getStatusColor = (status: string): string => {
       return "bg-blue-100 text-blue-700";
     case "ACTIVE":
       return "bg-green-100 text-green-700";
-    case "FINISHED":
-      return "bg-gray-100 text-gray-700";
+    case "FINALIZED":
+      return "bg-orange-100 text-orange-700";
     case "CANCELLED":
       return "bg-red-100 text-red-700";
     default:
@@ -25,6 +25,8 @@ export const getStatusText = (status: string): string => {
       return "NHÁP";
     case "ACTIVE":
       return "ĐANG DIỄN RA";
+    case "FINALIZED":
+      return "ĐÃ KẾT THÚC";
     case "FINISHED":
       return "ĐÃ KẾT THÚC";
     case "CANCELLED":
