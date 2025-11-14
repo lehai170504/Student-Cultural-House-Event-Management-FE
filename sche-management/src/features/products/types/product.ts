@@ -11,6 +11,7 @@ export interface Product {
   imageUrl?: string | null;
   isActive: boolean;
   createdAt: string;
+  productId: string;
 }
 
 export interface ProductMetadata {
