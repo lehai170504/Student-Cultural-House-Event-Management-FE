@@ -48,10 +48,15 @@ export const useInvoices = () => {
 
   /** 🛒 Tạo hóa đơn mới (Thực hiện Redeem) */
   const createNewInvoice = useCallback(
-    async (data: CreateInvoice): Promise<boolean> => {
+    async (data: CreateInvoice): Promise<{ success: boolean; error?: any; data?: any }> => {
       const result = await dispatch(createInvoice(data));
-      // Trả về true nếu fulfilled, false nếu rejected
-      return createInvoice.fulfilled.match(result);
+      // Trả về success, error và data nếu có
+      if (createInvoice.fulfilled.match(result)) {
+        return { success: true, data: result.payload };
+      } else {
+        const error = createInvoice.rejected.match(result) ? result.payload : undefined;
+        return { success: false, error };
+      }
     },
     [dispatch]
   );

@@ -17,6 +17,7 @@ interface Reward {
   category: string;
   stock: number;
   popular: boolean;
+  lowStock?: boolean;
 }
 
 const CATEGORY_BADGE: Record<string, string> = {
@@ -37,7 +38,11 @@ const mapProductTypeToCategory = (type: string): string => {
 };
 
 // Convert Product to Reward
-const convertProductToReward = (product: Product, index: number): Reward => {
+const convertProductToReward = (
+  product: Product,
+  index: number,
+  topProductIds?: Set<string>
+): Reward => {
   return {
     id: product.id,
     name: product.title,
@@ -46,7 +51,8 @@ const convertProductToReward = (product: Product, index: number): Reward => {
     image: product.imageUrl || "https://via.placeholder.com/400x300?text=No+Image",
     category: mapProductTypeToCategory(product.type),
     stock: product.totalStock,
-    popular: true, // All 3 items are popular
+    popular: topProductIds?.has(product.id) || false, // Check if product is in top products
+    lowStock: product.totalStock < 50, // Show "Sắp hết hàng" when stock is below 50
   };
 };
 
@@ -54,77 +60,37 @@ export default function RewardsSection() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  // Top selling products (bán chạy)
+  const [topProductIds, setTopProductIds] = useState<Set<string>>(new Set());
 
-  // Load products from API
+  // Load top 3 products bán chạy từ API /products/top
   const loadProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Load both GIFT and VOUCHER products
-      const [giftResponse, voucherResponse] = await Promise.all([
-        productService.getAll({
-          category: "GIFT",
-          isActive: true,
-          sortBy: "createdAt",
-          order: "desc",
-          limit: 50,
-          offset: 0,
-        }),
-        productService.getAll({
-          category: "VOUCHER",
-          isActive: true,
-          sortBy: "createdAt",
-          order: "desc",
-          limit: 50,
-          offset: 0,
-        }),
-      ]);
+      // Lấy danh sách top products từ API /products/top
+      const topProducts = await productService.getTopRedeemed();
+      
+      // Lấy 3 products đầu tiên (bán chạy nhất)
+      const top3ProductIds = topProducts.slice(0, 3).map((p) => p.productId);
 
-      // Helper function to extract products from response
-      const extractProducts = (response: any): Product[] => {
-        if (!response) return [];
-
-        if (response.data && Array.isArray(response.data)) {
-          return response.data;
-        } else if (Array.isArray(response)) {
-          return response;
-        } else {
-          const possibleData =
-            (response as any)?.data?.data ||
-            (response as any)?.content ||
-            (response as any)?.items ||
-            (response as any)?.products;
-          if (Array.isArray(possibleData)) {
-            return possibleData;
-          }
-          // Last resort: check if response itself contains array values
-          const responseValues = Object.values(response);
-          for (const value of responseValues) {
-            if (Array.isArray(value) && value.length > 0 && (value[0] as any)?.id) {
-              return value as Product[];
-            }
-          }
-        }
-        return [];
-      };
-
-      // Extract products from both responses
-      const giftProducts = extractProducts(giftResponse);
-      const voucherProducts = extractProducts(voucherResponse);
-
-      // Merge and remove duplicates
-      const allProducts = [...giftProducts, ...voucherProducts];
-      const uniqueProducts = allProducts.filter(
-        (p, index, self) => index === self.findIndex((product) => product.id === p.id)
+      // Lấy thông tin đầy đủ của 3 products này
+      const productDetails = await Promise.all(
+        top3ProductIds.map((productId) => 
+          productService.getById(productId).catch(() => null)
+        )
       );
 
-      // Filter only active products with stock > 0, then take first 3
-      const activeProducts = uniqueProducts
-        .filter((p: Product) => p && p.isActive === true && (p.type === "GIFT" || p.type === "VOUCHER") && p.totalStock > 0)
-        .slice(0, 3);
+      // Filter chỉ lấy products hợp lệ (active, có stock, và là GIFT hoặc VOUCHER)
+      const validProducts = productDetails.filter((p): p is Product => 
+        p !== null && 
+        p.isActive === true && 
+        (p.type === "GIFT" || p.type === "VOUCHER") && 
+        p.totalStock > 0
+      );
 
-      setProducts(activeProducts);
+      setProducts(validProducts);
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || "Không tải được danh sách quà");
       setProducts([]);
@@ -133,15 +99,33 @@ export default function RewardsSection() {
     }
   }, []);
 
+  // Load top selling products (phổ biến) từ API /products/top để đánh dấu badge
+  const loadTopProducts = useCallback(async () => {
+    try {
+      const topProducts = await productService.getTopRedeemed();
+      
+      // API /products/top trả về format: [{ productId, totalRedeem, title, totalCoins }]
+      // Lưu danh sách productIds của sản phẩm phổ biến để hiển thị badge
+      const topIds = new Set(topProducts.map((p) => p.productId));
+      setTopProductIds(topIds);
+    } catch (e: any) {
+      // Nếu có lỗi, set empty set để không hiển thị badge "Phổ biến"
+      setTopProductIds(new Set());
+    }
+  }, []);
+
   // Load products on mount
   useEffect(() => {
     loadProducts();
-  }, [loadProducts]);
+    loadTopProducts();
+  }, [loadProducts, loadTopProducts]);
 
   // Convert products to rewards
   const rewards: Reward[] = useMemo(() => {
-    return products.map((product, index) => convertProductToReward(product, index));
-  }, [products]);
+    return products.map((product, index) => 
+      convertProductToReward(product, index, topProductIds)
+    );
+  }, [products, topProductIds]);
   return (
     <section className="relative py-20 md:py-28 bg-gradient-to-br from-orange-50 via-amber-100/50 to-white overflow-hidden">
       {/* Decorative glowing circles */}
@@ -245,11 +229,18 @@ export default function RewardsSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
-                {reward.popular && (
-                  <Badge className="absolute top-4 left-4 bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-current" /> Phổ biến
-                  </Badge>
-                )}
+                <div className="absolute top-4 left-4 flex flex-row gap-2 flex-wrap">
+                  {reward.popular && (
+                    <Badge className="bg-gradient-to-r from-orange-500 to-amber-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-current" /> Phổ biến
+                    </Badge>
+                  )}
+                  {reward.lowStock && (
+                    <Badge className="bg-gradient-to-r from-red-500 to-pink-400 text-white shadow-md border-none px-3 py-1.5 text-sm font-semibold flex items-center gap-1">
+                      Sắp hết hàng
+                    </Badge>
+                  )}
+                </div>
 
                 <Badge className="absolute top-4 right-4 bg-white/90 text-foreground shadow-md backdrop-blur-sm border-0">
                   {reward.category}

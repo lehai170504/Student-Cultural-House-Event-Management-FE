@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useEvents } from "@/features/events/hooks/useEvents";
 import PublicNavbar from "@/components/PublicNavbar";
-import type { Event, EventStatusFilter } from "@/features/events/types/events";
+import type { Event } from "@/features/events/types/events";
 import EventsSearchBar from "./components/EventsSearchBar";
 import CategoryFilters from "./components/CategoryFilters";
 import EventsGrid from "./components/EventsGrid";
@@ -28,17 +28,13 @@ export default function EventsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState<EventStatusFilter | null>(
-    null
-  );
 
-  // API returns 1-based pages, but we need to handle 0-based internally for "all status" mode
-  const [overrideEvents, setOverrideEvents] = useState<Event[] | null>(null);
   // Store all events without category filter for category count calculation
+  const [overrideEvents, setOverrideEvents] = useState<Event[] | null>(null);
   const [allEventsForCount, setAllEventsForCount] = useState<Event[]>([]);
   // Track when async filter operations are running
   const [isFiltering, setIsFiltering] = useState(false);
-  // Client-side pagination for "all status" mode
+  // Client-side pagination
   const [clientPage, setClientPage] = useState<number>(1);
   const PAGE_SIZE = 9;
 
@@ -75,116 +71,53 @@ export default function EventsPage() {
       ? event.category?.id === selectedCategory
       : true;
 
-    const matchStatus = selectedStatus ? event.status === selectedStatus : true;
-
-    if (selectedStatus === null && overrideEvents) {
-      return matchSearch && matchCategory;
-    }
-
-    return matchSearch && matchCategory && matchStatus;
+    return matchSearch && matchCategory;
   });
 
-  // Calculate pagination
-  const isAllStatusMode = selectedStatus === null;
-  const currentPage = isAllStatusMode ? clientPage : (pagination?.currentPage ?? 1);
-  const totalPages = isAllStatusMode
-    ? Math.ceil(filteredEvents.length / PAGE_SIZE) || 1
-    : (pagination?.totalPages ?? 1);
+  // Calculate pagination - always use client-side pagination
+  const currentPage = clientPage;
+  const totalPages = Math.ceil(filteredEvents.length / PAGE_SIZE) || 1;
   
-  // Slice events for client-side pagination when in "all status" mode
-  const displayEvents = isAllStatusMode
-    ? filteredEvents.slice((clientPage - 1) * PAGE_SIZE, clientPage * PAGE_SIZE)
-    : filteredEvents;
+  // Slice events for client-side pagination
+  const displayEvents = filteredEvents.slice(
+    (clientPage - 1) * PAGE_SIZE,
+    clientPage * PAGE_SIZE
+  );
 
   const handleSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const keyword = e.target.value;
     setSearchTerm(keyword);
     setClientPage(1); // Reset to first page when search changes
 
-    setOverrideEvents(null);
     setIsFiltering(true);
 
     try {
-      if (selectedStatus === null) {
-      // Load all events without category filter for category count
-      const [aAll, fAll] = await Promise.all([
-        loadAll({
-          page: 0,
-          search: keyword,
-          status: "ACTIVE" as const,
-        }),
-        loadAll({
-          page: 0,
-          search: keyword,
-          status: "FINISHED" as const,
-        }),
-      ]);
+      // Load only ACTIVE events without category filter for category count
+      const aAll = await loadAll({
+        page: 0,
+        search: keyword,
+        status: "ACTIVE" as const,
+      });
       const arrAAll: Event[] = Array.isArray(aAll)
         ? (aAll as Event[])
         : ((aAll as any)?.data ?? (aAll as any)?.content ?? []);
-      const arrFAll: Event[] = Array.isArray(fAll)
-        ? (fAll as Event[])
-        : ((fAll as any)?.data ?? (fAll as any)?.content ?? []);
-      const mergedAll = [...arrAAll, ...arrFAll].filter(
-        (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
-      );
-      setAllEventsForCount(mergedAll as Event[]);
+      setAllEventsForCount(arrAAll);
 
       // Load events with category filter for display
       if (selectedCategory) {
-        const [a, f] = await Promise.all([
-          loadAll({
-            page: 0,
-            search: keyword,
-            status: "ACTIVE" as const,
-            categoryId: selectedCategory,
-          }),
-          loadAll({
-            page: 0,
-            search: keyword,
-            status: "FINISHED" as const,
-            categoryId: selectedCategory,
-          }),
-        ]);
+        const a = await loadAll({
+          page: 0,
+          search: keyword,
+          status: "ACTIVE" as const,
+          categoryId: selectedCategory,
+        });
         const arrA: Event[] = Array.isArray(a)
           ? (a as Event[])
           : ((a as any)?.data ?? (a as any)?.content ?? []);
-        const arrF: Event[] = Array.isArray(f)
-          ? (f as Event[])
-          : ((f as any)?.data ?? (f as any)?.content ?? []);
-        const merged = [...arrA, ...arrF].filter(
-          (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
-        );
-        setOverrideEvents(merged as Event[]);
+        setOverrideEvents(arrA);
       } else {
-        setOverrideEvents(mergedAll as Event[]);
+        setOverrideEvents(arrAAll);
       }
-    } else {
-      // Load all events without category filter for category count
-      const allEventsResult = await loadAll({
-        page: 1, // API uses 1-based
-        size: 9,
-        search: keyword,
-        status: selectedStatus || undefined,
-      });
-      const arrAll: Event[] = Array.isArray(allEventsResult)
-        ? (allEventsResult as Event[])
-        : ((allEventsResult as any)?.data ?? (allEventsResult as any)?.content ?? []);
-      setAllEventsForCount(arrAll);
-
-      // Load events with category filter for display
-      if (selectedCategory) {
-        loadAll({
-          page: 1, // API uses 1-based
-          size: 9,
-          search: keyword,
-          status: selectedStatus || undefined,
-          categoryId: selectedCategory,
-        });
-      } else {
-        setOverrideEvents(null); // Use Redux state for pagination
-      }
-    }
     } finally {
       setIsFiltering(false);
     }
@@ -194,187 +127,39 @@ export default function EventsPage() {
     setSelectedCategory(categoryId);
     setClientPage(1); // Reset to first page when category changes
 
-    // Don't update allEventsForCount here - it should remain unchanged
-    // Only update display events (overrideEvents or loadAll with category filter)
     setIsFiltering(true);
 
     try {
-      if (selectedStatus === null) {
       if (categoryId) {
-        // Load events with category filter for display
-        const [a, f] = await Promise.all([
-          loadAll({
-            page: 0,
-            search: searchTerm || undefined,
-            categoryId: categoryId,
-            status: "ACTIVE" as const,
-          }),
-          loadAll({
-            page: 0,
-            search: searchTerm || undefined,
-            categoryId: categoryId,
-            status: "FINISHED" as const,
-          }),
-        ]);
+        // Load only ACTIVE events with category filter for display
+        const a = await loadAll({
+          page: 0,
+          search: searchTerm || undefined,
+          categoryId: categoryId,
+          status: "ACTIVE" as const,
+        });
         const arrA: Event[] = Array.isArray(a)
           ? (a as Event[])
           : ((a as any)?.data ?? (a as any)?.content ?? []);
-        const arrF: Event[] = Array.isArray(f)
-          ? (f as Event[])
-          : ((f as any)?.data ?? (f as any)?.content ?? []);
-        const merged = [...arrA, ...arrF].filter(
-          (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
-        );
-        setOverrideEvents(merged as Event[]);
+        setOverrideEvents(arrA);
       } else {
         // Show all events (use allEventsForCount if available, otherwise load)
         if (allEventsForCount.length > 0) {
           setOverrideEvents(allEventsForCount);
         } else {
-          // Load all events
-          const [a, f] = await Promise.all([
-            loadAll({
-              page: 0,
-              search: searchTerm || undefined,
-              status: "ACTIVE" as const,
-            }),
-            loadAll({
-              page: 0,
-              search: searchTerm || undefined,
-              status: "FINISHED" as const,
-            }),
-          ]);
+          // Load only ACTIVE events
+          const a = await loadAll({
+            page: 0,
+            search: searchTerm || undefined,
+            status: "ACTIVE" as const,
+          });
           const arrA: Event[] = Array.isArray(a)
             ? (a as Event[])
             : ((a as any)?.data ?? (a as any)?.content ?? []);
-          const arrF: Event[] = Array.isArray(f)
-            ? (f as Event[])
-            : ((f as any)?.data ?? (f as any)?.content ?? []);
-          const merged = [...arrA, ...arrF].filter(
-            (ev, idx, self) => self.findIndex((x: any) => x.id === ev.id) === idx
-          );
-          setOverrideEvents(merged as Event[]);
-          setAllEventsForCount(merged as Event[]);
+          setOverrideEvents(arrA);
+          setAllEventsForCount(arrA);
         }
       }
-    } else {
-      if (categoryId) {
-        // Load events with category filter for display
-        setOverrideEvents(null);
-        loadAll({
-          page: 1, // API uses 1-based
-          size: 9,
-          search: searchTerm || undefined,
-          categoryId: categoryId,
-          status: selectedStatus || undefined,
-        });
-      } else {
-        // Show all events (use Redux state for pagination)
-        setOverrideEvents(null);
-        loadAll({
-          page: 1, // API uses 1-based
-          size: 9,
-          search: searchTerm || undefined,
-          status: selectedStatus || undefined,
-        });
-      }
-    }
-    } finally {
-      setIsFiltering(false);
-    }
-  };
-
-  const STATUS_FILTERS: EventStatusFilter[] = [
-    "ACTIVE",
-    "FINALIZED",
-    "CANCELLED",
-  ];
-
-  const extractEvents = (result: any): Event[] => {
-    if (Array.isArray(result)) return result as Event[];
-    const data =
-      result?.data ??
-      result?.content ??
-      result?.items ??
-      result?.result ??
-      [];
-    return Array.isArray(data) ? (data as Event[]) : [];
-  };
-
-  const dedupeEvents = (events: Event[]): Event[] => {
-    return events.filter(
-      (ev, idx, arr) => arr.findIndex((e) => e.id === ev.id) === idx
-    );
-  };
-
-  const handleStatusFilter = async (status: EventStatusFilter | null) => {
-    setSelectedStatus(status);
-    setClientPage(1); // Reset to first page when status changes
-
-    setOverrideEvents(null);
-    setIsFiltering(true);
-
-    try {
-      if (status === null) {
-      // Load all events without category filter for category count
-      const responses = await Promise.all(
-        STATUS_FILTERS.map((st) =>
-          loadAll({
-            page: 0,
-            search: searchTerm || undefined,
-            status: st,
-          })
-        )
-      );
-      const mergedAll = dedupeEvents(
-        responses.flatMap((res) => extractEvents(res))
-      );
-      setAllEventsForCount(mergedAll as Event[]);
-
-      // Load events with category filter for display
-      if (selectedCategory) {
-        const responsesWithCategory = await Promise.all(
-          STATUS_FILTERS.map((st) =>
-            loadAll({
-              page: 0,
-              search: searchTerm || undefined,
-              categoryId: selectedCategory,
-              status: st,
-            })
-          )
-        );
-        const mergedCategory = dedupeEvents(
-          responsesWithCategory.flatMap((res) => extractEvents(res))
-        );
-        setOverrideEvents(mergedCategory as Event[]);
-      } else {
-        setOverrideEvents(mergedAll as Event[]);
-      }
-    } else {
-      // Load events for specific status with pagination (9 items per page)
-      const baseResult = await loadAll({
-        page: 1, // API uses 1-based
-        size: 9,
-        search: searchTerm || undefined,
-        status,
-      });
-      const baseEvents = extractEvents(baseResult);
-      setAllEventsForCount(baseEvents);
-
-      if (selectedCategory) {
-        const categoryResult = await loadAll({
-          page: 1, // API uses 1-based
-          size: 9,
-          search: searchTerm || undefined,
-          categoryId: selectedCategory,
-          status,
-        });
-        const categoryEvents = extractEvents(categoryResult);
-        setOverrideEvents(categoryEvents);
-      } else {
-        setOverrideEvents(null); // Use Redux state for pagination
-      }
-    }
     } finally {
       setIsFiltering(false);
     }
@@ -382,22 +167,10 @@ export default function EventsPage() {
 
   const handlePageChange = (page: number) => {
     if (loadingList || page < 1 || page > totalPages) return;
-
-    if (selectedStatus === null) {
-      // Client-side pagination for "all status" mode
-      setClientPage(page);
-      // Scroll to top of events section
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else {
-      // Server-side pagination for specific status
-      loadAll({
-        page: page, // API expects 1-based
-        size: PAGE_SIZE,
-        search: searchTerm || undefined,
-        categoryId: selectedCategory || undefined,
-        status: selectedStatus || undefined,
-      });
-    }
+    // Client-side pagination
+    setClientPage(page);
+    // Scroll to top of events section
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const getPageNumbers = () => {
@@ -427,16 +200,14 @@ export default function EventsPage() {
 
   useEffect(() => {
     (async () => {
-      const responses = await Promise.all(
-        STATUS_FILTERS.map((st) => loadAll({ page: 0, status: st }))
-      );
-      const merged = dedupeEvents(
-        responses.flatMap((res) => extractEvents(res))
-      );
+      // Load only ACTIVE events
+      const a = await loadAll({ page: 0, status: "ACTIVE" as const });
+      const arrA: Event[] = Array.isArray(a)
+        ? (a as Event[])
+        : ((a as any)?.data ?? (a as any)?.content ?? []);
       // Set allEventsForCount for category count calculation (without category filter)
-      setAllEventsForCount(merged as Event[]);
-      setOverrideEvents(merged as Event[]);
-      setSelectedStatus(null);
+      setAllEventsForCount(arrA);
+      setOverrideEvents(arrA);
     })();
   }, [loadAll]);
 
@@ -447,8 +218,6 @@ export default function EventsPage() {
       <EventsSearchBar
         searchTerm={searchTerm}
         onSearchChange={handleSearch}
-        selectedStatus={selectedStatus}
-        onStatusFilter={handleStatusFilter}
       />
 
       {/* Event Grid */}
@@ -466,7 +235,7 @@ export default function EventsPage() {
             events={displayEvents}
             loading={showSkeleton}
             skeletonCount={skeletonItems.length}
-            queryKey={`${searchTerm}-${selectedCategory ?? "all"}-${selectedStatus ?? "all"}-${currentPage}`}
+            queryKey={`${searchTerm}-${selectedCategory ?? "all"}-${currentPage}`}
           />
         </div>
       </section>

@@ -23,6 +23,7 @@ import {
   CalendarDays,
   Bell,
   Loader2,
+  Gift,
 } from "lucide-react";
 
 export function UserProfile() {
@@ -184,6 +185,12 @@ export function UserProfile() {
                   <span>Lịch sử sự kiện</span>
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/gifts/history" className="flex items-center gap-2">
+                  <Gift className="h-4 w-4" />
+                  <span>Lịch sử đổi thưởng</span>
+                </Link>
+              </DropdownMenuItem>
             </>
           )}
           <DropdownMenuSeparator />
@@ -207,15 +214,22 @@ function StudentNotificationBell() {
   } = useNotifications();
 
   useEffect(() => {
-    loadNotifications();
+    // Load ngay lập tức
+    loadNotifications({ size: 1000 }); // Lấy tất cả thông báo để đếm chính xác unreadCount
 
-    const handler = () => loadNotifications();
+    // Setup interval để reload mỗi 3 giây
+    const interval = setInterval(() => {
+      loadNotifications({ size: 1000 });
+    }, 3000); // 3 giây = 3000ms
+
+    const handler = () => loadNotifications({ size: 1000 });
 
     if (typeof window !== "undefined") {
       window.addEventListener("student-notification-updated", handler);
     }
 
     return () => {
+      clearInterval(interval);
       if (typeof window !== "undefined") {
         window.removeEventListener("student-notification-updated", handler);
       }
@@ -246,7 +260,7 @@ function StudentNotificationBell() {
               : "Không có thông báo mới"}
           </p>
         </div>
-        <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-6 text-sm text-gray-500">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -257,7 +271,7 @@ function StudentNotificationBell() {
               Hiện chưa có thông báo nào cho bạn.
             </div>
           ) : (
-            notifications.slice(0, 4).map((item) => (
+            notifications.map((item) => (
               <div
                 key={item.deliveryId}
                 className="border-b px-4 py-3 last:border-b-0 hover:bg-orange-50"
@@ -294,11 +308,10 @@ function StudentNotificationBell() {
           )}
         </div>
         <div className="border-t px-3 py-2 text-right">
-          <Link
-            href="/students/notifications"
-            className="text-xs font-medium text-orange-600 hover:text-orange-700"
-          >
-            Xem tất cả
+          <Link 
+          href="/students/notifications"
+          className="text-xs font-medium text-orange-600 hover:text-orange-700">
+          Xem tất cả
           </Link>
         </div>
       </DropdownMenuContent>

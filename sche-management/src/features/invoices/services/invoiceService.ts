@@ -1,5 +1,5 @@
 import axiosInstance from "@/config/axiosInstance";
-import { CreateInvoice, Invoice, ProductInvoiceMasked } from "../types/invoice";
+import { CreateInvoice, Invoice, ProductInvoiceMasked, InvoiceStats } from "../types/invoice";
 
 // Định nghĩa chung cho Invoice Service
 const endpoint = "/invoices";
@@ -62,11 +62,18 @@ const InvoiceService = {
   },
   async getStudentRedeemHistory(studentId: string): Promise<Invoice[]> {
     try {
-      // Endpoint hơi khác: /api/v1/invoices/students/{studentId}
-      const res = await axiosInstance.get<Invoice[]>(
+      // Endpoint: /api/v1/invoices/students/{studentId}
+      // Response format: { data: Invoice[] }
+      const res = await axiosInstance.get<{ data: Invoice[] } | Invoice[]>(
         `${endpoint}/students/${studentId}`
       );
-      return res.data;
+      // Handle both response formats
+      if (Array.isArray(res.data)) {
+        return res.data;
+      } else if (res.data?.data && Array.isArray(res.data.data)) {
+        return res.data.data;
+      }
+      return [];
     } catch (error) {
       console.error(
         `❌ [getStudentRedeemHistory] Error fetching history for student ${studentId}:`,
@@ -77,15 +84,21 @@ const InvoiceService = {
   },
 
   /** 📊 Thống kê redeem: GET /api/v1/invoices/stats */
-  //   async getRedeemStats(): Promise<InvoiceStat> {
-  //     try {
-  //       const res = await axiosInstance.get<InvoiceStat>(`${endpoint}/stats`);
-  //       return res.data;
-  //     } catch (error) {
-  //       console.error("❌ [getRedeemStats] Error fetching redeem stats:", error);
-  //       throw error;
-  //     }
-  //   },
+  async getRedeemStats(): Promise<InvoiceStats> {
+    try {
+      const res = await axiosInstance.get<InvoiceStats>(`${endpoint}/stats`);
+      // Handle both response formats
+      if (res.data?.topProducts) {
+        return res.data;
+      } else if ((res.data as any)?.data?.topProducts) {
+        return (res.data as any).data;
+      }
+      return { topProducts: [] };
+    } catch (error) {
+      console.error("❌ [getRedeemStats] Error fetching redeem stats:", error);
+      throw error;
+    }
+  },
 };
 
 export default InvoiceService;

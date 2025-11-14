@@ -33,3 +33,14 @@ export interface ProductInvoiceMasked {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface TopProduct {
+  productId: string;
+  totalRedeem: number;
+  title: string;
+  totalCoins: number;
+}
+
+export interface InvoiceStats {
+  topProducts: TopProduct[];
+}
