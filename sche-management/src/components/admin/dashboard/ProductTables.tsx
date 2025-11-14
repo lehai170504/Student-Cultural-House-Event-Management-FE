@@ -1,10 +1,9 @@
-// ProductTables.tsx (Đã thêm cột hình ảnh)
 import { Building2 } from "lucide-react";
+import { Product } from "@/features/products/types/product";
 
 interface ProductTablesProps {
-  // Giữ nguyên interface, giả định các item trong topRedeemed có trường 'imageUrl'
-  topRedeemed: any[];
-  lowStock: any[];
+  topRedeemed: Product[];
+  lowStock: Product[];
   mostActivePartner: string;
   loading: {
     loadingTopRedeemed: boolean;
@@ -20,7 +19,7 @@ export default function ProductTables({
 }: ProductTablesProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Cột 1: Bảng Top Sản phẩm được đổi thưởng */}
+      {/* Cột 1: Top sản phẩm được đổi thưởng */}
       <div className="lg:col-span-2 bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
           🏆 Top 5 Sản phẩm được đổi thưởng nhiều nhất
@@ -36,7 +35,7 @@ export default function ProductTables({
               <thead>
                 <tr className="text-left text-gray-500 border-b">
                   <th className="py-2 w-[5%]">#</th>
-                  <th className="py-2 w-[5%]"></th> {/* Cột mới cho Image */}
+                  <th className="py-2 w-[5%]"></th>
                   <th className="py-2 w-[60%]">Tên sản phẩm</th>
                   <th className="py-2 w-[15%]">Điểm đổi</th>
                   <th className="py-2 w-[15%]">Lượt đổi</th>
@@ -45,21 +44,20 @@ export default function ProductTables({
               <tbody>
                 {topRedeemed.slice(0, 5).map((prod, index) => (
                   <tr
-                    key={prod.id}
+                    key={`${prod.id ?? index}-${index}`} // key duy nhất
                     className="border-b last:border-0 hover:bg-gray-50"
                   >
-                    {/* # Rank */}
+                    {/* Rank */}
                     <td className="py-2 font-bold text-lg text-blue-500">
                       {index + 1}
                     </td>
 
-                    {/* Cột Image MỚI */}
+                    {/* Image */}
                     <td className="py-2">
                       {prod.imageUrl ? (
                         <img
                           src={prod.imageUrl}
                           alt={prod.title}
-                          // Thiết lập kích thước nhỏ, bo tròn, và giữ tỷ lệ
                           className="w-8 h-8 rounded object-cover shadow-sm"
                         />
                       ) : (
@@ -78,11 +76,15 @@ export default function ProductTables({
                     </td>
 
                     {/* Điểm đổi */}
-                    <td>{prod.unitCost.toLocaleString()}</td>
+                    <td>{prod.unitCost?.toLocaleString() ?? "0"}</td>
 
                     {/* Lượt đổi */}
                     <td className="font-bold text-green-600">
-                      {prod.redeemCount?.toLocaleString() ?? "0"}
+                      {("redeemCount" in prod &&
+                      typeof (prod as any).redeemCount === "number"
+                        ? (prod as any).redeemCount
+                        : 0
+                      ).toLocaleString()}
                     </td>
                   </tr>
                 ))}
@@ -92,9 +94,9 @@ export default function ProductTables({
         )}
       </div>
 
-      {/* Cột 2: Bảng Tồn kho Thấp & Đối tác mới (giữ nguyên) */}
+      {/* Cột 2: Tồn kho thấp & Đối tác */}
       <div className="space-y-6">
-        {/* Card Đối tác mới nhất */}
+        {/* Đối tác hoạt động mạnh */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
             <Building2 className="w-5 h-5 text-purple-500" /> Đối tác hoạt động
@@ -108,7 +110,7 @@ export default function ProductTables({
           </p>
         </div>
 
-        {/* Card Sản phẩm Tồn kho Thấp */}
+        {/* Sản phẩm tồn kho thấp */}
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
             ⚠️ Sản phẩm Tồn kho thấp ({lowStock.length})
@@ -122,7 +124,7 @@ export default function ProductTables({
             </p>
           ) : (
             <ul className="space-y-3 text-sm text-gray-600">
-              {lowStock.slice(0, 5).map((prod: any) => (
+              {lowStock.slice(0, 5).map((prod) => (
                 <li
                   key={prod.id}
                   className="flex justify-between items-center p-2 border border-red-200 bg-red-50 rounded"
@@ -131,7 +133,7 @@ export default function ProductTables({
                     📦 {prod.title}
                   </span>
                   <span className="text-red-600 font-bold text-lg">
-                    {prod.totalStock.toLocaleString()}
+                    {prod.totalStock?.toLocaleString() ?? "0"}
                   </span>
                 </li>
               ))}
