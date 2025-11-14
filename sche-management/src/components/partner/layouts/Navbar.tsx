@@ -2,8 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-// 🌟 Import các Icons cần thiết
-import { Bell, Search, UserCircle, LogOut, Home, Settings } from "lucide-react";
+import { UserCircle, LogOut, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -84,16 +83,6 @@ export default function PartnerNavbar() {
 
         {/* 2. Notification + User Actions */}
         <div className="flex items-center gap-2 md:gap-4">
-          {/* 🌟 Nút Thông báo (Bổ sung nếu cần) */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative rounded-full text-gray-600 hover:bg-orange-50 transition-all duration-200"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-0 right-0 h-3 w-3 rounded-full bg-red-500 border border-white"></span>
-          </Button>
-
           {/* User Dropdown MENU */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -128,7 +117,9 @@ export default function PartnerNavbar() {
                   {!isLoading && user?.fullName ? user.fullName : "Partner"}
                 </p>
                 <p className="text-sm text-gray-500 truncate">
-                  {!isLoading && user?.email ? user.email : "Loading..."}
+                  {!isLoading && user?.contactEmail
+                    ? user.contactEmail
+                    : "Loading..."}
                 </p>
               </div>
 

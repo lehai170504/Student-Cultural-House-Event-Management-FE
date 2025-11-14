@@ -21,6 +21,7 @@ const ViewDetailInvoice = lazy(() => import("./ViewDetailInvoice"));
 export default function RedemptionInvoiceTable() {
   const {
     allRedemptions,
+    redemptionMeta,
     loadingAllRedemptions,
     saving,
     loadAllRedemptions,
@@ -36,10 +37,14 @@ export default function RedemptionInvoiceTable() {
     null
   );
 
-  // 1. Tải dữ liệu khi component mount
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const size = 10;
+
+  // 1. Tải dữ liệu khi component mount hoặc page thay đổi
   useEffect(() => {
-    loadAllRedemptions();
-  }, [loadAllRedemptions]);
+    loadAllRedemptions(page, size);
+  }, [loadAllRedemptions, page]);
 
   // 2. Lọc dữ liệu theo từ khóa tìm kiếm
   const filteredInvoices = Array.isArray(allRedemptions)
@@ -60,7 +65,7 @@ export default function RedemptionInvoiceTable() {
         const success = await deliverInvoice(invoiceId);
         if (success) {
           // Tải lại danh sách sau khi giao hàng thành công
-          loadAllRedemptions();
+          loadAllRedemptions(page, size);
         }
       } catch (error) {
         console.error("Lỗi khi đánh dấu đã giao:", error);
@@ -68,7 +73,7 @@ export default function RedemptionInvoiceTable() {
         setProcessingInvoiceId(null);
       }
     },
-    [deliverInvoice, loadAllRedemptions, clearInvoiceError]
+    [deliverInvoice, loadAllRedemptions, clearInvoiceError, page]
   );
 
   // 4. Hàm hiển thị Badge Trạng thái
@@ -77,7 +82,7 @@ export default function RedemptionInvoiceTable() {
       PENDING: "bg-yellow-100 text-yellow-800",
       DELIVERED: "bg-green-100 text-green-800",
       CANCELLED: "bg-red-100 text-red-800",
-      COMPLETED: "bg-blue-100 text-blue-800", // Giả định trạng thái hoàn thành
+      COMPLETED: "bg-blue-100 text-blue-800",
     };
     const classes =
       statusMap[status as keyof typeof statusMap] ||
@@ -95,6 +100,13 @@ export default function RedemptionInvoiceTable() {
   // 5. Kiểm tra trạng thái xử lý
   const isProcessing = (invoiceId: string) =>
     processingInvoiceId === invoiceId && saving;
+
+  // Pagination controls
+  const prevPage = () => setPage((p) => Math.max(p - 1, 1));
+  const nextPage = () =>
+    setPage((p) =>
+      redemptionMeta ? Math.min(p + 1, redemptionMeta.totalPages) : p
+    );
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -118,7 +130,7 @@ export default function RedemptionInvoiceTable() {
                 className="w-[300px] rounded-lg shadow-sm"
               />
               <Button
-                onClick={() => loadAllRedemptions()}
+                onClick={() => loadAllRedemptions(page, size)}
                 disabled={loadingAllRedemptions}
                 className="bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
               >
@@ -137,7 +149,7 @@ export default function RedemptionInvoiceTable() {
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   {[
-                    "Mã HĐ",
+                    "STT", // ⭐ Thay Mã HĐ bằng STT
                     "Sinh viên",
                     "Sản phẩm",
                     "Số lượng",
@@ -177,13 +189,14 @@ export default function RedemptionInvoiceTable() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredInvoices.map((invoice) => (
+                  filteredInvoices.map((invoice, index) => (
                     <TableRow
                       key={invoice.invoiceId}
                       className="hover:bg-gray-50"
                     >
                       <TableCell className="px-6 py-4 font-medium text-gray-800">
-                        {invoice.invoiceId}
+                        {/* ⭐ STT tính theo page + size */}
+                        {(page - 1) * size + index + 1}
                       </TableCell>
                       <TableCell className="px-6 py-4 text-sm text-gray-600">
                         {invoice.studentName}
@@ -199,11 +212,12 @@ export default function RedemptionInvoiceTable() {
                       </TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                       <TableCell className="px-6 py-4 text-sm text-gray-600">
-                        {new Date(invoice.createdAt).toLocaleDateString()}
+                        {invoice.createdAt
+                          ? new Date(invoice.createdAt).toLocaleDateString()
+                          : "-"}
                       </TableCell>
 
                       <TableCell className="px-6 py-4 flex gap-2">
-                        {/* Nút Xem Chi Tiết */}
                         <Button
                           size="icon"
                           variant="outline"
@@ -215,7 +229,6 @@ export default function RedemptionInvoiceTable() {
                           <Eye className="h-4 w-4" />
                         </Button>
 
-                        {/* Nút Đánh dấu Đã giao (Chỉ khi PENDING) */}
                         {invoice.status === "PENDING" && (
                           <Button
                             size="icon"
@@ -235,8 +248,6 @@ export default function RedemptionInvoiceTable() {
                             )}
                           </Button>
                         )}
-
-                        {/* Thêm nút Hủy nếu cần */}
                       </TableCell>
                     </TableRow>
                   ))
@@ -245,9 +256,31 @@ export default function RedemptionInvoiceTable() {
             </Table>
           </div>
 
-          {/* Bạn có thể thêm logic Phân trang (Pagination) ở đây nếu API hỗ trợ */}
-          <div className="text-sm text-gray-600 mt-4">
-            Hiển thị {filteredInvoices.length} hóa đơn.
+          {/* 🌟 Pagination */}
+          {redemptionMeta && redemptionMeta.totalPages > 1 && (
+            <div className="flex justify-between items-center mt-4 text-sm text-gray-600">
+              <Button
+                onClick={prevPage}
+                disabled={page <= 1}
+                className="px-4 py-1 bg-gray-200 disabled:opacity-50"
+              >
+                Prev
+              </Button>
+              <span>
+                Page {page} / {redemptionMeta.totalPages}
+              </span>
+              <Button
+                onClick={nextPage}
+                disabled={page >= redemptionMeta.totalPages}
+                className="px-4 py-1 bg-gray-200 disabled:opacity-50"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+
+          <div className="text-sm text-gray-600 mt-2">
+            Hiển thị {filteredInvoices.length} hóa đơn trên trang này.
           </div>
         </div>
       </section>

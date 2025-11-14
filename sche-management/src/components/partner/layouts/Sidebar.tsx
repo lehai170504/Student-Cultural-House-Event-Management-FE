@@ -34,7 +34,6 @@ const menuSections = [
       { label: "Sự kiện", href: "/partner/events", icon: Calendar },
       { label: "Ví", href: "/partner/wallet", icon: Wallet },
       { label: "Tạo thông báo", href: "/partner/notifications", icon: Bell },
-      { label: "Quản lí đổi quà", href: "/partner/invoice", icon: Receipt },
     ],
   },
 ];

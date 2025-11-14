@@ -22,21 +22,28 @@ interface Props {
 export default function ViewDetailProduct({ productId, open, onClose }: Props) {
   const { detail, loadingDetail, loadDetail, resetProductDetail, editProduct } =
     useProducts();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null); // ✅ state quản lý file ở đây
 
   useEffect(() => {
     if (open && productId) {
       resetProductDetail();
       loadDetail(productId);
       setIsEditing(false);
+      setImageFile(null); // reset file khi mở modal
     }
   }, [open, productId, resetProductDetail, loadDetail]);
 
   const handleSubmit = async (values: any) => {
     if (!productId) return;
+
     setIsSaving(true);
-    const success = await editProduct(productId, values);
+    const payload = { ...values }; // giữ dữ liệu text/number
+    if (imageFile) payload.imageFile = imageFile;
+
+    const success = await editProduct(productId, payload);
     setIsSaving(false);
 
     if (success) {
@@ -45,6 +52,7 @@ export default function ViewDetailProduct({ productId, open, onClose }: Props) {
       });
       loadDetail(productId);
       setIsEditing(false);
+      setImageFile(null); // reset file sau khi lưu
     } else {
       toast.error("Cập nhật thất bại", { description: "Vui lòng thử lại." });
     }
@@ -73,11 +81,13 @@ export default function ViewDetailProduct({ productId, open, onClose }: Props) {
               type: detail.type,
               unitCost: detail.unitCost,
               totalStock: detail.totalStock,
-              isActive: detail.isActive ? "true" : "false", 
+              isActive: detail.isActive ? "true" : "false",
               imageUrl: detail.imageUrl ?? "",
               createdAt: new Date(detail.createdAt).toLocaleString("vi-VN"),
             }}
-            onSubmit={handleSubmit}
+            imageFile={imageFile} // ✅ truyền xuống
+            setImageFile={setImageFile} // ✅ callback set file
+            onSubmit={handleSubmit} // submit chỉ cần values
             saving={isSaving}
             isEditing={isEditing}
           />

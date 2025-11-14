@@ -1,8 +1,14 @@
 import axiosInstance from "@/config/axiosInstance";
-import { CreateInvoice, Invoice, ProductInvoiceMasked } from "../types/invoice";
+import {
+  CreateInvoice,
+  Invoice,
+  InvoiceMeta,
+  InvoiceResponse,
+  ProductInvoiceMasked,
+} from "../types/invoice";
 
 const BASE_ENDPOINT = "/invoices";
-const REDEMPTION_ENDPOINT = "/redemptions/invoices";
+const REDEMPTION_ENDPOINT = "/admin/invoices";
 
 const InvoiceService = {
   async createInvoice(payload: CreateInvoice): Promise<Invoice> {
@@ -19,7 +25,7 @@ const InvoiceService = {
   // --- 2. Cập nhật Trạng thái Hóa đơn ---
   async markAsDelivered(invoiceId: string): Promise<ProductInvoiceMasked> {
     try {
-      const res = await axiosInstance.put<ProductInvoiceMasked>(
+      const res = await axiosInstance.post<ProductInvoiceMasked>(
         `${BASE_ENDPOINT}/${invoiceId}/confirm-delivery`
       );
       return res.data;
@@ -77,11 +83,19 @@ const InvoiceService = {
     }
   },
 
-  /** 🌟 NEW: Lấy danh sách TẤT CẢ hóa đơn redeem: GET /api/v1/redemptions/invoices */
-  async getAllRedemptionInvoices(): Promise<Invoice[]> {
+  async getAllRedemptionInvoices(
+    page: number,
+    size: number
+  ): Promise<{ invoices: Invoice[]; meta: InvoiceMeta }> {
     try {
-      const res = await axiosInstance.get<Invoice[]>(REDEMPTION_ENDPOINT);
-      return res.data;
+      const res = await axiosInstance.get<InvoiceResponse>(
+        `${REDEMPTION_ENDPOINT}?page=${page}&pageSize=${size}`
+      );
+
+      return {
+        invoices: res.data.data,
+        meta: res.data.meta,
+      };
     } catch (error) {
       console.error(
         "❌ [getAllRedemptionInvoices] Error fetching all redemption invoices:",

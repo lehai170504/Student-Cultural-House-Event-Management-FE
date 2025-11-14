@@ -8,11 +8,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RotateCw, CheckSquare, XCircle } from "lucide-react";
+import { RotateCw, CheckSquare, XCircle, X } from "lucide-react";
 import { toast } from "sonner";
 import { useInvoices } from "../hooks/useInvoices";
-
-// Giả định component hiển thị chi tiết hóa đơn (chỉ đọc)
 import InvoiceDetailForm from "./InvoiceDetailForm";
 
 interface ViewDetailInvoiceProps {
@@ -20,6 +18,7 @@ interface ViewDetailInvoiceProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  index?: number;
 }
 
 export default function ViewDetailInvoice({
@@ -27,6 +26,7 @@ export default function ViewDetailInvoice({
   open,
   onClose,
   onSuccess,
+  index,
 }: ViewDetailInvoiceProps) {
   const {
     detail,
@@ -39,102 +39,90 @@ export default function ViewDetailInvoice({
     error,
   } = useInvoices();
 
-  // Load chi tiết hóa đơn
   useEffect(() => {
     if (open && invoiceId) {
       loadDetail(invoiceId);
       clearInvoiceError();
-    } else {
-      // Có thể reset detail khi đóng modal nếu cần
     }
   }, [invoiceId, open, loadDetail, clearInvoiceError]);
 
-  // Kiểm tra trạng thái của hóa đơn đang xem
-  const currentInvoice = useMemo(() => {
-    return detail?.invoiceId === invoiceId ? detail : null;
-  }, [detail, invoiceId]);
+  const currentInvoice = useMemo(
+    () => (detail?.invoiceId === invoiceId ? detail : null),
+    [detail, invoiceId]
+  );
 
-  // Hàm xử lý Đánh dấu đã giao
   const handleDeliver = useCallback(async () => {
     if (!invoiceId || !currentInvoice) return;
-
     try {
       const success = await deliverInvoice(invoiceId);
       if (success) {
-        toast.success(`Hóa đơn ${invoiceId} đã được đánh dấu Đã giao.`);
-        onSuccess && onSuccess(); // Tải lại danh sách cha
-        // loadDetail(invoiceId); // Tải lại chi tiết để cập nhật trạng thái trong modal
-      } else {
-        toast.error("Đánh dấu Đã giao thất bại!");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(`Lỗi: ${error || "Thao tác Đã giao thất bại."}`);
+        toast.success("Hóa đơn đã được đánh dấu Đã giao.");
+        onSuccess?.();
+      } else toast.error("Đánh dấu Đã giao thất bại!");
+    } catch {
+      toast.error(error || "Thao tác Đã giao thất bại.");
     }
   }, [invoiceId, currentInvoice, deliverInvoice, onSuccess, error]);
 
-  // Hàm xử lý Hủy hóa đơn (Tùy chọn)
   const handleCancel = useCallback(async () => {
     if (!invoiceId || !currentInvoice) return;
-
     try {
       const success = await cancelRedemption(invoiceId);
       if (success) {
-        toast.success(`Hóa đơn ${invoiceId} đã được Hủy.`);
-        onSuccess && onSuccess(); // Tải lại danh sách cha
-      } else {
-        toast.error("Hủy hóa đơn thất bại!");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error(`Lỗi: ${error || "Thao tác Hủy thất bại."}`);
+        toast.success("Hóa đơn đã được Hủy.");
+        onSuccess?.();
+      } else toast.error("Hủy hóa đơn thất bại!");
+    } catch {
+      toast.error(error || "Thao tác Hủy thất bại.");
     }
   }, [invoiceId, currentInvoice, cancelRedemption, onSuccess, error]);
 
-  // Render các nút hành động
   const renderActions = () => {
     if (!currentInvoice) return null;
 
-    // Chỉ cho phép hành động nếu hóa đơn đang ở trạng thái PENDING
     const isPending = currentInvoice.status === "PENDING";
-    const isWorking = saving; // Saving là trạng thái chung cho tất cả thao tác ghi
+    const isWorking = saving;
 
     return (
-      <div className="flex justify-end space-x-3 pt-4 border-t mt-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4 border-t mt-4">
         {isPending && (
-          // Nút Hủy
           <Button
             variant="destructive"
             onClick={handleCancel}
             disabled={isWorking}
+            className="flex items-center justify-center gap-2"
           >
             {isWorking ? (
-              <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+              <RotateCw className="h-4 w-4 animate-spin" />
             ) : (
-              <XCircle className="h-4 w-4 mr-2" />
+              <XCircle className="h-4 w-4" />
             )}
             Hủy Hóa đơn
           </Button>
         )}
 
         {isPending && (
-          // Nút Đánh dấu Đã giao
           <Button
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-green-600 hover:bg-green-700 flex items-center gap-2"
             onClick={handleDeliver}
             disabled={isWorking}
           >
             {isWorking ? (
-              <RotateCw className="h-4 w-4 mr-2 animate-spin" />
+              <RotateCw className="h-4 w-4 animate-spin" />
             ) : (
-              <CheckSquare className="h-4 w-4 mr-2" />
+              <CheckSquare className="h-4 w-4" />
             )}
             Đánh dấu Đã giao
           </Button>
         )}
 
-        {/* Nút Đóng (luôn hiển thị) */}
-        <Button variant="outline" onClick={onClose} disabled={isWorking}>
+        <Button
+          variant="outline"
+          onClick={onClose}
+          disabled={isWorking}
+          className="flex items-center gap-2"
+        >
+          <X className="h-4 w-4" />
           Đóng
         </Button>
       </div>
@@ -145,37 +133,26 @@ export default function ViewDetailInvoice({
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-3xl w-full rounded-xl p-6 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-gray-800">
-            Chi tiết Hóa đơn Redeem: #{invoiceId}
+          <DialogTitle className="text-2xl font-bold text-gray-800 flex items-center justify-between">
+            <span>Chi tiết Hóa đơn Redeem</span>
+            {typeof index === "number" && (
+              <span className="text-sm text-gray-500">STT: {index}</span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
         {loadingDetail || !currentInvoice ? (
-          <p className="text-center py-10">Đang tải chi tiết hóa đơn...</p>
+          <p className="text-center py-10 text-gray-500">
+            Đang tải chi tiết hóa đơn...
+          </p>
         ) : (
-          <div className="space-y-4">
-            {/* 🌟 Hiển thị trạng thái */}
-            <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border">
-              <span className="text-gray-600 font-medium">
-                Trạng thái hiện tại:
-              </span>
-              <span
-                className={`text-lg font-bold ${
-                  currentInvoice.status === "PENDING"
-                    ? "text-yellow-600"
-                    : currentInvoice.status === "DELIVERED"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }`}
-              >
-                {currentInvoice.status}
-              </span>
+          <div className="space-y-6">
+            {/* Form hiển thị chi tiết */}
+            <div className="bg-white border rounded-lg p-4 shadow-sm">
+              <InvoiceDetailForm invoice={currentInvoice} />
             </div>
 
-            {/* 🌟 Form hiển thị chi tiết (Chỉ đọc) */}
-            <InvoiceDetailForm invoice={currentInvoice} />
-
-            {/* 🌟 Khu vực nút Hành động */}
+            {/* Nút hành động */}
             {renderActions()}
           </div>
         )}

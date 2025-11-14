@@ -1,51 +1,67 @@
-// src/features/invoices/components/InvoiceDetailForm.tsx (Ví dụ đơn giản)
-import { Invoice } from "../types/invoice";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+"use client";
+
+import React from "react";
 
 interface InvoiceDetailFormProps {
-  invoice: Invoice;
+  invoice: {
+    studentName: string;
+    productTitle: string;
+    quantity: number;
+    totalCost: number;
+    currency: string;
+    createdAt: string | null;
+    status: string;
+  };
 }
 
 export default function InvoiceDetailForm({ invoice }: InvoiceDetailFormProps) {
-  const detailItems = [
-    { label: "Mã Sinh viên", value: invoice.studentId },
-    { label: "Tên Sinh viên", value: invoice.studentName },
-    { label: "Sản phẩm", value: invoice.productTitle },
-    { label: "Loại sản phẩm", value: invoice.productType },
-    { label: "Số lượng", value: invoice.quantity },
-    {
-      label: "Tổng phí",
-      value: `${invoice.totalCost.toLocaleString()} ${invoice.currency}`,
-    },
-    { label: "Mã xác nhận", value: invoice.verificationCode },
-    {
-      label: "Thời gian tạo",
-      value: new Date(invoice.createdAt).toLocaleString(),
-    },
-    { label: "Người giao", value: invoice.deliveredBy || "Chưa có" },
-    {
-      label: "Thời gian giao",
-      value: invoice.deliveredAt
-        ? new Date(invoice.deliveredAt).toLocaleString()
-        : "Chưa giao",
-    },
-  ];
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {detailItems.map((item, index) => (
-        <div key={index} className="space-y-1">
-          <Label className="text-sm font-medium text-gray-600">
-            {item.label}
-          </Label>
-          <Input
-            value={item.value}
-            readOnly
-            className="bg-gray-100 border-gray-200 text-gray-800"
-          />
-        </div>
-      ))}
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-gray-700">
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-500">Tên Sinh viên:</span>
+        <span className="font-semibold">{invoice.studentName}</span>
+      </div>
+
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-500">Sản phẩm:</span>
+        <span className="font-semibold">{invoice.productTitle}</span>
+      </div>
+
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-500">Số lượng:</span>
+        <span className="font-semibold">{invoice.quantity}</span>
+      </div>
+
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-500">Tổng phí:</span>
+        <span className="font-semibold">
+          {invoice.totalCost.toLocaleString()} {invoice.currency}
+        </span>
+      </div>
+
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-500">Ngày tạo:</span>
+        <span className="font-semibold">
+          {invoice.createdAt
+            ? new Date(invoice.createdAt).toLocaleDateString()
+            : "-"}
+        </span>
+      </div>
+
+      <div className="flex flex-col">
+        <span className="font-medium text-gray-500">Trạng thái:</span>
+        <span
+          className={`font-bold ${
+            invoice.status === "PENDING"
+              ? "text-yellow-600"
+              : invoice.status === "DELIVERED"
+              ? "text-green-600"
+              : "text-red-600"
+          }`}
+        >
+          {invoice.status}
+        </span>
+      </div>
     </div>
   );
 }

@@ -100,9 +100,22 @@ export const productService = {
   },
 
   /** 🔹 Cập nhật thông tin sản phẩm (Admin) */
-  async update(id: string, data: UpdateProduct): Promise<Product> {
+  async update(
+    id: string,
+    productData: UpdateProduct,
+    imageFile: File | null
+  ): Promise<Product> {
     try {
-      const res = await axiosInstance.put<any>(`${endpoint}/${id}`, data);
+      const formData = new FormData();
+      const dataJsonString = JSON.stringify(productData);
+      formData.append("data", dataJsonString);
+
+      if (imageFile) {
+        formData.append("image", imageFile, imageFile.name);
+      }
+
+      const res = await axiosInstance.put<any>(`${endpoint}/${id}`, formData);
+
       const apiData = res?.data?.data ?? res?.data;
       return apiData as Product;
     } catch (error) {

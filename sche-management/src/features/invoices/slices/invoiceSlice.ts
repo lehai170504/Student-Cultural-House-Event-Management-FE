@@ -1,24 +1,28 @@
+// ⭐ Add missing type
+import type { Invoice, InvoiceMeta } from "../types/invoice";
+import type { RedemptionInvoiceResult } from "../types/invoice"; // nếu bạn để trong cùng file thì bỏ dòng này đi
+
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import type { Invoice } from "../types/invoice";
+
 import {
   createInvoice,
   markInvoiceAsDelivered,
   cancelInvoice,
   fetchInvoiceDetail,
   fetchStudentRedeemHistory,
-  fetchAllRedemptionInvoices, // 🌟 Import Thunk mới
-  //   fetchRedeemStats,
+  fetchAllRedemptionInvoices,
 } from "../thunks/invoiceThunks";
 
 interface InvoiceState {
   detail: Invoice | null;
   studentHistory: Invoice[];
-  allRedemptions: Invoice[]; // 🌟 State mới: Lưu tất cả hóa đơn redeem
-  //   stats: InvoiceStat | null;
+
+  allRedemptions: Invoice[];
+  redemptionMeta: InvoiceMeta | null; // ⭐ Needed for pagination
 
   loadingDetail: boolean;
   loadingHistory: boolean;
-  loadingAllRedemptions: boolean; // 🌟 Loading state mới
+  loadingAllRedemptions: boolean;
   loadingStats: boolean;
   saving: boolean;
   error: string | null;
@@ -27,11 +31,12 @@ interface InvoiceState {
 const initialState: InvoiceState = {
   detail: null,
   studentHistory: [],
-  allRedemptions: [], // Khởi tạo mảng rỗng
-  //   stats: null,
+  allRedemptions: [],
+  redemptionMeta: null, // ⭐ init meta
+
   loadingDetail: false,
   loadingHistory: false,
-  loadingAllRedemptions: false, // Khởi tạo loading state
+  loadingAllRedemptions: false,
   loadingStats: false,
   saving: false,
   error: null,
@@ -47,9 +52,9 @@ const invoiceSlice = createSlice({
     resetStudentHistory: (state) => {
       state.studentHistory = [];
     },
-    // 🌟 Reducer mới: Reset danh sách tất cả hóa đơn redeem
     resetAllRedemptions: (state) => {
       state.allRedemptions = [];
+      state.redemptionMeta = null; // ⭐ Reset luôn meta
     },
     clearError: (state) => {
       state.error = null;
@@ -57,9 +62,7 @@ const invoiceSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // A. LẤY DỮ LIỆU (READ)
-
-      // FETCH INVOICE DETAIL (giữ nguyên)
+      // FETCH INVOICE DETAIL
       .addCase(fetchInvoiceDetail.pending, (state) => {
         state.loadingDetail = true;
         state.error = null;
@@ -78,7 +81,7 @@ const invoiceSlice = createSlice({
           (action.payload as string) || "Không thể tải chi tiết hóa đơn.";
       })
 
-      // FETCH STUDENT REDEEM HISTORY (giữ nguyên)
+      // FETCH STUDENT HISTORY
       .addCase(fetchStudentRedeemHistory.pending, (state) => {
         state.loadingHistory = true;
         state.error = null;
@@ -97,28 +100,28 @@ const invoiceSlice = createSlice({
           (action.payload as string) || "Không thể tải lịch sử redeem.";
       })
 
-      // 🌟 FETCH ALL REDEMPTION INVOICES
+      // ⭐ FETCH ALL REDEMPTIONS
       .addCase(fetchAllRedemptionInvoices.pending, (state) => {
         state.loadingAllRedemptions = true;
         state.error = null;
       })
       .addCase(
         fetchAllRedemptionInvoices.fulfilled,
-        (state, action: PayloadAction<Invoice[]>) => {
+        (state, action: PayloadAction<RedemptionInvoiceResult>) => {
           state.loadingAllRedemptions = false;
-          state.allRedemptions = action.payload;
+          state.allRedemptions = action.payload.invoices;
+          state.redemptionMeta = action.payload.meta; // ⭐ Save pagination meta
         }
       )
       .addCase(fetchAllRedemptionInvoices.rejected, (state, action) => {
         state.loadingAllRedemptions = false;
         state.allRedemptions = [];
+        state.redemptionMeta = null;
         state.error =
           (action.payload as string) || "Không thể tải tất cả hóa đơn đổi quà.";
       })
 
-      // B. THAO TÁC (WRITE: CREATE/UPDATE/CANCEL) - (giữ nguyên)
-
-      // PENDING
+      // WRITE ACTIONS
       .addCase(createInvoice.pending, (state) => {
         state.saving = true;
         state.error = null;
@@ -132,17 +135,12 @@ const invoiceSlice = createSlice({
         state.error = null;
       })
 
-      // CREATE INVOICE
       .addCase(createInvoice.fulfilled, (state) => {
         state.saving = false;
       })
-
-      // MARK AS DELIVERED
       .addCase(markInvoiceAsDelivered.fulfilled, (state) => {
         state.saving = false;
       })
-
-      // CANCEL INVOICE
       .addCase(
         cancelInvoice.fulfilled,
         (state, action: PayloadAction<Invoice>) => {
@@ -153,10 +151,9 @@ const invoiceSlice = createSlice({
         }
       )
 
-      // REJECTED
       .addCase(createInvoice.rejected, (state, action) => {
         state.saving = false;
-        state.error = (action.payload as string) || "Lỗi tạo/thao tác hóa đơn.";
+        state.error = (action.payload as string) || "Lỗi tạo hóa đơn.";
       })
       .addCase(markInvoiceAsDelivered.rejected, (state, action) => {
         state.saving = false;
@@ -175,4 +172,5 @@ export const {
   resetAllRedemptions,
   clearError,
 } = invoiceSlice.actions;
+
 export default invoiceSlice.reducer;

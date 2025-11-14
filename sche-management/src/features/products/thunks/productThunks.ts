@@ -127,10 +127,10 @@ export const createProduct = createAsyncThunk<Product, CreateProductInput>(
 /** 🔹 Cập nhật sản phẩm */
 export const updateProduct = createAsyncThunk<
   Product,
-  { id: string; data: UpdateProduct }
->("product/update", async ({ id, data }, { rejectWithValue }) => {
+  { id: string; data: UpdateProduct; imageFile?: File | null }
+>("product/update", async ({ id, data, imageFile }, { rejectWithValue }) => {
   try {
-    const response = await productService.update(id, data);
+    const response = await productService.update(id, data, imageFile ?? null);
     return response;
   } catch (error: any) {
     console.error(`❌ [updateProduct] Error for id=${id}:`, error);
