@@ -216,8 +216,6 @@ export type EventStatusFilter = "ACTIVE" | "FINALIZED" | "CANCELLED";
 export interface EventsSearchBarProps {
   searchTerm: string;
   onSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
-  selectedStatus: EventStatusFilter | null;
-  onStatusFilter: (status: EventStatusFilter | null) => void;
 }
 
 export interface CategoryFiltersProps {

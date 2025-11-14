@@ -144,6 +144,11 @@ export default function EventDetailPage() {
       toast.error("Vui lòng chọn mức đánh giá (1-5)");
       return;
     }
+    // Không cho phép cập nhật feedback khi event đã FINALIZED
+    if (editingFeedbackId && event.status === "FINALIZED") {
+      toast.error("Không thể cập nhật phản hồi khi sự kiện đã được hoàn tất.");
+      return;
+    }
     try {
       if (editingFeedbackId) {
         // Update existing feedback
@@ -170,6 +175,11 @@ export default function EventDetailPage() {
   };
 
   const handleEditFeedback = (feedback: EventFeedbackResponse) => {
+    // Không cho phép sửa khi event đã FINALIZED
+    if (event.status === "FINALIZED") {
+      toast.error("Không thể sửa phản hồi khi sự kiện đã được hoàn tất.");
+      return;
+    }
     setEditingFeedbackId(feedback.id);
     setRating(String(feedback.rating));
     setComments(feedback.comments || "");
@@ -189,6 +199,11 @@ export default function EventDetailPage() {
   };
 
   const handleDeleteFeedback = async (feedbackId: string) => {
+    // Không cho phép xóa khi event đã FINALIZED
+    if (event.status === "FINALIZED") {
+      toast.error("Không thể xóa phản hồi khi sự kiện đã được hoàn tất.");
+      return;
+    }
     try {
       await deleteFeedbackForEvent(feedbackId);
       toast.success("Xóa phản hồi thành công!");
@@ -218,13 +233,8 @@ export default function EventDetailPage() {
         (fb) => String(fb.studentId) === String(currentStudentId)
       )
     : false;
-
-  // Show feedback form when:
-  // 1. Event status is FINALIZED
-  // 2. User has registered for the event
-  // 3. Either: user hasn't submitted feedback yet OR user is editing their feedback
   const shouldShowFeedbackForm =
-    event.status === "FINALIZED" &&
+    event.status === "ACTIVE" &&
     hasRegistered &&
     (!hasSubmittedFeedback || editingFeedbackId !== null);
 
@@ -286,6 +296,7 @@ export default function EventDetailPage() {
           onEdit={handleEditFeedback}
           onDelete={handleDeleteFeedback}
           deletingFeedback={deletingFeedback}
+          eventStatus={event.status}
         />
       </section>
     </main>

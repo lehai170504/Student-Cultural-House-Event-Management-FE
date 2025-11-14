@@ -1,224 +1,55 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
-import Image from "next/image";
-import Link from "next/link";
+import { useMemo, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Gift, Search, Filter, Star, ChevronLeft, ChevronRight, Zap, Clock, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import PublicNavbar from "@/components/PublicNavbar";
-import { productService } from "@/features/products/services/productService";
-import type { Product } from "@/features/products/types/product";
-import { studentService } from "@/features/students/services/studentService";
-import { walletService } from "@/features/wallet/services/walletService";
+import { useInvoices } from "@/features/invoices/hooks/useInvoices";
+import { toast } from "sonner";
+import { useGiftsData } from "./hooks/useGiftsData";
+import { convertProductToReward } from "./utils";
+import type { Reward, RedeemedProduct } from "./types";
+import GiftsSearchFilter from "./components/GiftsSearchFilter";
+import GiftCard from "./components/GiftCard";
+import GiftDetailDialog from "./components/GiftDetailDialog";
+import SuccessDialog from "./components/SuccessDialog";
+import GiftsPagination from "./components/GiftsPagination";
 
 type RewardCategory = "voucher" | "gift";
 
-interface Reward {
-  id: string;
-  name: string;
-  description: string;
-  points: number;
-  image: string;
-  category: RewardCategory;
-  inStock: boolean;
-  createdAt: string; // ISO date string for sorting newest
-  stock: number; // totalStock from API
-}
-
-const CATEGORY_LABEL: Record<RewardCategory, string> = {
-  voucher: "🎫 Voucher ăn uống",
-  gift: "🎁 Quà tặng",
-};
-
-const CATEGORY_BADGE: Record<RewardCategory, string> = {
-  voucher: "Voucher",
-  gift: "Quà tặng",
-};
-
-// Map Product type to RewardCategory
-const mapProductTypeToCategory = (type: string): RewardCategory => {
-  switch (type) {
-    case "VOUCHER":
-      return "voucher";
-    case "GIFT":
-      return "gift";
-    default:
-      return "gift"; // Default to gift for unknown types
-  }
-};
-
-const normalizeProductImage = (imageUrl?: string | null) => {
-  if (!imageUrl) return null;
-  const trimmed = imageUrl.trim();
-  if (
-    !trimmed ||
-    trimmed.toLowerCase() === "string" ||
-    trimmed.toLowerCase().startsWith("http://localhost:3000/string")
-  ) {
-    return null;
-  }
-  return trimmed;
-};
-
-// Convert Product to Reward
-const convertProductToReward = (product: Product): Reward => {
-  const normalizedImage = normalizeProductImage(product.imageUrl);
-  const defaultImageSvg =
-    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect width="400" height="300" fill="%23f1f5f9"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-family="Arial, sans-serif" font-size="24">No Image</text></svg>';
-  const DEFAULT_REWARD_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-    defaultImageSvg
-  )}`;
-  return {
-    id: product.id,
-    name: product.title,
-    description: product.description,
-    points: product.unitCost,
-    image:
-      normalizedImage || DEFAULT_REWARD_IMAGE,
-    category: mapProductTypeToCategory(product.type),
-    inStock: product.isActive && product.totalStock > 0,
-    createdAt: product.createdAt,
-    stock: product.totalStock,
-  };
-};
-
 export default function GiftsPage() {
-  // User points from wallet
-  const [userPoints, setUserPoints] = useState<number>(0);
-  const [loadingPoints, setLoadingPoints] = useState<boolean>(true);
-  
-  // Products from API
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  // Data hooks
+  const {
+    userPoints,
+    loadingPoints,
+    studentId,
+    products,
+    loadingProducts,
+    error,
+    topProductIds,
+    loadUserPoints,
+    loadProducts,
+  } = useGiftsData();
+
+  // Invoice hook
+  const { createNewInvoice, saving: creatingInvoice, error: invoiceError } = useInvoices();
 
   // UI & Query states
   const [query, setQuery] = useState<string>("");
-  // Default: show all (both categories unchecked = show all)
   const [selectedCategories, setSelectedCategories] = useState<Record<RewardCategory, boolean>>({
     voucher: false,
     gift: false,
   });
-  const [sortBy, setSortBy] = useState<"pointsAsc" | "newest">("pointsAsc");
+  const [sortBy, setSortBy] = useState<"pointsAsc" | "pointsDesc" | "newest">("pointsAsc");
+  const [pointsFilter, setPointsFilter] = useState<"all" | "0-100" | "100-500" | "500-1000" | "1000+">("all");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize] = useState<number>(9);
   const [openRewardId, setOpenRewardId] = useState<string | null>(null);
-
-  // Load user wallet balance
-  const loadUserPoints = useCallback(async () => {
-    try {
-      setLoadingPoints(true);
-      const profile = await studentService.getProfile();
-      const walletId = profile?.walletId;
-
-      const walletIdNumber =
-        typeof walletId === "number"
-          ? walletId
-          : walletId && !Number.isNaN(Number(walletId))
-          ? Number(walletId)
-          : null;
-
-      if (typeof walletIdNumber === "number") {
-        const wallet = await walletService.getById(String(walletIdNumber));
-        setUserPoints(Number(wallet?.balance ?? 0));
-      } else {
-        setUserPoints(0);
-      }
-    } catch (e: any) {
-      setUserPoints(0);
-    } finally {
-      setLoadingPoints(false);
-    }
-  }, []);
-
-  // Load products from API
-  const loadProducts = useCallback(async () => {
-    try {
-      setLoadingProducts(true);
-      setError(null);
-      
-      // Load both GIFT and VOUCHER products
-      const [giftResponse, voucherResponse] = await Promise.all([
-        productService.getAll({
-          category: "GIFT",
-          isActive: true,
-          sortBy: "createdAt",
-          order: "desc",
-          limit: 100,
-          offset: 0,
-        }),
-        productService.getAll({
-          category: "VOUCHER",
-          isActive: true,
-          sortBy: "createdAt",
-          order: "desc",
-          limit: 100,
-          offset: 0,
-        }),
-      ]);
-
-      // Helper function to extract products from response
-      const extractProducts = (response: any): Product[] => {
-        if (!response) return [];
-        
-        if (response.data && Array.isArray(response.data)) {
-          return response.data;
-        } else if (Array.isArray(response)) {
-          return response;
-        } else {
-          const possibleData = (response as any)?.data?.data || 
-                               (response as any)?.content || 
-                               (response as any)?.items ||
-                               (response as any)?.products;
-          if (Array.isArray(possibleData)) {
-            return possibleData;
-          }
-          // Last resort: check if response itself contains array values
-          const responseValues = Object.values(response);
-          for (const value of responseValues) {
-            if (Array.isArray(value) && value.length > 0 && (value[0] as any)?.id) {
-              return value as Product[];
-            }
-          }
-        }
-        return [];
-      };
-
-      // Extract products from both responses
-      const giftProducts = extractProducts(giftResponse);
-      const voucherProducts = extractProducts(voucherResponse);
-
-      // Merge and remove duplicates (in case API returns duplicates)
-      const allProducts = [...giftProducts, ...voucherProducts];
-      const uniqueProducts = allProducts.filter((p, index, self) => 
-        index === self.findIndex((product) => product.id === p.id)
-      );
-
-      // Filter only active products (double-check)
-      const activeProducts = uniqueProducts.filter((p: Product) => 
-        p && p.isActive === true && (p.type === "GIFT" || p.type === "VOUCHER")
-      );
-
-      setProducts(activeProducts);
-    } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || "Không tải được danh sách quà");
-      setProducts([]);
-    } finally {
-      setLoadingProducts(false);
-    }
-  }, []);
-
-  // Load data on mount
-  useEffect(() => {
-    loadUserPoints();
-    loadProducts();
-  }, [loadUserPoints, loadProducts]);
+  const [quantity, setQuantity] = useState<number>(1);
+  
+  // Success dialog state
+  const [showSuccessDialog, setShowSuccessDialog] = useState<boolean>(false);
+  const [redeemedProduct, setRedeemedProduct] = useState<RedeemedProduct | null>(null);
 
   // Convert products to rewards
   const ALL_REWARDS: Reward[] = useMemo(() => {
@@ -237,16 +68,39 @@ export default function GiftsPage() {
       const matchesQuery = r.name.toLowerCase().includes(query.toLowerCase());
       // If shouldShowAll is true, show all categories; otherwise filter by selected categories
       const matchesCat = shouldShowAll ? true : activeCats.includes(r.category);
-      return matchesQuery && matchesCat;
+      
+      // Filter by points range
+      let matchesPoints = true;
+      if (pointsFilter !== "all") {
+        switch (pointsFilter) {
+          case "0-100":
+            matchesPoints = r.points >= 0 && r.points <= 100;
+            break;
+          case "100-500":
+            matchesPoints = r.points > 100 && r.points <= 500;
+            break;
+          case "500-1000":
+            matchesPoints = r.points > 500 && r.points <= 1000;
+            break;
+          case "1000+":
+            matchesPoints = r.points > 1000;
+            break;
+        }
+      }
+      
+      return matchesQuery && matchesCat && matchesPoints;
     });
 
+    // Sort
     if (sortBy === "pointsAsc") {
       list = list.sort((a, b) => a.points - b.points);
+    } else if (sortBy === "pointsDesc") {
+      list = list.sort((a, b) => b.points - a.points);
     } else {
       list = list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     }
     return list;
-  }, [ALL_REWARDS, query, selectedCategories, sortBy]);
+  }, [ALL_REWARDS, query, selectedCategories, sortBy, pointsFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredSortedRewards.length / pageSize) || 1;
@@ -283,10 +137,185 @@ export default function GiftsPage() {
 
   const isAllSelected = !selectedCategories.voucher && !selectedCategories.gift;
 
-  const openDetails = (id: string) => setOpenRewardId(id);
-  const closeDetails = () => setOpenRewardId(null);
+  const openDetails = (id: string) => {
+    setOpenRewardId(id);
+    setQuantity(1); // Reset quantity khi mở dialog mới
+  };
+  
+  const closeDetails = () => {
+    setOpenRewardId(null);
+    setQuantity(1); // Reset quantity khi đóng dialog
+  };
 
   const activeReward = useMemo(() => ALL_REWARDS.find((r) => r.id === openRewardId) || null, [ALL_REWARDS, openRewardId]);
+
+  // Handle confirm redeem
+  const handleConfirmRedeem = useCallback(async () => {
+    if (!activeReward || !studentId) {
+      toast.error("Không thể đổi quà. Vui lòng thử lại sau.");
+      return;
+    }
+
+    if (!activeReward.inStock) {
+      toast.error("Sản phẩm đã hết hàng.");
+      return;
+    }
+
+    if (quantity < 1) {
+      toast.error("Số lượng phải lớn hơn 0.");
+      return;
+    }
+
+    if (quantity > activeReward.stock) {
+      toast.error(`Số lượng vượt quá tồn kho. Hiện còn ${activeReward.stock} sản phẩm.`);
+      return;
+    }
+
+    const totalPoints = activeReward.points * quantity;
+    if (userPoints < totalPoints) {
+      toast.error(`Bạn cần ${totalPoints.toLocaleString("vi-VN")} điểm để đổi ${quantity} sản phẩm này. Hiện tại bạn có ${userPoints.toLocaleString("vi-VN")} điểm.`);
+      return;
+    }
+
+    try {
+      // Đảm bảo studentId đã được lấy từ API /me
+      if (!studentId) {
+        toast.error("Không tìm thấy thông tin student. Vui lòng tải lại trang.");
+        return;
+      }
+
+      // Tạo payload theo đúng format JSON yêu cầu
+      // studentId được lấy từ API /me (endpoint: GET /me)
+      // productId được lấy từ id của API /products (endpoint: GET /products)
+      const invoicePayload = {
+        studentId: studentId, // ID từ API /me
+        productId: activeReward.id, // ID từ API /products (product.id)
+        quantity: quantity,
+      };
+
+      const result = await createNewInvoice(invoicePayload);
+
+      if (result.success) {
+        // Lấy product data từ response
+        // Response có thể chứa product data trực tiếp hoặc trong nested object
+        const responseData = result.data;
+        let productData: RedeemedProduct | null = null;
+        
+        // Kiểm tra các format response có thể có
+        if (responseData) {
+          // Format 1: Product data trực tiếp trong response
+          if (responseData.id && responseData.title) {
+            productData = {
+              id: responseData.id,
+              type: responseData.type,
+              title: responseData.title,
+              description: responseData.description,
+              unitCost: responseData.unitCost,
+              currency: responseData.currency,
+              totalStock: responseData.totalStock,
+              imageUrl: responseData.imageUrl,
+              isActive: responseData.isActive,
+              createdAt: responseData.createdAt,
+            };
+          }
+          // Format 2: Product data trong nested object (product field)
+          else if (responseData.product) {
+            productData = {
+              id: responseData.product.id,
+              type: responseData.product.type,
+              title: responseData.product.title,
+              description: responseData.product.description,
+              unitCost: responseData.product.unitCost,
+              currency: responseData.product.currency,
+              totalStock: responseData.product.totalStock,
+              imageUrl: responseData.product.imageUrl,
+              isActive: responseData.product.isActive,
+              createdAt: responseData.product.createdAt,
+            };
+          }
+        }
+        
+        // Nếu không tìm thấy product data trong response, sử dụng activeReward
+        if (!productData && activeReward) {
+          productData = {
+            id: activeReward.id,
+            type: activeReward.category === "voucher" ? "VOUCHER" : "GIFT",
+            title: activeReward.name,
+            description: activeReward.description,
+            unitCost: activeReward.points,
+            currency: "COIN",
+            totalStock: activeReward.stock,
+            imageUrl: activeReward.image,
+            isActive: activeReward.inStock,
+            createdAt: activeReward.createdAt,
+          };
+        }
+        
+        // Hiển thị dialog với thông tin sản phẩm
+        if (productData) {
+          setRedeemedProduct(productData);
+          setShowSuccessDialog(true);
+        }
+        
+        setOpenRewardId(null); // Đóng dialog đổi quà
+        // Refresh data
+        await Promise.all([
+          loadUserPoints(),
+          loadProducts(),
+        ]);
+      } else {
+        // Lấy error message từ result hoặc Redux state
+        let errorMessage = "Đổi quà thất bại. Vui lòng thử lại.";
+        
+        // Ưu tiên error từ result
+        if (result.error) {
+          if (typeof result.error === "string") {
+            errorMessage = result.error;
+          } else if (result.error?.message) {
+            errorMessage = result.error.message;
+          } else if (result.error?.response?.data?.message) {
+            errorMessage = result.error.response.data.message;
+          } else if (typeof result.error === "object") {
+            errorMessage = JSON.stringify(result.error);
+          }
+        } else if (invoiceError) {
+          // Fallback: Error từ Redux state
+          if (typeof invoiceError === "string") {
+            errorMessage = invoiceError;
+          } else if (typeof invoiceError === "object" && invoiceError !== null) {
+            const errorObj = invoiceError as any;
+            if (errorObj.message) {
+              errorMessage = errorObj.message;
+            } else {
+              errorMessage = JSON.stringify(invoiceError);
+            }
+          }
+        }
+        
+        toast.error(errorMessage);
+      }
+    } catch (error: any) {
+      let errorMessage = "Đổi quà thất bại. Vui lòng thử lại.";
+      
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === "string") {
+          errorMessage = errorData;
+        } else {
+          errorMessage = JSON.stringify(errorData);
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
+    }
+  }, [activeReward, studentId, userPoints, quantity, createNewInvoice, loadUserPoints, loadProducts, invoiceError]);
+
   const similarRewards = useMemo(() => {
     if (!activeReward) return [] as Reward[];
     return ALL_REWARDS.filter((r) => r.category === activeReward.category && r.id !== activeReward.id).slice(0, 3);
@@ -297,70 +326,27 @@ export default function GiftsPage() {
       <PublicNavbar />
 
       {/* Search & Filter */}
-      <section className="py-6 mt-25 bg-white">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-            {/* Search */}
-            <div className="md:col-span-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-                <Input
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  placeholder="Tìm theo tên quà..."
-                  className="pl-10 pr-4 py-3 rounded-lg border-gray-200 focus:border-orange-500 focus:ring-orange-500"
-                  suppressHydrationWarning
-                />
-              </div>
-            </div>
-
-            {/* Sort & Filter */}
-            <div className="flex items-center justify-between md:justify-end gap-2 flex-wrap">
-              <Select value={sortBy} onValueChange={(v) => { setSortBy(v as any); setCurrentPage(1); }}>
-              <SelectTrigger
-                className="w-full sm:w-[190px]"
-                suppressHydrationWarning
-              >
-                  <SelectValue placeholder="Sắp xếp" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pointsAsc">Ít điểm → Nhiều điểm</SelectItem>
-                  <SelectItem value="newest">Mới nhất</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="gap-2 w-full sm:w-auto"><Filter className="h-4 w-4" />Bộ lọc</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64">
-                  <DropdownMenuCheckboxItem
-                    checked={isAllSelected}
-                    onCheckedChange={handleSelectAll}
-                  >
-                    Tất cả
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={selectedCategories.voucher}
-                    onCheckedChange={(c) => toggleCategory("voucher", Boolean(c))}
-                  >
-                    {CATEGORY_LABEL.voucher}
-                  </DropdownMenuCheckboxItem>
-                  <DropdownMenuCheckboxItem
-                    checked={selectedCategories.gift}
-                    onCheckedChange={(c) => toggleCategory("gift", Boolean(c))}
-                  >
-                    {CATEGORY_LABEL.gift}
-                  </DropdownMenuCheckboxItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </section>
+      <GiftsSearchFilter
+        query={query}
+        onQueryChange={(q) => {
+          setQuery(q);
+          setCurrentPage(1);
+        }}
+        sortBy={sortBy}
+        onSortChange={(s) => {
+          setSortBy(s);
+          setCurrentPage(1);
+        }}
+        pointsFilter={pointsFilter}
+        onPointsFilterChange={(f) => {
+          setPointsFilter(f);
+          setCurrentPage(1);
+        }}
+        selectedCategories={selectedCategories}
+        onCategoryToggle={toggleCategory}
+        onSelectAll={handleSelectAll}
+        isAllSelected={isAllSelected}
+      />
 
       {/* Reward Grid */}
       <section className="py-10">
@@ -379,91 +365,17 @@ export default function GiftsPage() {
             </div>
           ) : current.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {current.map((r, index) => {
-                const canRedeem = r.inStock && userPoints >= r.points;
-                const needMore = Math.max(0, r.points - userPoints);
-                const categoryBadge = CATEGORY_BADGE[r.category];
-                return (
-                  <div
-                    key={r.id}
-                    className="group bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl border border-orange-100 transition-all duration-500 hover:-translate-y-2 animate-fadeInUp"
-                    style={{ animationDelay: `${index * 100}ms` }}
-                  >
-                    {/* Image */}
-                    <div className="relative h-56 overflow-hidden">
-                      <img
-                        src={r.image}
-                        alt={r.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-
-                      <Badge className="absolute top-4 right-4 bg-white/90 text-foreground shadow-md backdrop-blur-sm border-0">
-                        {categoryBadge}
-                      </Badge>
-
-                      <div className="absolute bottom-4 right-4 bg-white/95 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-md flex items-center gap-1">
-                        <Zap className="w-4 h-4 text-orange-500" />
-                        <span className="font-semibold text-foreground text-sm">
-                          {r.points.toLocaleString("vi-VN")}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Content */}
-                    <div className="p-6">
-                      <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors">
-                        {r.name}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {r.description}
-                      </p>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Clock className="w-4 h-4" />
-                          <span>{r.inStock ? `Còn ${r.stock}` : "Hết quà"}</span>
-                        </div>
-
-                        {!r.inStock ? (
-                          <Button
-                            size="sm"
-                            className="rounded-xl transition-all duration-300 bg-muted text-muted-foreground cursor-not-allowed"
-                            disabled
-                          >
-                            Hết hàng
-                          </Button>
-                        ) : !canRedeem ? (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size="sm"
-                                  className="rounded-xl transition-all duration-300 bg-muted text-muted-foreground cursor-not-allowed"
-                                  disabled
-                                >
-                                  Cần {needMore} điểm
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Bạn cần thêm {needMore} điểm nữa để đổi quà này</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        ) : (
-                          <Button
-                            size="sm"
-                            className="rounded-xl transition-all duration-300 bg-gradient-to-r from-orange-500 to-amber-400 hover:from-orange-600 hover:to-amber-500 text-white shadow-md hover:shadow-lg hover:scale-105"
-                            onClick={() => openDetails(r.id)}
-                          >
-                            Đổi ngay
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+              {current.map((r, index) => (
+                <GiftCard
+                  key={r.id}
+                  reward={r}
+                  index={index}
+                  userPoints={userPoints}
+                  isTopProduct={topProductIds.has(r.id)}
+                  isLowStock={r.stock < 50}
+                  onOpenDetails={openDetails}
+                />
+              ))}
             </div>
           ) : !loadingProducts && ALL_REWARDS.length === 0 ? (
             <div className="text-center py-16 text-gray-500">Không có quà nào</div>
@@ -472,99 +384,33 @@ export default function GiftsPage() {
           ) : null}
 
           {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-center gap-2 flex-wrap">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="flex items-center gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" /> Trước
-              </Button>
-              <div className="flex items-center gap-1 flex-wrap justify-center">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <Button
-                    key={page}
-                    size="sm"
-                    variant={currentPage === page ? "default" : "outline"}
-                    className={currentPage === page ? "bg-orange-500 hover:bg-orange-600 text-white" : ""}
-                    onClick={() => setCurrentPage(page)}
-                  >
-                    {page}
-                  </Button>
-                ))}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="flex items-center gap-1"
-              >
-                Sau <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <GiftsPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       </section>
 
       {/* Reward Details Modal */}
-      <Dialog open={Boolean(activeReward)} onOpenChange={(o) => !o && closeDetails()}>
-        <DialogContent className="w-[95vw] sm:max-w-xl md:max-w-3xl p-0 overflow-hidden">
-          {activeReward && (
-            <div className="grid md:grid-cols-2">
-              <div className="relative h-56 md:h-full min-h-[260px]">
-                <Image src={activeReward.image} alt={activeReward.name} fill className="object-cover" />
-              </div>
-              <div className="p-4 sm:p-6">
-                <DialogHeader>
-                  <DialogTitle className="text-xl sm:text-2xl font-bold text-gray-800">
-                    {activeReward.name}
-                  </DialogTitle>
-                </DialogHeader>
-                <p className="text-gray-600 mt-2 mb-4">{activeReward.description}</p>
-                <div className="flex items-center gap-2 mb-4">
-                  <Badge className="bg-orange-500 text-white">{activeReward.points.toLocaleString("vi-VN")} điểm</Badge>
-                  {activeReward.inStock ? (
-                    <Badge className="bg-green-500 text-white">Còn {activeReward.stock}</Badge>
-                  ) : (
-                    <Badge className="bg-gray-400 text-white">Hết quà</Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button className="bg-orange-500 hover:bg-orange-600 text-white">Xác nhận đổi quà</Button>
-                  <Button variant="outline" asChild>
-                    <Link href="#">Quy định đổi quà</Link>
-                  </Button>
-                </div>
+      <GiftDetailDialog
+        reward={activeReward}
+        quantity={quantity}
+        onQuantityChange={setQuantity}
+        onClose={closeDetails}
+        onConfirmRedeem={handleConfirmRedeem}
+        creatingInvoice={creatingInvoice}
+        studentId={studentId}
+        similarRewards={similarRewards}
+        onOpenSimilar={openDetails}
+      />
 
-                {similarRewards.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="font-semibold mb-3">Gợi ý quà tương tự</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      {similarRewards.map((s) => (
-                        <div key={s.id} className="bg-gray-50 rounded-lg overflow-hidden cursor-pointer" onClick={() => openDetails(s.id)}>
-                          <div className="relative h-24">
-                            <Image src={s.image} alt={s.name} fill className="object-cover" />
-                          </div>
-                          <div className="p-2">
-                            <p className="text-sm font-medium line-clamp-1">{s.name}</p>
-                            <span className="text-xs text-gray-600">{s.points.toLocaleString("vi-VN")} điểm</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Success Dialog */}
+      <SuccessDialog
+        open={showSuccessDialog}
+        onOpenChange={setShowSuccessDialog}
+        product={redeemedProduct}
+      />
     </main>
   );
 }
-
-

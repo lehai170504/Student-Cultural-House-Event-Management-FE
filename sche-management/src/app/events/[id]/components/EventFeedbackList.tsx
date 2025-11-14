@@ -20,6 +20,7 @@ export interface EventFeedbackListPropsWithEdit extends EventFeedbackListProps {
   onEdit?: (feedback: EventFeedbackResponse) => void;
   onDelete?: (feedbackId: string) => void;
   deletingFeedback?: boolean;
+  eventStatus?: string; // Event status để kiểm tra có cho phép sửa/xóa không
 }
 
 export default function EventFeedbackList({
@@ -29,6 +30,7 @@ export default function EventFeedbackList({
   onEdit,
   onDelete,
   deletingFeedback = false,
+  eventStatus,
 }: EventFeedbackListPropsWithEdit) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [feedbackToDelete, setFeedbackToDelete] = useState<string | null>(null);
@@ -100,7 +102,7 @@ export default function EventFeedbackList({
                             isMyFeedback ? "text-blue-800" : "text-gray-800"
                           }`}
                         >
-                          {fb.studentName || "Người dùng ẩn danh"}
+                          {(fb as any).studentName || "Người dùng ẩn danh"}
                         </p>
                         {isMyFeedback && (
                           <Badge className="bg-blue-500 text-white text-xs">
@@ -109,7 +111,7 @@ export default function EventFeedbackList({
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        {isMyFeedback && (
+                        {isMyFeedback && eventStatus !== "FINALIZED" && (
                           <div className="flex items-center gap-1">
                             {onEdit && (
                               <Button
