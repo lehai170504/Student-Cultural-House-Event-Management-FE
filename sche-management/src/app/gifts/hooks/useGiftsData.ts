@@ -190,7 +190,7 @@ export function useGiftsData() {
       const topProducts = await productService.getTopRedeemed();
       // API /products/top trả về format: [{ productId, totalRedeem, title, totalCoins }]
       // Lưu danh sách productIds của sản phẩm phổ biến
-      const topIds = new Set(topProducts.map((p) => p.id));
+      const topIds = new Set(topProducts.map((p) => p.productId));
       setTopProductIds(topIds);
     } catch (e: any) {
       setTopProductIds(new Set());
