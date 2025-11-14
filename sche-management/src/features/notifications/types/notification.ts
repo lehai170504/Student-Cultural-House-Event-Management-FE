@@ -16,6 +16,8 @@ export interface NotificationListResponse {
 export interface FetchNotificationsParams {
   status?: NotificationStatus;
   eventId?: string;
+  page?: number;
+  size?: number; // Số lượng thông báo mỗi trang, nếu không set sẽ lấy tất cả
 }
 
 export interface UnreadCountResponse {
