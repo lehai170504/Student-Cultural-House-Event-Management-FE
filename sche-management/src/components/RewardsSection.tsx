@@ -70,6 +70,7 @@ export default function RewardsSection() {
       setError(null);
 
       // Lấy danh sách top products từ API /products/top
+      // Format: [{ productId, totalRedeem, title, totalCoins }]
       const topProducts = await productService.getTopRedeemed();
       
       // Lấy 3 products đầu tiên (bán chạy nhất)
