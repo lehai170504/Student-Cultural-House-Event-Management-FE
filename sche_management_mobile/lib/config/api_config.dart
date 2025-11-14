@@ -32,6 +32,15 @@ class ApiConfig {
   static String getWallet(String walletId) => '/wallets/$walletId';
   static const String walletHistory = '/wallets/me/history';
 
+  // Invoice/Redeem endpoints
+  static const String invoices = '/invoices';
+  static String getStudentInvoices(String studentId) => '/invoices/students/$studentId';
+  static const String invoiceStats = '/invoices/stats';
+
+  // Product endpoints
+  static const String topProducts = '/products/top';
+  static const String lowStockProducts = '/products/low-stock';
+
   // Notification endpoints
   static const String notifications = '/me/broadcasts';
   static const String unreadCount = '/me/broadcasts/unread-count';
