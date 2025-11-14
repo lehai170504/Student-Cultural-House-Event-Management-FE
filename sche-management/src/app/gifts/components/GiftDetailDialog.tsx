@@ -123,9 +123,6 @@ export default function GiftDetailDialog({
                   "Xác nhận đổi quà"
                 )}
               </Button>
-              <Button variant="outline" asChild>
-                <Link href="#">Quy định đổi quà</Link>
-              </Button>
             </div>
 
             {similarRewards.length > 0 && (
