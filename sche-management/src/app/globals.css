@@ -125,3 +125,11 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* Dialogflow Messenger styles */
+df-messenger {
+  z-index: 9999;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+}

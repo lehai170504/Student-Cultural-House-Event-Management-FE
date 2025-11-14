@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/redux/Providers";
 import { Toaster } from "@/components/ui/sonner";
+import DialogflowMessenger from "@/components/DialogflowMessenger";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
         <Providers>
           {children}
           <Toaster position="top-right" richColors />
+          <DialogflowMessenger />
         </Providers>
       </body>
     </html>
